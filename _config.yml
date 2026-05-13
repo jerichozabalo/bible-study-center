@@ -1,0 +1,40 @@
+title: Bible Study Center
+tagline: Bringing Light Through God's Word
+email: biblestudycenter.ph@gmail.com
+description: >-
+  A community dedicated to studying God's Word, growing in faith,
+  and sharing His light with the world.
+baseurl: "/bible-study-center"
+url: "https://jerichozabalo.github.io"
+github_username: jerichozabalo
+
+# Build settings
+markdown: kramdown
+theme: null
+permalink: /blog/:year/:month/:day/:title/
+
+# Collections
+collections:
+  posts:
+    output: true
+    permalink: /blog/:year/:month/:day/:title/
+
+# Defaults
+defaults:
+  - scope:
+      path: ""
+      type: "posts"
+    values:
+      layout: "post"
+      author: "Bible Study Center"
+  - scope:
+      path: ""
+    values:
+      layout: "default"
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - README.md
+  - vendor

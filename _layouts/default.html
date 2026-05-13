@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page.title %}{{ page.title }} — {% endif %}{{ site.title }}</title>
+  <meta name="description" content="{% if page.excerpt %}{{ page.excerpt | strip_html | truncate: 160 }}{% else %}{{ site.description }}{% endif %}">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ site.baseurl }}/assets/css/style.css">
+  <link rel="icon" type="image/svg+xml" href="{{ site.baseurl }}/assets/images/logo.svg">
+</head>
+<body>
+  <header class="site-header">
+    <div class="container header-inner">
+      <a href="{{ site.baseurl }}/" class="logo-link">
+        <img src="{{ site.baseurl }}/assets/images/logo.svg" alt="Bible Study Center" class="logo-icon">
+        <span class="logo-text">Bible Study Center</span>
+      </a>
+      <button class="menu-toggle" aria-label="Toggle navigation">
+        <span></span><span></span><span></span>
+      </button>
+      <nav class="main-nav">
+        <a href="{{ site.baseurl }}/">Home</a>
+        <a href="{{ site.baseurl }}/about/">About</a>
+        <a href="{{ site.baseurl }}/blog/">Blog</a>
+        <a href="{{ site.baseurl }}/donate/">Donate</a>
+        <a href="{{ site.baseurl }}/contact/">Contact</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="site-content">
+    {{ content }}
+  </main>
+
+  <footer class="site-footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <img src="{{ site.baseurl }}/assets/images/logo.svg" alt="" class="footer-logo">
+        <p>{{ site.title }} — {{ site.tagline }}</p>
+      </div>
+      <div class="footer-links">
+        <a href="{{ site.baseurl }}/about/">About</a>
+        <a href="{{ site.baseurl }}/blog/">Blog</a>
+        <a href="{{ site.baseurl }}/donate/">Support</a>
+        <a href="{{ site.baseurl }}/contact/">Contact</a>
+      </div>
+      <p class="footer-copy">&copy; {{ site.title }}. All rights reserved.</p>
+    </div>
+  </footer>
+
+  <script src="{{ site.baseurl }}/assets/js/main.js"></script>
+</body>
+</html>
