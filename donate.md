@@ -27,8 +27,8 @@ title: Donate
         <div class="payment-body">
           <p>Send your donation via GCash:</p>
           <p class="payment-info">
-            <strong>Name:</strong> [Your Name Here]<br>
-            <strong>Number:</strong> [Your GCash Number Here]
+            <strong>Name:</strong> {{ site.data.donate.gcash_name }}<br>
+            <strong>Number:</strong> {{ site.data.donate.gcash_number }}
           </p>
           <p class="payment-note">Scan QR or send directly. Please include a note with your name so we can thank you.</p>
         </div>
@@ -42,8 +42,8 @@ title: Donate
         <div class="payment-body">
           <p>Send your donation via GoTyme Bank:</p>
           <p class="payment-info">
-            <strong>Account Name:</strong> [Your GoTyme Account Name Here]<br>
-            <strong>Account Number:</strong> [Your GoTyme Account Number Here]
+            <strong>Account Name:</strong> {{ site.data.donate.gotyme_name }}<br>
+            <strong>Account Number:</strong> {{ site.data.donate.gotyme_number }}
           </p>
         </div>
       </div>
