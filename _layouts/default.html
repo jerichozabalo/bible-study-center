@@ -22,11 +22,11 @@
         <span></span><span></span><span></span>
       </button>
       <nav class="main-nav">
-        <a href="{{ site.baseurl }}/">Home</a>
-        <a href="{{ site.baseurl }}/about/">About</a>
-        <a href="{{ site.baseurl }}/blog/">Blog</a>
-        <a href="{{ site.baseurl }}/donate/">Donate</a>
-        <a href="{{ site.baseurl }}/contact/">Contact</a>
+        <a href="{{ site.baseurl }}/" {% if page.url == "/" or page.url == "/index.html" %}class="active"{% endif %}>Home</a>
+        <a href="{{ site.baseurl }}/about/" {% if page.url == "/about/" or page.url == "/about.html" %}class="active"{% endif %}>About</a>
+        <a href="{{ site.baseurl }}/blog/" {% if page.url == "/blog/" or page.url contains "/blog/" %}class="active"{% endif %}>Blog</a>
+        <a href="{{ site.baseurl }}/donate/" {% if page.url == "/donate/" or page.url == "/donate.html" %}class="active"{% endif %}>Donate</a>
+        <a href="{{ site.baseurl }}/contact/" {% if page.url == "/contact/" or page.url == "/contact.html" %}class="active"{% endif %}>Contact</a>
       </nav>
     </div>
   </header>

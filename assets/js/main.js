@@ -3,7 +3,10 @@ document.addEventListener('DOMContentLoaded', function() {
   const toggle = document.querySelector('.menu-toggle');
   const nav = document.querySelector('.main-nav');
   if (toggle && nav) {
-    toggle.addEventListener('click', () => nav.classList.toggle('active'));
+    toggle.addEventListener('click', () => {
+      nav.classList.toggle('active');
+      toggle.classList.toggle('active');
+    });
   }
 
   // Handle donation form submission via FormSubmit or mailto fallback
