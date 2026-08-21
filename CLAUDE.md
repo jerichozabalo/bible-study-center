@@ -85,6 +85,18 @@ renamed and never edited after they have run; a correction is a new file
 must be run against **production** before deploying anything that needs a table
 it does not have yet.
 
+⛔ **A bare `npm run db:migrate` writes to PRODUCTION.** `scripts/migrate.mts`
+reads `DATABASE_URL` from `.env.local`, and that is the production branch —
+`TEST_DATABASE_URL` is the test one. There is no dev database. This is the
+intended behaviour (it is how production gets migrated), but it means the
+command is a production write, not a local one, and it does not look like it at
+the call site. An agent told otherwise applied `003` to production on
+2026-08-21; the migration was additive and the roster tables were empty, so
+nothing was lost, but the next one might not be. To migrate the **test** branch,
+override explicitly: `DATABASE_URL="$TEST_DATABASE_URL" npm run db:migrate`.
+The suite does not need it either way — `ensureSchema()` in `tests/fixtures.ts`
+migrates the test branch on every run.
+
 ⚠️ **`next dev` OOMs this VM** and fakes database outages while it does. Use
 `npm run build && npx next start -p 3111` to look at the app, or test at the
 module boundary.
