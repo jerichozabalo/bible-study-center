@@ -111,3 +111,106 @@ describe("parseGroupForm", () => {
     expect(input.durationMinutes).toBeNaN();
   });
 });
+
+import { parsePersonForm, personFormDefaults, personFormValuesFrom } from "./form";
+import { manilaToday } from "../dates";
+
+/**
+ * The same seam for a person. Thirteen fields arrive as strings; `people.ts`
+ * decides whether they are acceptable and what an empty one means.
+ */
+describe("parsePersonForm", () => {
+  function formOf(fields: Record<string, string>): FormData {
+    const data = new FormData();
+    for (const [key, value] of Object.entries(fields)) data.append(key, value);
+    return data;
+  }
+
+  it("reads the whole record the form posts", () => {
+    const input = parsePersonForm(
+      formOf({
+        name: "Nena Villamor",
+        phone: "0917 555 0184",
+        email: "nena.villamor@gmail.com",
+        homeGroupId: "5c0f0b3e-0000-4000-8000-000000000001",
+        joinedOn: "2026-06-02",
+        birthday: "1988-03-14",
+        address: "Blk 7 Lot 12, Muzon, SJDM",
+        civilStatus: "Married",
+        spiritualStatus: "Edify",
+        baptized: "on",
+        baptizedOn: "2024-05-03",
+        invitedBy: "Maria Santos",
+        notes: "Works nights on Thursdays.",
+      }),
+    );
+
+    expect(input).toEqual({
+      name: "Nena Villamor",
+      phone: "0917 555 0184",
+      email: "nena.villamor@gmail.com",
+      homeGroupId: "5c0f0b3e-0000-4000-8000-000000000001",
+      joinedOn: "2026-06-02",
+      birthday: "1988-03-14",
+      address: "Blk 7 Lot 12, Muzon, SJDM",
+      civilStatus: "Married",
+      spiritualStatus: "Edify",
+      baptized: true,
+      baptizedOn: "2024-05-03",
+      invitedBy: "Maria Santos",
+      notes: "Works nights on Thursdays.",
+    });
+  });
+
+  /** #67 — the whole form is optional except the name. */
+  it("reads a walk-in captured with nothing but a name", () => {
+    const input = parsePersonForm(formOf({ name: "Nico" }));
+
+    expect(input).toMatchObject({
+      name: "Nico",
+      phone: null,
+      email: null,
+      homeGroupId: null,
+      birthday: null,
+      // An unticked checkbox posts nothing at all.
+      baptized: false,
+      baptizedOn: null,
+    });
+  });
+});
+
+describe("personFormValuesFrom", () => {
+  function formOf(fields: Record<string, string>): FormData {
+    const data = new FormData();
+    for (const [key, value] of Object.entries(fields)) data.append(key, value);
+    return data;
+  }
+
+  it("hands the form back what was typed, so a refusal costs nothing", () => {
+    const values = personFormValuesFrom(
+      formOf({ name: "", phone: "0917", spiritualStatus: "Equip", baptized: "on" }),
+    );
+
+    expect(values).toMatchObject({
+      name: "",
+      phone: "0917",
+      spiritualStatus: "Equip",
+      baptized: true,
+    });
+  });
+
+  it("never renders null into an input", () => {
+    const values = personFormValuesFrom(formOf({ name: "Half a form" }));
+
+    expect(values.email).toBe("");
+    expect(values.homeGroupId).toBe("");
+    expect(values.birthday).toBe("");
+  });
+});
+
+describe("personFormDefaults", () => {
+  it("starts a new person on today's date in Manila", () => {
+    expect(personFormDefaults().joinedOn).toBe(manilaToday());
+    expect(personFormDefaults().name).toBe("");
+  });
+});

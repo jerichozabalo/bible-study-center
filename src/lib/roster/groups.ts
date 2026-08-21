@@ -15,6 +15,7 @@
  * dropped connection, a constraint nobody expected — surface as the error it is.
  */
 import { query, transaction } from "../db";
+import { moveMembership } from "./memberships";
 
 /** Something the leader typed cannot be saved, and the message says why. */
 export class RosterValidationError extends Error {
@@ -196,10 +197,21 @@ export async function archiveGroup(
         throw new RosterValidationError("Pick a BGroup that is still running.");
       }
 
-      await tx.query(
-        "UPDATE people SET home_group_id = $1, updated_at = now() WHERE home_group_id = $2",
-        [destination, id],
+      const moving = await tx.query<{ id: string }>(
+        `UPDATE people SET home_group_id = $1, updated_at = now()
+          WHERE home_group_id = $2 AND owner_id = $3
+          RETURNING id`,
+        [destination, id, ownerId],
       );
+
+      // A bulk move is a transfer, so it leaves the same trail one does (#28):
+      // without this, a moved member's marker keeps naming the BGroup they are
+      // no longer in, and "joined mid-book" would be read against the wrong
+      // book. One statement per person — the members of one BGroup, not the
+      // roster.
+      for (const person of moving) {
+        await moveMembership(tx, ownerId, person.id, destination);
+      }
     }
 
     // `archived_at IS NULL` keeps the first archiving date when this is run

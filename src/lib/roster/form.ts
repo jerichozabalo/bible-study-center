@@ -3,7 +3,9 @@
  * be tested without a request, and apart from `groups.ts` so the module does
  * not have to know that HTML exists.
  */
+import { manilaToday } from "../dates";
 import type { GroupInput } from "./groups";
+import type { PersonInput } from "./people";
 
 /** What the group form renders from — on a first paint and on a refusal alike. */
 export type GroupFormValues = {
@@ -65,6 +67,94 @@ export function parseGroupForm(formData: FormData): GroupInput {
   };
 }
 
+/** What the person form renders from — on a first paint and on a refusal alike. */
+export type PersonFormValues = {
+  name: string;
+  phone: string;
+  email: string;
+  /** "" = no BGroup yet. Never null: a `<select>` cannot render one. */
+  homeGroupId: string;
+  joinedOn: string;
+  birthday: string;
+  address: string;
+  civilStatus: string;
+  spiritualStatus: string;
+  baptized: boolean;
+  baptizedOn: string;
+  invitedBy: string;
+  notes: string;
+};
+
+/**
+ * A blank person. A function rather than a constant because one field is not
+ * blank: a new record joined today, and "today" is a question with a different
+ * answer tomorrow — and in Manila, not wherever the server stands (#56).
+ */
+export function personFormDefaults(): PersonFormValues {
+  return {
+    name: "",
+    phone: "",
+    email: "",
+    homeGroupId: "",
+    joinedOn: manilaToday(),
+    birthday: "",
+    address: "",
+    civilStatus: "",
+    spiritualStatus: "",
+    baptized: false,
+    baptizedOn: "",
+    invitedBy: "",
+    notes: "",
+  };
+}
+
+/**
+ * What the person form should show again after a refusal — everything that was
+ * typed, exactly as typed. Thirteen fields is far too many to ask anyone to
+ * re-enter because a phone number was four digits long.
+ */
+export function personFormValuesFrom(formData: FormData): PersonFormValues {
+  return {
+    name: text(formData, "name"),
+    phone: text(formData, "phone"),
+    email: text(formData, "email"),
+    homeGroupId: text(formData, "homeGroupId"),
+    joinedOn: text(formData, "joinedOn"),
+    birthday: text(formData, "birthday"),
+    address: text(formData, "address"),
+    civilStatus: text(formData, "civilStatus"),
+    spiritualStatus: text(formData, "spiritualStatus"),
+    baptized: checked(formData, "baptized"),
+    baptizedOn: text(formData, "baptizedOn"),
+    invitedBy: text(formData, "invitedBy"),
+    notes: text(formData, "notes"),
+  };
+}
+
+/**
+ * Form data in, `PersonInput` out. Empty strings become null here so the module
+ * never has to wonder whether "" means "cleared" or "never asked" — for this
+ * form they are the same thing, and #67's walk-in posts a name and twelve of
+ * them.
+ */
+export function parsePersonForm(formData: FormData): PersonInput {
+  return {
+    name: text(formData, "name"),
+    phone: optional(formData, "phone"),
+    email: optional(formData, "email"),
+    homeGroupId: optional(formData, "homeGroupId"),
+    joinedOn: optional(formData, "joinedOn"),
+    birthday: optional(formData, "birthday"),
+    address: optional(formData, "address"),
+    civilStatus: optional(formData, "civilStatus"),
+    spiritualStatus: optional(formData, "spiritualStatus"),
+    baptized: checked(formData, "baptized"),
+    baptizedOn: optional(formData, "baptizedOn"),
+    invitedBy: optional(formData, "invitedBy"),
+    notes: optional(formData, "notes"),
+  };
+}
+
 function text(formData: FormData, field: string): string {
   const value = formData.get(field);
   return typeof value === "string" ? value : "";
@@ -77,4 +167,13 @@ function text(formData: FormData, field: string): string {
 function integer(formData: FormData, field: string): number {
   const raw = text(formData, field).trim();
   return raw === "" ? Number.NaN : Number(raw);
+}
+
+function optional(formData: FormData, field: string): string | null {
+  return text(formData, field).trim() || null;
+}
+
+/** An unticked checkbox posts nothing at all — that is the whole encoding. */
+function checked(formData: FormData, field: string): boolean {
+  return formData.get(field) !== null;
 }

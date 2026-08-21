@@ -3,8 +3,8 @@
  *
  * What the board draws that is not here yet, and why: the progress dots and the
  * "Advance to Book 2" checkpoint are issue 9 (they need held meetings and
- * completions to mean anything), and the member cards are issue 3. The blue
- * card, the schedule line and the sections around them are the board's.
+ * completions to mean anything). The blue card, the schedule line, the member
+ * list and the sections around them are the board's.
  *
  * The board's overflow menu is a bottom row of plain controls instead: with two
  * actions on the screen — edit and archive — a kebab hides them for no gain.
@@ -16,7 +16,9 @@ import { BackRow } from "@/components/BackRow";
 import { requireUser } from "@/lib/auth/guard";
 import { bookLabel } from "@/lib/curriculum/books";
 import { formatDayMonth } from "@/lib/dates";
+import { PersonRow } from "@/components/people/PersonRow";
 import { getGroup } from "@/lib/roster/groups";
+import { listGroupMembers } from "@/lib/roster/people";
 import { formatMembers, formatSchedule } from "@/lib/roster/schedule";
 
 export const dynamic = "force-dynamic";
@@ -27,6 +29,8 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   const group = await getGroup(user.email, id);
 
   if (!group) notFound();
+
+  const members = await listGroupMembers(user.email, group.id);
 
   const book =
     group.currentBookTitle === null
@@ -76,11 +80,28 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
         <h3 className="text-[18px]">Members</h3>
         <span className="text-[13px] font-bold text-tan">{group.memberCount}</span>
       </div>
-      <div className="rounded-[20px] border border-line bg-card px-4 py-6 text-center">
-        <p className="mx-auto max-w-[250px] text-[14.5px] leading-[1.45] text-slate">
-          Adding people to a BGroup arrives with issue 3.
-        </p>
-      </div>
+      {members.length === 0 ? (
+        <div className="rounded-[20px] border border-line bg-card px-4 py-6 text-center">
+          <p className="mx-auto max-w-[250px] text-[14.5px] leading-[1.45] text-slate">
+            Nobody calls this their home BGroup yet. A person picks one when you add them, and can
+            be moved here later.
+          </p>
+          {group.archivedAt ? null : (
+            <Link
+              href="/people/new"
+              className="mt-4 flex h-[50px] w-full items-center justify-center rounded-[16px] border-[1.5px] border-line text-[15px] font-bold text-blue active:bg-shell"
+            >
+              Add a person
+            </Link>
+          )}
+        </div>
+      ) : (
+        <div className="flex flex-col gap-[8px]">
+          {members.map((person) => (
+            <PersonRow key={person.id} person={person} />
+          ))}
+        </div>
+      )}
 
       {group.archivedAt ? null : (
         <div className="mt-[22px] flex flex-col gap-[9px]">

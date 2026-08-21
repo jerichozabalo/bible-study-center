@@ -13,8 +13,22 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "../auth/guard";
-import { type GroupFormValues, formValuesFrom, parseGroupForm } from "./form";
+import {
+  type GroupFormValues,
+  type PersonFormValues,
+  formValuesFrom,
+  parseGroupForm,
+  parsePersonForm,
+  personFormValuesFrom,
+} from "./form";
 import { RosterValidationError, archiveGroup, createGroup, updateGroup } from "./groups";
+import {
+  createPerson,
+  removePerson,
+  restorePerson,
+  setSteppedAway,
+  updatePerson,
+} from "./people";
 
 /**
  * `values` is what the form re-renders from after a refusal. Without it the
@@ -83,5 +97,89 @@ export async function archiveGroupAction(
   }
 
   revalidatePath("/people/groups");
+  revalidatePath("/people");
   redirect("/people/groups");
+}
+
+/** The same contract for a person: what refused, and what to render again. */
+export type PersonFormState = { error?: string; values?: PersonFormValues };
+
+export async function createPersonAction(
+  _previous: PersonFormState,
+  formData: FormData,
+): Promise<PersonFormState> {
+  const user = await requireUser();
+
+  let id: string;
+  try {
+    id = await createPerson(user.email, parsePersonForm(formData));
+  } catch (thrown) {
+    if (thrown instanceof RosterValidationError) {
+      return { error: thrown.message, values: personFormValuesFrom(formData) };
+    }
+    throw thrown;
+  }
+
+  revalidatePath("/people");
+  revalidatePath("/people/groups");
+  redirect(`/people/${id}`);
+}
+
+export async function updatePersonAction(
+  _previous: PersonFormState,
+  formData: FormData,
+): Promise<PersonFormState> {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+
+  try {
+    await updatePerson(user.email, id, parsePersonForm(formData));
+  } catch (thrown) {
+    if (thrown instanceof RosterValidationError) {
+      return { error: thrown.message, values: personFormValuesFrom(formData) };
+    }
+    throw thrown;
+  }
+
+  revalidatePath("/people");
+  revalidatePath("/people/groups");
+  revalidatePath(`/people/${id}`);
+  redirect(`/people/${id}`);
+}
+
+/**
+ * The three one-tap controls on a person's screen. No form state: none of them
+ * can be refused for anything the leader typed, so there is nothing to say
+ * back — the screen simply re-renders in its new state.
+ */
+export async function setSteppedAwayAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+
+  await setSteppedAway(user.email, id, formData.get("steppedAway") === "true");
+
+  revalidatePath("/people");
+  revalidatePath(`/people/${id}`);
+}
+
+export async function removePersonAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+
+  await removePerson(user.email, id);
+
+  revalidatePath("/people");
+  revalidatePath("/people/groups");
+  redirect("/people");
+}
+
+export async function restorePersonAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+
+  await restorePerson(user.email, id);
+
+  revalidatePath("/people");
+  revalidatePath("/people/groups");
+  redirect(`/people/${id}`);
 }

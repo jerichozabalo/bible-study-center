@@ -1,7 +1,7 @@
 ---
 issue: 3
 title: People roster (add/edit person, People tab, Person detail)
-status: open
+status: done
 blocked-by: [2]
 type: afk
 ---

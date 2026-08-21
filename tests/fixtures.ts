@@ -7,6 +7,7 @@
  */
 import { query } from "@/lib/db";
 import { migrate } from "@/lib/migrate";
+import { createPerson } from "@/lib/roster/people";
 
 let schema: Promise<unknown> | null = null;
 
@@ -39,23 +40,21 @@ export const TEST_OWNER = "leader@example.com";
  * network round trip per assertion for rows that never change.
  */
 export async function resetRoster(): Promise<void> {
+  // The two roster tables cascade from `people`, but they are named here so a
+  // reader of this file can see everything a reset empties.
+  await query("DELETE FROM person_corrections");
+  await query("DELETE FROM group_memberships");
   await query("DELETE FROM people");
   await query("DELETE FROM groups");
 }
 
 /**
- * A person, inserted straight into the table.
- *
- * The roster module is issue 3; issue 2 only needs members to exist so a group
- * can count them and #27's bulk move has something to move. When issue 3 lands
- * its own `createPerson`, this should become a call to it.
+ * A person on the roster — through the module the app itself uses, so a fixture
+ * cannot describe a person the app could not have created (#67's name-only
+ * walk-in included).
  */
 export async function addPerson(name: string, homeGroupId: string | null): Promise<string> {
-  const rows = await query<{ id: string }>(
-    "INSERT INTO people (owner_id, name, home_group_id) VALUES ($1, $2, $3) RETURNING id",
-    [TEST_OWNER, name, homeGroupId],
-  );
-  return rows[0].id;
+  return createPerson(TEST_OWNER, { name, homeGroupId });
 }
 
 /** The id of a seeded GLC book by its published number. */
