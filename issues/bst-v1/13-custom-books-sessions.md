@@ -1,7 +1,7 @@
 ---
 issue: 13
 title: User-created books and sessions
-status: open
+status: done
 blocked-by: [2]
 type: afk
 ---
