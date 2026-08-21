@@ -11,7 +11,9 @@
   --color-shell: #f1ede5; /* inset panels, disabled keys */
   --color-card: #ffffff;
   --color-line: #e6dfd4; /* hairline borders */
+  --color-line-soft: #f0eae0; /* the lighter hairline BETWEEN rows of one card */
   --color-stone: #c3b8a5; /* chevrons, empty dots */
+  --color-track: #dfd8cc; /* a switch that is off */
 
   --color-ink: #14202e; /* headings, body */
   --color-slate: #61708a; /* secondary text */

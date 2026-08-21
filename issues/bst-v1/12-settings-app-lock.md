@@ -1,7 +1,7 @@
 ---
 issue: 12
 title: Settings screen + PIN/biometric app lock
-status: open
+status: done
 blocked-by: [1]
 type: afk
 ---
