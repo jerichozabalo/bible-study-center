@@ -28,4 +28,5 @@ Home shows the next meeting and the attention list ("Needs you"): people who hav
 ## Looks like
 - `/home/jericho/biblestudy-tracker/design/Main.dc.html` (Home: next meeting + "Needs you" list) and `/home/jericho/biblestudy-tracker/design/Settings.dc.html` (the threshold row).
 - ⚠️ Home board copy says "No attendance in 3 weeks" — **stale**: #64 changed the unit to meetings. Keep the board's layout/tone, fix the unit in copy.
+- ⚠️ **The same stale unit appears on a second board** (found while supervising issue 6, 2026-08-21): `design/Attendance.dc.html`'s mock sub-line reads `Quiet 3 weeks · joined at Session 3`. #64 counts **consecutive missed HELD meetings, never weeks**. This issue owns that sub-line wherever it renders — fix the unit on the sheet too, not just on Home.
 - Render: `node /home/jericho/biblestudy-tracker/design/preview/build.js Main '[{}]'`. Human comparison required before done.

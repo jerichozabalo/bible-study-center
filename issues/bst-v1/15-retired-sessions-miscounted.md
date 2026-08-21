@@ -43,6 +43,14 @@ workaround, and he is the only user there is.
 - Sweep for any other place that counts or lists sessions without the clause —
   this is a two-file inconsistency today and the point of the issue is that it
   stays a one-file rule afterwards.
+- **A second instance is already known** (found while supervising issue 6,
+  2026-08-21): `src/lib/meetings/prefill.ts`'s `getMeetingPrefill` runs
+  `SELECT id, number, title FROM sessions WHERE book_id = $1` with no
+  `retired_at` clause. Symptom: after retiring a session from a custom book, the
+  [+] form's LESSON panel still offers it, and #53's next-session prefill can
+  land on a session the book no longer has. Fix it in this issue.
+- For reference, `src/lib/attendance/completions.ts`'s `listCoveredSessions`
+  already filters correctly — copy that, not `groups.ts`.
 
 ## Notes
 - Seeded GLC books have no retired sessions, so nothing about the eight

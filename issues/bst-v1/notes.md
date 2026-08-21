@@ -59,3 +59,16 @@ where, and when. Promote to an issue the day one actually bites.
   is merged. Cost three agents an investigation each; kept as a note rather than
   an issue because the assertion is correct for the single-tree case that is
   normal.
+- **2026-08-21 — `listCompletionCorrections` has no screen either.**
+  `src/lib/attendance/completions.ts`. The same shape as the
+  `listPersonCorrections` line above: attendance corrections are tombstoned per
+  #24 and nothing renders them, so the leader cannot read what a sheet said
+  before he changed it.
+- **2026-08-21 — Typing a walk-in's name and then tapping "Save attendance"
+  discards the typed name** and saves + holds the sheet.
+  `src/components/attendance/AttendanceSheet.tsx` — one form, two submits.
+  Low harm (retype), but it happens mid-meeting. Observed by reading the form
+  semantics, not in a browser.
+- **2026-08-21 — `getSheet` costs two round trips** (`getMeeting`, then the
+  roster read). `src/lib/attendance/sheet.ts`. Irrelevant at one BGroup's
+  scale; noted beside the `listPickerGroups` line above.
