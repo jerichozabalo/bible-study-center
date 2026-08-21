@@ -34,6 +34,24 @@ directory name is older than the decision.
 Next.js (App Router) + Neon Postgres + Vercel. Server-first (#70): no local-first
 sync engine. The single offline write path is the attendance outbox (#72).
 
+## Where it lives
+
+Live at **https://bible-study-tayo.vercel.app**, on Jericho's own Vercel team
+`jericho-s-projects6`. Two Neon databases, both `sin1`, both Free:
+`bible-study-tayo` (production) and `bible-study-tayo-test` (the suite).
+
+Deploy with `npx vercel deploy --prod` — there is no git remote and no
+auto-deploy. Vercel deploys the **working tree**, so commit as part of the ship.
+
+⚠️ `vercel integration add neon` **never asks for a region** and silently
+defaults to `us-east-1`. Always pass `-m region=sin1`. Valid keys: cle1, iad1,
+pdx1, fra1, lhr1, syd1, sin1, gru1. `vercel.json` pins functions to `sin1` so
+they sit next to the database rather than across the Pacific from it.
+
+⚠️ `vercel link` appends a blanket `.env*` to `.gitignore`, which would hide
+`.env.example`. The `!.env.example` exception above it is deliberate — do not
+remove it.
+
 ## Running it
 
 ```

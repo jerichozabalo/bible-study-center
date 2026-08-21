@@ -5,10 +5,12 @@ build/
 next-env.d.ts
 tsconfig.tsbuildinfo
 
-# Secrets. `.env.example` is the committed shape; the real values never are.
-.env
-.env.local
-.env*.local
+# Secrets. Every .env file is ignored, EXCEPT the committed shape.
+# `vercel link` appends a blanket `.env*` of its own below; without this
+# exception that rule would also hide `.env.example`, which is the one file
+# here that tells a fresh clone what it needs.
+.env*
+!.env.example
 
 .vercel/
 .DS_Store
@@ -19,3 +21,18 @@ tsconfig.tsbuildinfo
 # the source; these are output.
 design/preview/*-preview.html
 
+# Appended by `vercel link`. Kept as-is so the CLI does not re-add them; the
+# `!.env.example` exception above is what keeps the committed shape visible.
+.vercel
+.env*
+
+# Vendor agent-skills, installed unasked by `vercel integration add neon`.
+# Deliberately NOT committed: they are Neon's own documentation, they would
+# load into every future session in this repo, and some of their guidance cuts
+# against decisions already settled here (branch-first workflow; renaming the
+# database "Lakebase Postgres", against #66's one-word-per-thing rule).
+# CLAUDE.md is this repo's single source of truth and already carries the Neon
+# facts we actually hit. Re-installed on demand: `npx skills add neondatabase/agent-skills`
+.agents/
+.claude/
+skills-lock.json
