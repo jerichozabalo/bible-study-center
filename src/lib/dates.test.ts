@@ -1,6 +1,15 @@
 import { describe, expect, it } from "vitest";
 
-import { ageOn, formatDayMonth, formatLongDate, isCalendarDate, manilaToday } from "./dates";
+import {
+  addDays,
+  ageOn,
+  formatDayMonth,
+  formatLongDate,
+  formatWeekdayDate,
+  isCalendarDate,
+  manilaToday,
+  weekdayOf,
+} from "./dates";
 
 /**
  * Dates are read in Manila, wherever the server happens to be standing.
@@ -39,6 +48,18 @@ describe("formatLongDate", () => {
   });
 });
 
+/**
+ * The meeting form's date row asks a different question — "which day am I
+ * picking" — so it names the weekday and drops the year. Separate from
+ * `formatLongDate` on purpose; the two were merged into one name once and it
+ * silently gave every birthday a weekday.
+ */
+describe("formatWeekdayDate", () => {
+  it("names the day and the date the way the boards write it", () => {
+    expect(formatWeekdayDate("2026-08-19")).toBe("Wednesday, 19 August");
+  });
+});
+
 describe("isCalendarDate", () => {
   it("accepts what a date input posts", () => {
     expect(isCalendarDate("2026-08-21")).toBe(true);
@@ -53,10 +74,33 @@ describe("isCalendarDate", () => {
 });
 
 describe("manilaToday", () => {
+  it("gives the local date as YYYY-MM-DD, the shape a meeting stores (#56)", () => {
+    expect(manilaToday(new Date("2026-05-12T09:00:00Z"))).toBe("2026-05-12");
+  });
+
   it("is the day it is in Bulacan, not in UTC", () => {
     // 8am on the 22nd in Manila; still the 21st everywhere UTC.
     expect(manilaToday(new Date("2026-08-21T23:59:00Z"))).toBe("2026-08-22");
     expect(manilaToday(new Date("2026-08-21T15:00:00Z"))).toBe("2026-08-21");
+  });
+});
+
+describe("addDays", () => {
+  it("walks a local date without going through a clock", () => {
+    expect(addDays("2026-05-12", 1)).toBe("2026-05-13");
+    expect(addDays("2026-05-12", -1)).toBe("2026-05-11");
+  });
+
+  it("crosses months and years", () => {
+    expect(addDays("2026-02-28", 1)).toBe("2026-03-01");
+    expect(addDays("2026-01-01", -1)).toBe("2025-12-31");
+  });
+});
+
+describe("weekdayOf", () => {
+  it("gives Sunday-first day numbers, matching a group's weekday (#46)", () => {
+    expect(weekdayOf("2026-08-23")).toBe(0);
+    expect(weekdayOf("2026-08-26")).toBe(3);
   });
 });
 

@@ -6,6 +6,13 @@
  * in the same room. The zone is named explicitly because the server is not in
  * it: Vercel's functions run in UTC, and the default formatting would move
  * every early-morning timestamp back a day.
+ *
+ * Two shapes live here and they are not interchangeable. A `Date` is an
+ * instant — `created_at`, `archived_at` — and gets formatted *into* Manila. A
+ * calendar day (a birthday, a meeting's date) is a `YYYY-MM-DD` string that has
+ * no zone of its own; it travels as `::text` from Postgres to the screen and is
+ * never put through the server's clock. Parsing "2026-08-19" in UTC and
+ * printing it in Manila is exactly how a date silently becomes the next day.
  */
 const DAY_MONTH = new Intl.DateTimeFormat("en-GB", {
   timeZone: "Asia/Manila",
@@ -13,20 +20,25 @@ const DAY_MONTH = new Intl.DateTimeFormat("en-GB", {
   month: "long",
 });
 
-/** "12 May" — the form the artboards use for a date without a year. */
-export function formatDayMonth(date: Date): string {
-  return DAY_MONTH.format(date);
-}
-
 /**
- * Calendar days — the roster's birthday, baptized-on and joined-on (#9b).
- *
- * These are days, not instants, and they travel as `YYYY-MM-DD` text from the
- * `date` column to the screen without ever becoming a `Date`. That is the whole
- * point: `new Date("1988-03-14")` is midnight UTC, which is the 13th in any
- * zone west of Greenwich and would print the wrong birthday for half the
- * planet. Postgres is asked for `::text` and nothing here parses it back.
+ * Read in UTC on purpose: the string being formatted IS the local date, so
+ * shifting it into another zone would answer a question nobody asked.
  */
+const WEEKDAY_DATE = new Intl.DateTimeFormat("en-GB", {
+  timeZone: "UTC",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+});
+
+/** `en-CA` because its short format IS ISO order — the shape the column stores. */
+const MANILA_DAY = new Intl.DateTimeFormat("en-CA", {
+  timeZone: "Asia/Manila",
+  year: "numeric",
+  month: "2-digit",
+  day: "2-digit",
+});
+
 const MONTH_NAMES = [
   "January",
   "February",
@@ -44,6 +56,11 @@ const MONTH_NAMES = [
 
 const CALENDAR_DATE = /^\d{4}-\d{2}-\d{2}$/;
 
+/** "12 May" — the form the artboards use for a date without a year. */
+export function formatDayMonth(date: Date): string {
+  return DAY_MONTH.format(date);
+}
+
 /** Whether a string is a real calendar day in the form a date input posts. */
 export function isCalendarDate(value: string): boolean {
   if (!CALENDAR_DATE.test(value)) return false;
@@ -55,7 +72,12 @@ export function isCalendarDate(value: string): boolean {
   return day <= new Date(Date.UTC(year, month, 0)).getUTCDate();
 }
 
-/** "14 March 1988" — how the Person board writes a date with its year. */
+/**
+ * "14 March 1988" — how the Person board writes a date with its year.
+ *
+ * Built by hand rather than with `Intl` so that a malformed value comes back
+ * unchanged instead of throwing at the top of a server component.
+ */
 export function formatLongDate(value: string): string {
   if (!isCalendarDate(value)) return value;
 
@@ -63,22 +85,42 @@ export function formatLongDate(value: string): string {
   return `${Number(day)} ${MONTH_NAMES[Number(month) - 1]} ${year}`;
 }
 
-const MANILA_DAY = new Intl.DateTimeFormat("en-CA", {
-  timeZone: "Asia/Manila",
-  year: "numeric",
-  month: "2-digit",
-  day: "2-digit",
-});
+/**
+ * "Wednesday, 19 August" — the note under the new-meeting form's date row.
+ *
+ * Distinct from `formatLongDate` above: this one names the weekday and drops
+ * the year, because the question that screen answers is "which day am I
+ * picking", not "when was this person born". Two names for two sentences.
+ */
+export function formatWeekdayDate(date: string): string {
+  const parts = WEEKDAY_DATE.formatToParts(new Date(`${date}T00:00:00Z`));
+  const part = (type: Intl.DateTimeFormatPartTypes) =>
+    parts.find((candidate) => candidate.type === type)?.value ?? "";
+
+  return `${part("weekday")}, ${part("day")} ${part("month")}`;
+}
 
 /**
  * Today's date in Bulacan, as `YYYY-MM-DD`.
  *
- * Every day the roster records — a joined-on default, the date a transfer
- * happened — is the day it is in the room, not on Vercel's clock. `en-CA`
- * because its short format IS ISO order.
+ * Every day the app records — a joined-on default, the date a transfer
+ * happened, the date a new meeting opens on — is the day it is in the room,
+ * not on Vercel's clock.
  */
 export function manilaToday(now: Date = new Date()): string {
   return MANILA_DAY.format(now);
+}
+
+/** `YYYY-MM-DD` shifted by whole days, staying a local date throughout. */
+export function addDays(date: string, days: number): string {
+  const moved = new Date(`${date}T00:00:00Z`);
+  moved.setUTCDate(moved.getUTCDate() + days);
+  return moved.toISOString().slice(0, 10);
+}
+
+/** 0 = Sunday, matching a group's `weekday` and #46's Sunday-first calendar. */
+export function weekdayOf(date: string): number {
+  return new Date(`${date}T00:00:00Z`).getUTCDay();
 }
 
 /**
