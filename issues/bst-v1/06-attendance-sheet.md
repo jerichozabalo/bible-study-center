@@ -1,7 +1,7 @@
 ---
 issue: 6
 title: Attendance sheet (tick model, present-only, walk-in capture)
-status: open
+status: done
 blocked-by: [3, 4]
 type: afk
 ---

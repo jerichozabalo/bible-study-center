@@ -8,6 +8,8 @@
  * created from the [+] tab is visible somewhere the moment it exists. The
  * calendar (issue 5) is where it properly belongs.
  */
+import Link from "next/link";
+
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth/guard";
 import { formatWeekdayDate, manilaToday } from "@/lib/dates";
@@ -54,6 +56,13 @@ export default async function HomePage() {
   );
 }
 
+/**
+ * Tapping a meeting opens its attendance sheet (issue 6) — the board's "Mark
+ * attendance" hero button is issue 8's, and until it exists this row is the way
+ * in. It leads to the same screen whether the night is proposed or held: taking
+ * attendance is what makes it held (#47), and reopening it is how a tick is
+ * corrected (#24).
+ */
 function MeetingRow({ meeting }: { meeting: MeetingSummary }) {
   const lesson =
     meeting.sessionNumber === null
@@ -61,7 +70,10 @@ function MeetingRow({ meeting }: { meeting: MeetingSummary }) {
       : `Book ${meeting.bookNumber} · Session ${meeting.sessionNumber} — ${meeting.sessionTitle}`;
 
   return (
-    <div className="rounded-[20px] border-[1.5px] border-line bg-card px-[15px] py-[14px]">
+    <Link
+      href={`/meetings/${meeting.id}`}
+      className="block rounded-[20px] border-[1.5px] border-line bg-card px-[15px] py-[14px] active:bg-shell"
+    >
       <div className="flex items-baseline justify-between gap-[10px]">
         <span className="min-w-0 text-[15.5px] font-bold">{meeting.groupName}</span>
         {/* #47: everything created here is proposed, and saying so on the card
@@ -74,6 +86,6 @@ function MeetingRow({ meeting }: { meeting: MeetingSummary }) {
         {formatWeekdayDate(meeting.date)} · {formatTime(meeting.startTime)}
       </div>
       <div className="mt-[2px] text-[13px] text-tan">{lesson}</div>
-    </div>
+    </Link>
   );
 }

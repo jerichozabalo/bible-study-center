@@ -15,6 +15,9 @@ import { query } from "@/lib/db";
 /**
  * Empty the meetings table. Run before `resetRoster()`, which is what deletes
  * the groups these rows point at.
+ *
+ * Completions and their corrections (migration 006) cascade from `meetings`, so
+ * this is also what clears an attendance sheet between tests.
  */
 export async function resetMeetings(): Promise<void> {
   await query("DELETE FROM meetings");
@@ -60,6 +63,27 @@ export async function addHeldMeeting(
      VALUES ($1, $1, $2, $3, '19:00', 90, $4, $5, 'held', 'created')
      RETURNING id`,
     [ownerId, groupId, date, covered.bookId, covered.sessionId],
+  );
+  return rows[0].id;
+}
+
+/**
+ * A meeting that was called off (#50). Issue 5 owns cancelling; this is the row
+ * it will write, and the attendance sheet has to refuse it long before then —
+ * confirming a sheet is what marks a meeting HELD (#47), and a night nobody
+ * held must not become one by way of a stale screen.
+ */
+export async function addCancelledMeeting(
+  ownerId: string,
+  groupId: string,
+  date: string,
+): Promise<string> {
+  const rows = await query<{ id: string }>(
+    `INSERT INTO meetings
+       (owner_id, led_by, group_id, date, start_time, duration_minutes, status, origin)
+     VALUES ($1, $1, $2, $3, '19:00', 90, 'cancelled', 'created')
+     RETURNING id`,
+    [ownerId, groupId, date],
   );
   return rows[0].id;
 }
