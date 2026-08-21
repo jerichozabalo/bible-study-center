@@ -1,7 +1,7 @@
 ---
 issue: 14
 title: Unarchive a BGroup (archiving is currently a one-way door)
-status: open
+status: done
 blocked-by: [2]
 type: afk
 ---

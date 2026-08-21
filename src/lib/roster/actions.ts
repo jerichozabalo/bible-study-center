@@ -21,7 +21,13 @@ import {
   parsePersonForm,
   personFormValuesFrom,
 } from "./form";
-import { RosterValidationError, archiveGroup, createGroup, updateGroup } from "./groups";
+import {
+  RosterValidationError,
+  archiveGroup,
+  createGroup,
+  unarchiveGroup,
+  updateGroup,
+} from "./groups";
 import {
   createPerson,
   removePerson,
@@ -99,6 +105,22 @@ export async function archiveGroupAction(
   revalidatePath("/people/groups");
   revalidatePath("/people");
   redirect("/people/groups");
+}
+
+/**
+ * The way back from an archiving (issue 14). No form state and no confirmation
+ * screen: unarchiving is not destructive, so there is nothing to refuse and
+ * nothing to ask — one control, one action, same shape as `restorePersonAction`.
+ */
+export async function unarchiveGroupAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+
+  await unarchiveGroup(user.email, id);
+
+  revalidatePath("/people/groups");
+  revalidatePath("/people");
+  redirect(`/people/groups/${id}`);
 }
 
 /** The same contract for a person: what refused, and what to render again. */

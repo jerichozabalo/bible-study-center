@@ -16,6 +16,7 @@ import {
   getGroup,
   listArchivedGroups,
   listGroups,
+  unarchiveGroup,
   updateGroup,
 } from "./groups";
 
@@ -232,5 +233,64 @@ describe.skipIf(!dbConfigured)("groups", () => {
     ).rejects.toBeInstanceOf(RosterValidationError);
 
     expect(await getGroup(TEST_OWNER, id)).toMatchObject({ name: "BGroup Linggo" });
+  });
+
+  it("brings an archived BGroup back, with its schedule and book intact", async () => {
+    const id = await createGroup(TEST_OWNER, linggo());
+    await archiveGroup(TEST_OWNER, id);
+
+    await unarchiveGroup(TEST_OWNER, id);
+
+    expect(await getGroup(TEST_OWNER, id)).toMatchObject({
+      name: "BGroup Linggo",
+      weekday: 0,
+      startTime: "16:00:00",
+      durationMinutes: 90,
+      currentBookId: bookOne,
+      archivedAt: null,
+    });
+    expect((await listGroups(TEST_OWNER)).map((group) => group.id)).toContain(id);
+    expect((await listArchivedGroups(TEST_OWNER)).map((group) => group.id)).not.toContain(id);
+  });
+
+  it("leaves the members where the bulk move put them", async () => {
+    // #27's move is not undone: those people have a different home BGroup now,
+    // and pulling them back would be a second surprise. The group comes back
+    // empty and they are moved by hand.
+    const closing = await createGroup(TEST_OWNER, linggo());
+    const receiving = await createGroup(TEST_OWNER, linggo({ name: "Tuesday BGroup", weekday: 2 }));
+    await addPerson("Maria Santos", closing);
+    await archiveGroup(TEST_OWNER, closing, { moveMembersToGroupId: receiving });
+
+    await unarchiveGroup(TEST_OWNER, closing);
+
+    expect((await getGroup(TEST_OWNER, closing))?.memberCount).toBe(0);
+    expect((await getGroup(TEST_OWNER, receiving))?.memberCount).toBe(1);
+  });
+
+  it("can be picked again once it is back (#60)", async () => {
+    const restored = await createGroup(TEST_OWNER, linggo());
+    const closing = await createGroup(TEST_OWNER, linggo({ name: "Wednesday Couples", weekday: 3 }));
+    await addPerson("Ben Cruz", closing);
+    await archiveGroup(TEST_OWNER, restored);
+
+    await unarchiveGroup(TEST_OWNER, restored);
+
+    // A new member can name it as home again...
+    const joel = await addPerson("Joel Ramos", restored);
+    expect(joel).toBeTruthy();
+    // ...and it can receive #27's bulk move, which only live groups may.
+    await archiveGroup(TEST_OWNER, closing, { moveMembersToGroupId: restored });
+    expect((await getGroup(TEST_OWNER, restored))?.memberCount).toBe(2);
+  });
+
+  it("is owner-scoped: another leader's id cannot bring it back (#32)", async () => {
+    const id = await createGroup(TEST_OWNER, linggo());
+    await archiveGroup(TEST_OWNER, id);
+
+    await unarchiveGroup("someone-else@example.com", id);
+
+    expect((await getGroup(TEST_OWNER, id))?.archivedAt).toBeInstanceOf(Date);
+    expect((await listGroups(TEST_OWNER)).map((group) => group.id)).not.toContain(id);
   });
 });
