@@ -99,7 +99,22 @@ migrates the test branch on every run.
 
 ⚠️ **`next dev` OOMs this VM** and fakes database outages while it does. Use
 `npm run build && npx next start -p 3111` to look at the app, or test at the
-module boundary.
+module boundary. ⚠️ Pick a port deliberately if another session might be up —
+an agent's smoke test silently hit a *different* session's server on 3111 and
+read 404s for routes it had just built.
+
+⚠️ **Agent worktrees: `node_modules` must be a hardlink copy, never a symlink.**
+`cp -al ../../node_modules node_modules`. Turbopack refuses a symlink pointing
+above the project root (`Symlink [project]/node_modules is invalid, it points
+out of the filesystem root`) and `npm run build` panics. Copy `.env.local` in
+too — both are gitignored, so a fresh worktree has neither and nothing runs.
+
+⚠️ **Parallel worktrees share the one test branch**, and `resetRoster()` deletes
+people and groups unscoped. Concurrent suites delete each other's fixtures: a
+run showing 14 failures passed 22/22 seconds later. Re-run before investigating
+a failure that looks like rows vanishing, and only believe one that reproduces.
+`src/lib/migrate.test.ts` is red in every worktree until the branches merge —
+it compares the shared ledger against the files in one tree.
 
 Copy `.env.example` to `.env.local` and fill it in. Nothing runs without it.
 

@@ -22,6 +22,13 @@ Opening a meeting shows its attendance sheet: the group's roster with one-tick m
 - Free editing + backdating; corrections tombstone, nothing truly erased (#24). Reopening a held meeting's sheet to fix a tick is legal and tombstones the correction.
 - Vocabulary: sheet rows for visitors will render as guests in issue 7 — leave the seam; "CATCH-UP" never "BEHIND" (#66). English UI.
 - Tests: server boundary, test Postgres, TDD red first. Cover: uniqueness on (person, meeting); NULL-session rows credit no book progress; present-only vs attended; walk-in name-only save + incomplete flag; held transition; tombstoned correction.
+- ⚠️ **Inherited from issue 3 (added 2026-08-21).** Issue 3's scope claimed a
+  fixture proving **"transfer preserves completions" (#27)** and could not build
+  one — there was no `completions` table yet, so it asserted the mechanism
+  instead and the guarantee is **unproven**. This issue creates that table, so
+  the fixture belongs here: move a person to another BGroup and assert their
+  existing completion rows are untouched — same rows, same sessions, same
+  meetings. Add it to the list above; it is not optional.
 - Normative on any gap: `/home/jericho/biblestudy-tracker/DESIGN-CONCEPT.md`.
 
 ## Looks like

@@ -24,6 +24,14 @@ Person CRUD end-to-end: add a person from the People tab, see them in the roster
 - Vocabulary: "**Stepped away**", never "Closed" (#66). Status copy describes situations, never grades people ("Not yet baptized" idiom). English UI.
 - Person detail shows contact + status sections now; the progress-dots section is issue 9's scope, the catch-up line is issue 7's — leave clean seams, don't stub fake data.
 - Tests: server boundary, test Postgres DB, TDD red first. Cover: name-only save flags incomplete; transfer preserves completions (fixture); tombstone on edit.
+- ⚠️ **Corrected 2026-08-21, on completion.** "Transfer preserves completions
+  (fixture)" **could not be tested as written and is not proven.** There is no
+  `completions` table until issue 6, so there was nothing for a fixture to
+  preserve. What shipped instead asserts the *mechanism*: a transfer writes only
+  `home_group_id` plus the two `group_memberships` markers, and every other
+  field of the person is byte-identical afterwards. The real fixture belongs to
+  issue 6 and is named in its scope. Do not read this issue's `done` status as
+  covering it.
 - Normative on any gap: `/home/jericho/biblestudy-tracker/DESIGN-CONCEPT.md`.
 
 ## Looks like
