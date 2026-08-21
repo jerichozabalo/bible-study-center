@@ -48,6 +48,13 @@ const SLOTS: Slot[] = [
         <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" />
         <circle cx="9" cy="7" r="4" />
         <path d="M22 21v-2a4 4 0 0 0-3-3.87" />
+        {/* The second person's head. The artboards drop this subpath — Lucide's
+            `users` glyph has four, Main.dc.html and Calendar.dc.html carry
+            three — so the icon rendered as a headless shoulder beside a whole
+            person. Caught by eye on the first real sign-in, 2026-08-21. Boards
+            govern visual idiom, but a missing head is an authoring slip, not an
+            idiom; both boards were corrected to match. */}
+        <path d="M16 3.13a4 4 0 0 1 0 7.75" />
       </>
     ),
   },
