@@ -224,6 +224,29 @@ export async function archiveGroup(
   });
 }
 
+/**
+ * Bring an archived group back (#27 leaves the reverse unwritten — see issue 14).
+ *
+ * The mirror of `archiveGroup`, and deliberately smaller than it. Archiving is
+ * the destructive direction, so it asks a question first; this one undoes a
+ * mis-tap and asks nothing.
+ *
+ * It does NOT undo #27's bulk move. If the members were sent elsewhere, that is
+ * where they live now, and pulling them back would be a second surprise on top
+ * of the one this is fixing — the group comes back empty and the detail page
+ * says so. Nothing about history changes in either direction (#24).
+ *
+ * `archived_at IS NOT NULL` matches the guard on the way in: the statement is
+ * the rule, so a live group is a no-op rather than a fresh `updated_at`.
+ */
+export async function unarchiveGroup(ownerId: string, id: string): Promise<void> {
+  await query(
+    `UPDATE groups SET archived_at = NULL, updated_at = now()
+      WHERE owner_id = $1 AND id = $2 AND archived_at IS NOT NULL`,
+    [ownerId, id],
+  );
+}
+
 type GroupRow = {
   id: string;
   name: string;

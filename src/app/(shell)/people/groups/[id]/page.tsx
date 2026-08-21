@@ -17,6 +17,7 @@ import { requireUser } from "@/lib/auth/guard";
 import { bookLabel } from "@/lib/curriculum/books";
 import { formatDayMonth } from "@/lib/dates";
 import { PersonRow } from "@/components/people/PersonRow";
+import { unarchiveGroupAction } from "@/lib/roster/actions";
 import { getGroup } from "@/lib/roster/groups";
 import { listGroupMembers } from "@/lib/roster/people";
 import { formatMembers, formatSchedule } from "@/lib/roster/schedule";
@@ -55,6 +56,25 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
           <p className="mt-[3px] text-[13.5px] leading-[1.45] text-tan">
             It proposes no meetings and cannot be picked when you create one. Nothing was deleted.
           </p>
+          {/* Issue 14 — the way back, in the panel that says it is gone, the
+              same place a removed person's is. Archiving is two taps from this
+              screen and used to be a one-way door. No confirmation: unlike
+              archiving, this destroys nothing. */}
+          <form action={unarchiveGroupAction} className="mt-3">
+            <input type="hidden" name="id" value={group.id} />
+            <button
+              type="submit"
+              className="flex h-[50px] w-full items-center justify-center rounded-[16px] bg-card text-[15.5px] font-bold text-blue"
+            >
+              Unarchive BGroup
+            </button>
+          </form>
+          {group.memberCount === 0 ? (
+            <p className="mt-[7px] text-[12.5px] leading-[1.45] text-tan">
+              Anyone moved to another BGroup when you archived this one stays there. Bringing it
+              back does not move them, so add them back one at a time.
+            </p>
+          ) : null}
         </div>
       ) : null}
 
