@@ -10,15 +10,30 @@
  */
 import { useLock } from "@/components/AppLock";
 
-export function SignOutButton() {
+/** The Settings row. Home passes its own, because it draws a bordered pill. */
+const AS_SETTINGS_ROW =
+  "block w-full px-[15px] py-4 text-left text-[15.5px] font-semibold text-slate active:bg-shell";
+
+/**
+ * `className` exists so that every sign-out in the app comes through this
+ * component rather than each screen posting to `/auth/signout` itself. Home had
+ * its own bare form (issue 01, before the lock existed), which meant signing
+ * out there left the PIN standing while signing out from Settings cleared it —
+ * the same action with two behaviours, and #19's recovery route only true from
+ * one of them. If a third screen ever needs a sign-out, give it a class, not a
+ * second form.
+ */
+export function SignOutButton({ className }: { className?: string }) {
   const { controller } = useLock();
 
   return (
-    <form action="/auth/signout" method="post" onSubmit={() => controller?.forget()}>
-      <button
-        type="submit"
-        className="block w-full px-[15px] py-4 text-left text-[15.5px] font-semibold text-slate active:bg-shell"
-      >
+    <form
+      action="/auth/signout"
+      method="post"
+      className={className ? "contents" : undefined}
+      onSubmit={() => controller?.forget()}
+    >
+      <button type="submit" className={className ?? AS_SETTINGS_ROW}>
         Sign out
       </button>
     </form>

@@ -7,6 +7,7 @@
  * all means the session cookie verified, the allowlist admitted the address,
  * and the shell around it drew.
  */
+import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth/guard";
 
 export const dynamic = "force-dynamic";
@@ -24,14 +25,13 @@ export default async function HomePage() {
         Home screen fills up as you add people and take attendance.
       </p>
 
-      <form action="/auth/signout" method="post" className="mt-8">
-        <button
-          type="submit"
-          className="flex h-12 items-center rounded-[14px] border-[1.5px] border-line px-5 text-[15px] font-semibold text-slate active:bg-shell"
-        >
-          Sign out
-        </button>
-      </form>
+      {/* Through `SignOutButton`, not a bare form: it also clears this device's
+          lock, which is what makes #19's "a forgotten PIN is recovered by
+          signing in with Google again" true from here and not only from
+          Settings. */}
+      <div className="mt-8">
+        <SignOutButton className="flex h-12 items-center rounded-[14px] border-[1.5px] border-line px-5 text-[15px] font-semibold text-slate active:bg-shell" />
+      </div>
     </section>
   );
 }
