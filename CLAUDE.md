@@ -59,8 +59,15 @@ npm run test        # vitest
 npm run typecheck   # tsc --noEmit
 npm run lint        # eslint
 npm run build       # next build
+npm run db:migrate  # apply migrations/*.sql, then seed the GLC curriculum
 npm run build:icons # only when design/logo3d/out/kit changes
 ```
+
+⚠️ The schema is `migrations/*.sql`, numbered and applied once each — never
+renamed and never edited after they have run; a correction is a new file
+(`src/lib/migrate.ts` says why). `db:migrate` is safe to run repeatedly and
+must be run against **production** before deploying anything that needs a table
+it does not have yet.
 
 ⚠️ **`next dev` OOMs this VM** and fakes database outages while it does. Use
 `npm run build && npx next start -p 3111` to look at the app, or test at the

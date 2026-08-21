@@ -1,7 +1,7 @@
 ---
 issue: 2
 title: Groups + curriculum seed (create BGroup with schedule and current book)
-status: open
+status: done
 blocked-by: [1]
 type: afk
 ---
