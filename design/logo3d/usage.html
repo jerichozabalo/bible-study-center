@@ -1,0 +1,91 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Bible Study Tayo — how to use the logo</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<script src="./illus.js"></script><script src="./emblem.js"></script>
+<style>
+  :root{--paper:#F7F4EF;--ink:#14202E;--blue:#1D4E89;--muted:#61708A;--line:#E6DFD4;--bad:#B8452F;--good:#2E7D52}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:Figtree,system-ui,sans-serif;padding:34px 30px 70px;max-width:1180px}
+  h1{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:32px;margin:0;letter-spacing:-.022em}
+  h2{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:21px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:15px;margin-top:8px;line-height:1.55;max-width:780px}
+  section{background:#fff;border:1px solid var(--line);border-radius:22px;padding:26px 28px;margin-top:20px}
+  .lead{font-size:14px;color:var(--muted);line-height:1.6;margin:6px 0 20px;max-width:720px;text-wrap:pretty}
+  /* clear space */
+  .cs{display:flex;gap:34px;align-items:center;flex-wrap:wrap}
+  .csbox{background:var(--paper);padding:26px;border-radius:14px}
+  .frame{position:relative;border:2px dashed #C9BFAE;padding:48px}
+  .frame::after{content:'';position:absolute;inset:65px;border:1px solid #E6DFD4}
+  .xkey{display:flex;align-items:center;gap:10px;font-size:13px;color:var(--muted);margin-top:12px}
+  .xbox{width:34px;height:34px;background:var(--blue);border-radius:5px;display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:15px}
+  /* table */
+  table{border-collapse:collapse;width:100%;font-size:14px;margin-top:4px}
+  th{text-align:left;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);padding:0 12px 9px 0;font-weight:700}
+  td{padding:11px 12px 11px 0;border-top:1px solid #F0EAE0;vertical-align:middle}
+  td.num{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+  code{background:#EFE9DF;padding:2px 6px;border-radius:5px;font-size:12px}
+  /* do / dont */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+  @media(max-width:840px){.grid{grid-template-columns:repeat(2,1fr)}}
+  .cell{border:1px solid var(--line);border-radius:14px;overflow:hidden}
+  .cvis{height:126px;background:var(--paper);display:flex;align-items:center;justify-content:center;overflow:hidden}
+  .clab{padding:10px 12px;font-size:12.5px;line-height:1.4;border-top:1px solid var(--line)}
+  .clab b{display:block;font-size:11px;letter-spacing:.07em;text-transform:uppercase;margin-bottom:3px}
+  .no b{color:var(--bad)} .yes b{color:var(--good)}
+</style></head><body>
+
+<h1>How to use the logo</h1>
+<div class="sub">Two rules and a list of don'ts. The point is that in six months — you, a printer, or whoever edits a thumbnail — nobody has to guess.</div>
+
+<section>
+  <h2>1 · Clear space</h2>
+  <div class="lead">Keep an empty margin around the logo. Nothing enters it: no text, no photo edge, no button, no page border. <b>The margin is a quarter of the ring's width</b> — that scales automatically, so it works on a business card and on a tarpaulin without doing maths.</div>
+  <div class="cs">
+    <div class="csbox"><div class="frame" id="csart"></div></div>
+    <div>
+      <div class="xkey"><span class="xbox">X</span> <span><b>X = ¼ of the ring's width.</b><br>Leave X on all four sides.</span></div>
+      <div class="lead" style="margin-top:16px;max-width:300px">Eyeball it: the gap should be about as wide as one of the men's heads. If something is closer than that, move it.</div>
+    </div>
+  </div>
+</section>
+
+<section>
+  <h2>2 · Minimum size</h2>
+  <div class="lead">Below these, each version turns to mud — measured, not guessed (see <code>out/kit/sizetest.png</code>). Under a size, switch to the next version down; never shrink past it.</div>
+  <table>
+    <tr><th>Version</th><th>File</th><th>Never below</th><th>Use it for</th></tr>
+    <tr><td>Full lockup</td><td><code>lockup-f.svg</code></td><td class="num">220 px wide</td><td>Site header, letterhead, slides</td></tr>
+    <tr><td>Stacked lockup</td><td><code>lockup-f-stacked.svg</code></td><td class="num">130 px wide</td><td>App store, narrow columns</td></tr>
+    <tr><td>Illustration alone</td><td><code>roundel-r5.svg</code></td><td class="num">140 px</td><td>Thumbnails, print, stickers</td></tr>
+    <tr><td>Emblem mark</td><td><code>emblem-mark.svg</code></td><td class="num">32 px</td><td>App header, favicon</td></tr>
+    <tr><td>Icon</td><td><code>icon-*.png</code></td><td class="num">16 px</td><td>Browser tab, home screen</td></tr>
+  </table>
+</section>
+
+<section>
+  <h2>3 · Don't</h2>
+  <div class="lead">Each of these is a real thing that happens once a logo is loose in a folder.</div>
+  <div class="grid" id="dd"></div>
+</section>
+
+<script>
+const ink = '#14202E';
+document.getElementById('csart').innerHTML = ILLUS.svg('r5', { size: 190, ink });
+
+const art = (s, style='') => `<div style="${style}">${ILLUS.svg('r5',{size:s,ink})}</div>`;
+const CELLS = [
+  ['yes','Correct','Ink, blue, or reversed. Nothing else.', art(104)],
+  ['no','Never stretch','Width and height always change together.', art(104,'transform:scaleX(1.5);')],
+  ['no','Never rotate','It sits level. Always.', art(104,'transform:rotate(-14deg);')],
+  ['no','Never recolour','Two brand colours only — no rainbow, no gradient.',
+     `<div style="filter:hue-rotate(115deg) saturate(3)">${ILLUS.svg('r5',{size:104,ink:'#1D4E89'})}</div>`],
+  ['no','Never on a busy ground','Needs a plain surface or a solid panel behind it.',
+     `<div style="background:repeating-linear-gradient(45deg,#C9BFAE 0 9px,#8FA6C0 9px 18px);padding:8px;border-radius:8px">${art(96)}</div>`],
+  ['no','Never add effects','No shadow, no outline, no glow. It is a 1-bit drawing.',
+     `<div style="filter:drop-shadow(4px 5px 0 #8FB4E0)">${art(104)}</div>`]
+];
+document.getElementById('dd').innerHTML = CELLS.map(([k,t,d,vis]) => `
+  <div class="cell"><div class="cvis">${vis}</div>
+    <div class="clab ${k}"><b>${t}</b>${d}</div></div>`).join('');
+</script>
+</body></html>

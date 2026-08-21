@@ -1,0 +1,175 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Figtree', system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:#1D4E89; text-decoration:none; } a:hover { color:#143761; }
+    h1,h2,h3 { font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif; margin:0; letter-spacing:-0.022em; line-height:1.14; }
+    button { font-family:inherit; border:none; background:none; padding:0; margin:0; color:inherit; cursor:pointer; text-align:left; }
+    .scroll::-webkit-scrollbar { width:0; }
+  </style>
+</helmet>
+<div style="width:390px;height:844px;display:flex;flex-direction:column;background:#F7F4EF;color:#14202E;overflow:hidden">
+
+  <div style="flex-shrink:0;display:flex;align-items:center;padding:12px 12px 4px">
+    <button style="width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14202E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+    </button>
+  </div>
+
+  <div class="scroll" style="flex-grow:1;min-height:0;overflow-y:auto;padding:0 16px 28px">
+
+    <h1 style="font-size:30px;margin:2px 0 22px 4px">Settings</h1>
+
+    <div style="font-size:13px;font-weight:600;color:#8B7B63;letter-spacing:0.06em;margin:0 0 10px 4px">ACCOUNT &amp; SYNC</div>
+    <div style="background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;overflow:hidden">
+      <div style="display:flex;align-items:center;gap:12px;padding:15px">
+        <div style="width:40px;height:40px;border-radius:14px;background:#E7EFF9;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D4E89" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+        </div>
+        <div style="flex-grow:1;min-width:0">
+          <div style="font-size:15.5px;font-weight:700">jerichozabalo@gmail.com</div>
+          <div style="font-size:13.5px;color:#61708A;margin-top:2px">Signed in &middot; records saved to your account</div>
+        </div>
+      </div>
+      <div style="height:1px;background:#F0EAE0;margin-left:67px"></div>
+      <button onClick="{{sync}}" style="display:block;width:100%;padding:15px;display:flex;align-items:center;gap:12px">
+        <div style="width:40px;height:40px;border-radius:14px;background:#EDF5EF;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#2F7D55" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 0 1-15.5 6.2L3 16"></path><path d="M3 12a9 9 0 0 1 15.5-6.2L21 8"></path><path d="M21 4v4h-4M3 20v-4h4"></path></svg>
+        </div>
+        <div style="flex-grow:1;min-width:0">
+          <div style="font-size:15.5px;font-weight:700">{{syncTitle}}</div>
+          <div style="font-size:13.5px;color:#61708A;margin-top:2px">{{syncNote}}</div>
+        </div>
+      </button>
+      <div style="height:1px;background:#F0EAE0;margin-left:67px"></div>
+      <button style="display:block;width:100%;padding:16px 15px;font-size:15.5px;font-weight:600;color:#61708A">Sign out</button>
+    </div>
+    <div style="font-size:13px;color:#8B7B63;line-height:1.45;margin:9px 4px 0">Signing out clears this device. Your records stay in your account &mdash; but upload anything pending first.</div>
+
+    <div style="font-size:13px;font-weight:600;color:#8B7B63;letter-spacing:0.06em;margin:26px 0 10px 4px">APP LOCK</div>
+    <div style="background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;overflow:hidden">
+      <button onClick="{{toggleLock}}" style="display:block;width:100%;padding:14px 15px;display:flex;align-items:center;gap:12px">
+        <div style="flex-grow:1;min-width:0">
+          <div style="font-size:15.5px;font-weight:700">Require a PIN to open</div>
+          <div style="font-size:13.5px;color:#61708A;margin-top:2px">People&#39;s notes stay private if the phone is left open.</div>
+        </div>
+        <div style="width:52px;height:32px;border-radius:16px;background:{{lockTrack}};flex-shrink:0;display:flex;align-items:center;padding:3px;justify-content:{{lockPos}}">
+          <div style="width:26px;height:26px;border-radius:13px;background:#FFFFFF"></div>
+        </div>
+      </button>
+      <sc-if value="{{lock}}" hint-placeholder-val="{{true}}">
+        <div style="height:1px;background:#F0EAE0;margin-left:15px"></div>
+        <button onClick="{{toggleBio}}" style="display:block;width:100%;padding:14px 15px;display:flex;align-items:center;gap:12px">
+          <div style="flex-grow:1;min-width:0;font-size:15.5px;font-weight:700">Unlock with fingerprint</div>
+          <div style="width:52px;height:32px;border-radius:16px;background:{{bioTrack}};flex-shrink:0;display:flex;align-items:center;padding:3px;justify-content:{{bioPos}}">
+            <div style="width:26px;height:26px;border-radius:13px;background:#FFFFFF"></div>
+          </div>
+        </button>
+        <div style="height:1px;background:#F0EAE0;margin-left:15px"></div>
+        <button style="display:block;width:100%;padding:16px 15px;font-size:15.5px;font-weight:600;color:#1D4E89">Change PIN</button>
+      </sc-if>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:#8B7B63;letter-spacing:0.06em;margin:26px 0 10px 4px">QUIET LIST</div>
+    <div style="background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;padding:15px">
+      <div style="font-size:15.5px;font-weight:700">Flag someone after</div>
+      <div style="font-size:13.5px;color:#61708A;margin-top:2px;line-height:1.45">Missing this many HELD meetings in a row puts them on your Needs you list. Cancelled nights never count. A BGroup can set its own.</div>
+      <div style="display:flex;gap:8px;margin-top:13px">
+        <sc-for list="{{misses}}" as="w" hint-placeholder-count="3">
+          <button onClick="{{w.pick}}" style="flex-grow:1;height:46px;border-radius:14px;background:{{w.bg}};border:1.5px solid {{w.border}};color:{{w.fg}};font-size:15px;font-weight:700;display:flex;align-items:center;justify-content:center">{{w.label}}</button>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:#8B7B63;letter-spacing:0.06em;margin:26px 0 10px 4px">CURRICULUM</div>
+    <div style="background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;overflow:hidden">
+      <button style="display:block;width:100%;padding:15px;display:flex;align-items:center;gap:12px">
+        <div style="flex-grow:1;min-width:0">
+          <div style="font-size:15.5px;font-weight:700">Programs and books</div>
+          <div style="font-size:13.5px;color:#61708A;margin-top:2px">GLC 1 and GLC 2 &middot; 8 books &middot; 50 sessions</div>
+        </div>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C3B8A5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m9 18 6-6-6-6"></path></svg>
+      </button>
+      <div style="height:1px;background:#F0EAE0;margin-left:15px"></div>
+      <button style="display:block;width:100%;padding:16px 15px;font-size:15.5px;font-weight:600;color:#1D4E89">Add your own book</button>
+    </div>
+
+    <div style="font-size:13px;font-weight:600;color:#8B7B63;letter-spacing:0.06em;margin:26px 0 10px 4px">RECORDS</div>
+    <div style="background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;overflow:hidden">
+      <button style="display:block;width:100%;padding:15px;display:flex;align-items:center;gap:12px">
+        <div style="flex-grow:1;min-width:0">
+          <div style="font-size:15.5px;font-weight:700">Export a spreadsheet</div>
+          <div style="font-size:13.5px;color:#61708A;margin-top:2px">Everything you can see, as CSV.</div>
+        </div>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C3B8A5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m9 18 6-6-6-6"></path></svg>
+      </button>
+      <div style="height:1px;background:#F0EAE0;margin-left:15px"></div>
+      <button style="display:block;width:100%;padding:15px;display:flex;align-items:center;gap:12px">
+        <div style="flex-grow:1;min-width:0">
+          <div style="font-size:15.5px;font-weight:700">Archived BGroups</div>
+          <div style="font-size:13.5px;color:#61708A;margin-top:2px">2 groups &middot; their history is kept</div>
+        </div>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C3B8A5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m9 18 6-6-6-6"></path></svg>
+      </button>
+      <div style="height:1px;background:#F0EAE0;margin-left:15px"></div>
+      <button style="display:block;width:100%;padding:15px;display:flex;align-items:center;gap:12px">
+        <div style="flex-grow:1;min-width:0">
+          <div style="font-size:15.5px;font-weight:700">Corrections</div>
+          <div style="font-size:13.5px;color:#61708A;margin-top:2px">Every change you undid or backdated.</div>
+        </div>
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C3B8A5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m9 18 6-6-6-6"></path></svg>
+      </button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin:28px 4px 0">
+      <div style="width:30px;height:30px;border-radius:10px;background:#1D4E89;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5"></path></svg>
+      </div>
+      <div style="font-size:13.5px;color:#8B7B63;line-height:1.4">Bible Study Tayo<br>Version 1.0</div>
+    </div>
+
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { lock: true, bio: true, quiet: 3, synced: false };
+  }
+  renderVals() {
+    const misses = [2, 3, 4].map((n) => ({
+      label: n + ' meetings',
+      pick: () => this.setState({ quiet: n }),
+      bg: this.state.quiet === n ? '#1D4E89' : '#FFFFFF',
+      border: this.state.quiet === n ? '#1D4E89' : '#E6DFD4',
+      fg: this.state.quiet === n ? '#FFFFFF' : '#61708A'
+    }));
+    return {
+      misses,
+      lock: this.state.lock,
+      lockTrack: this.state.lock ? '#1D4E89' : '#DFD8CC',
+      lockPos: this.state.lock ? 'flex-end' : 'flex-start',
+      bioTrack: this.state.bio ? '#1D4E89' : '#DFD8CC',
+      bioPos: this.state.bio ? 'flex-end' : 'flex-start',
+      syncTitle: this.state.synced ? 'Everything uploaded' : 'Upload pending attendance',
+      syncNote: this.state.synced ? 'Nothing is waiting on this phone.' : '2 meetings waiting. Needs a connection.',
+      toggleLock: () => this.setState({ lock: !this.state.lock }),
+      toggleBio: () => this.setState({ bio: !this.state.bio }),
+      sync: () => this.setState({ synced: !this.state.synced })
+    };
+  }
+}
+</script>
+</body>
+</html>

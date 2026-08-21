@@ -1,0 +1,76 @@
+<!doctype html>
+<html><head><meta charset="utf-8">
+<style>
+  body{margin:0;background:#F7F4EF;font-family:system-ui,sans-serif;color:#14202E;padding:28px}
+  .grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px}
+  .card{background:#fff;border:1px solid #E6DFD4;border-radius:20px;padding:18px;display:flex;flex-direction:column;align-items:center;gap:12px}
+  .big{width:104px;height:104px}
+  .row{display:flex;align-items:center;gap:14px;padding-top:4px;border-top:1px solid #F0EAE0;width:100%;justify-content:center}
+  .lab{font-size:12px;font-weight:700;color:#61708A;letter-spacing:.04em}
+  svg{display:block}
+</style></head><body>
+<div class="grid" id="g"></div>
+<script>
+const I = '#1D4E89';
+const marks = {
+"1 · Pair over book": `
+<circle cx="15" cy="12" r="5.5"/><circle cx="33" cy="12" r="5.5"/>
+<path d="M6 27c1.5-4.5 4.8-7 9-7s7.5 2.5 9 7"/>
+<path d="M24 27c1.5-4.5 4.8-7 9-7s7.5 2.5 9 7"/>
+<path d="M5 31c6-3 13-3 19 1 6-4 13-4 19-1v9c-6-3-13-3-19 1-6-4-13-4-19-1z"/>`,
+
+"2 · Solid pair": `
+<g fill="${I}" stroke="none">
+<circle cx="15" cy="12" r="6"/><circle cx="33" cy="12" r="6"/>
+<path d="M5 29c0-5.5 4.5-10 10-10s10 4.5 10 10z"/>
+<path d="M23 29c0-5.5 4.5-10 10-10s10 4.5 10 10z"/>
+<path d="M3 32h17c2.2 0 4 1.8 4 4 0-2.2 1.8-4 4-4h17v10H28c-2.2 0-4 1.8-4 4 0-2.2-1.8-4-4-4H3z"/>
+</g>`,
+
+"3 · Behind the book": `
+<circle cx="16" cy="14" r="6"/><circle cx="32" cy="14" r="6"/>
+<path d="M4 24c6-3.2 14-3.2 20 1.2 6-4.4 14-4.4 20-1.2v13c-6-3.2-14-3.2-20 1.2-6-4.4-14-4.4-20-1.2z"/>`,
+
+"4 · Knockout icon": `
+<g stroke="none">
+<rect x="1" y="1" width="46" height="46" rx="13" fill="${I}"/>
+<circle cx="17" cy="16" r="5" fill="#fff"/><circle cx="31" cy="16" r="5" fill="#fff"/>
+<path d="M9 30c0-4.4 3.6-8 8-8s8 3.6 8 8z" fill="#fff"/>
+<path d="M23 30c0-4.4 3.6-8 8-8s8 3.6 8 8z" fill="#fff"/>
+<path d="M7 32h14c1.7 0 3 1.3 3 3 0-1.7 1.3-3 3-3h14v7H27c-1.7 0-3 1.3-3 3 0-1.7-1.3-3-3-3H7z" fill="#fff"/>
+</g>`,
+
+"5 · Pages as people": `
+<circle cx="10" cy="14" r="5.5"/><circle cx="38" cy="14" r="5.5"/>
+<path d="M24 26v16"/>
+<path d="M24 26c-3-4-8-6-14-6v16c6 0 11 2 14 6"/>
+<path d="M24 26c3-4 8-6 14-6v16c-6 0-11 2-14 6"/>`,
+
+"6 · Inside the book": `
+<path d="M4 14c6-2.5 14-2 20 2 6-4 14-4.5 20-2v24c-6-2.5-14-2-20 2-6-4-14-4.5-20-2z"/>
+<circle cx="16" cy="25" r="3.2"/><circle cx="32" cy="25" r="3.2"/>
+<path d="M12 33c0-2.2 1.8-4 4-4s4 1.8 4 4"/>
+<path d="M28 33c0-2.2 1.8-4 4-4s4 1.8 4 4"/>`,
+
+"7 · Ring badge": `
+<circle cx="24" cy="24" r="21"/>
+<circle cx="17" cy="17" r="3.6"/><circle cx="31" cy="17" r="3.6"/>
+<path d="M12 27c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
+<path d="M26 27c0-2.8 2.2-5 5-5s5 2.2 5 5"/>
+<path d="M11 29c4-1.6 9-1.6 13 1 4-2.6 9-2.6 13-1v6c-4-1.6-9-1.6-13 1-4-2.6-9-2.6-13-1z"/>`,
+
+"8 · Leader + member": `
+<circle cx="15" cy="11" r="6"/><circle cx="34" cy="17" r="4.5"/>
+<path d="M5 28c0-5.5 4.5-10 10-10s10 4.5 10 10"/>
+<path d="M26 30c0-4.4 3.6-8 8-8s8 3.6 8 8"/>
+<path d="M5 32c6-2.5 13-2.5 19 1 6-3.5 13-3.5 19-1v8c-6-2.5-13-2.5-19 1-6-3.5-13-3.5-19-1z"/>`
+};
+const svg = (body,size) => `<svg width="${size}" height="${size}" viewBox="0 0 48 48" fill="none" stroke="${I}" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">${body}</svg>`;
+document.getElementById('g').innerHTML = Object.entries(marks).map(([k,v])=>`
+  <div class="card">
+    <div class="big">${svg(v,104)}</div>
+    <div class="lab">${k}</div>
+    <div class="row">${svg(v,28)}${svg(v,20)}${svg(v,16)}</div>
+  </div>`).join('');
+</script>
+</body></html>

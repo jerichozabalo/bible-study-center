@@ -1,0 +1,155 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Figtree', system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:#1D4E89; text-decoration:none; } a:hover { color:#143761; }
+    h1,h2,h3 { font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif; margin:0; letter-spacing:-0.022em; line-height:1.14; }
+    button { font-family:inherit; border:none; background:none; padding:0; margin:0; color:inherit; cursor:pointer; text-align:left; }
+    input { font-family:inherit; }
+    .scroll::-webkit-scrollbar { width:0; }
+  </style>
+</helmet>
+<div style="width:390px;height:844px;display:flex;flex-direction:column;background:#F7F4EF;color:#14202E;overflow:hidden">
+
+  <div style="flex-shrink:0;padding:16px 16px 12px">
+    <div style="display:flex;align-items:baseline;justify-content:space-between">
+      <h2 style="font-size:26px">People</h2>
+      <span style="font-size:13.5px;font-weight:600;color:#8B7B63">{{count}} shown</span>
+    </div>
+
+    <div style="display:flex;gap:6px;margin-top:14px;background:#EDE8DF;border-radius:16px;padding:4px">
+      <button style="flex-grow:1;height:46px;border-radius:13px;background:#FFFFFF;color:#1D4E89;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">People</button>
+      <button style="flex-grow:1;height:46px;border-radius:13px;background:transparent;color:#8B7B63;font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">Groups</button>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-top:11px;background:#FFFFFF;border:1.5px solid #E6DFD4;border-radius:16px;padding:0 14px;height:52px">
+      <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#8B7B63" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg>
+      <input type="text" value="{{query}}" onChange="{{onSearch}}" placeholder="Search name or number" style="flex-grow:1;min-width:0;border:none;outline:none;background:transparent;font-size:15.5px;color:#14202E" />
+    </div>
+
+    <div style="display:flex;gap:8px;margin-top:11px">
+      <sc-for list="{{filters}}" as="f" hint-placeholder-count="3">
+        <button onClick="{{f.pick}}" style="height:44px;padding:0 15px;border-radius:14px;background:{{f.bg}};border:1.5px solid {{f.border}};color:{{f.ink}};font-size:14px;font-weight:700;display:flex;align-items:center;gap:7px">
+          {{f.label}}
+          <span style="font-size:12.5px;font-weight:700;color:{{f.badgeInk}}">{{f.n}}</span>
+        </button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex-grow:1;min-height:0;overflow-y:auto;padding:2px 14px 18px">
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{people}}" as="p" hint-placeholder-count="6">
+        <button style="display:flex;align-items:center;gap:12px;width:100%;background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;padding:12px 13px">
+          <div style="width:48px;height:48px;border-radius:17px;background:{{p.avatarBg}};color:{{p.avatarInk}};display:flex;align-items:center;justify-content:center;font-size:15.5px;font-weight:700;flex-shrink:0">{{p.initials}}</div>
+          <div style="flex-grow:1;min-width:0">
+            <div style="display:flex;align-items:center;gap:7px">
+              <span style="font-size:16px;font-weight:700">{{p.name}}</span>
+              <sc-if value="{{p.flag}}" hint-placeholder-val="{{true}}">
+                <span style="font-size:11px;font-weight:700;letter-spacing:0.04em;color:{{p.flagInk}};background:{{p.flagBg}};border-radius:8px;padding:3px 7px">{{p.flagLabel}}</span>
+              </sc-if>
+            </div>
+            <div style="font-size:13.5px;color:#61708A;margin-top:3px">{{p.group}}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:7px">
+              <div style="width:96px;height:6px;border-radius:4px;background:#EFEAE1;overflow:hidden">
+                <div style="height:6px;border-radius:4px;background:#1D4E89;width:{{p.pct}}"></div>
+              </div>
+              <span style="font-size:12.5px;font-weight:600;color:#8B7B63">{{p.progress}}</span>
+            </div>
+          </div>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C3B8A5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m9 18 6-6-6-6"></path></svg>
+        </button>
+      </sc-for>
+
+      <sc-if value="{{empty}}" hint-placeholder-val="{{false}}">
+        <div style="text-align:center;padding:40px 20px;color:#8B7B63">
+          <div style="font-size:15.5px;font-weight:700;color:#14202E">Nobody matches that</div>
+          <div style="font-size:14px;margin-top:6px">Try part of a first name or the last 4 digits.</div>
+        </div>
+      </sc-if>
+    </div>
+  </div>
+
+  <div style="flex-shrink:0;background:#FFFFFF;border-top:1px solid #E6DFD4;padding:12px 16px 18px">
+    <button style="width:100%;height:56px;border-radius:18px;background:#1D4E89;color:#FFFFFF;font-size:16.5px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+      Add a person
+    </button>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { q: '', filter: 'all' };
+  }
+  renderVals() {
+    const ALL = [
+      { name: 'Maria Santos', initials: 'MS', group: 'Tuesday BGroup · One By One', done: 3, of: 6, tag: null },
+      { name: 'Ben Cruz', initials: 'BC', group: 'Tuesday BGroup · One By One', done: 3, of: 6, tag: 'catchup' },
+      { name: 'Nena Villamor', initials: 'NV', group: 'Tuesday BGroup · One By One', done: 3, of: 6, tag: 'quiet' },
+      { name: 'Joel Ramos', initials: 'JR', group: 'Tuesday BGroup · One By One', done: 4, of: 6, tag: null },
+      { name: 'Divine Uy', initials: 'DU', group: 'Sunday Youth · Spiritual Disciplines', done: 2, of: 6, tag: null },
+      { name: 'Rico Aquino', initials: 'RA', group: 'Tuesday BGroup · One By One', done: 4, of: 6, tag: null },
+      { name: 'Grace Bautista', initials: 'GB', group: 'Sunday Youth · Spiritual Disciplines', done: 1, of: 6, tag: 'quiet' },
+      { name: 'Ptr. Ariel Mendoza', initials: 'AM', group: 'Leaders in training · DGroup 101', done: 2, of: 4, tag: null }
+    ];
+    const q = this.state.q.trim().toLowerCase();
+    const byFilter = ALL.filter((p) => this.state.filter === 'all' || p.tag === this.state.filter);
+    const list = byFilter.filter((p) => q === '' || p.name.toLowerCase().indexOf(q) >= 0);
+
+    const people = list.map((p) => ({
+      name: p.name,
+      initials: p.initials,
+      group: p.group,
+      progress: p.done + ' of ' + p.of,
+      pct: Math.round((p.done / p.of) * 100) + '%',
+      avatarBg: p.tag === 'quiet' ? '#FBF0DC' : '#E7EFF9',
+      avatarInk: p.tag === 'quiet' ? '#9A5B0B' : '#1D4E89',
+      flag: p.tag !== null,
+      flagLabel: p.tag === 'quiet' ? 'QUIET' : 'CATCH-UP',
+      flagBg: p.tag === 'quiet' ? '#FBF0DC' : '#E7EFF9',
+      flagInk: p.tag === 'quiet' ? '#7C4708' : '#143761'
+    }));
+
+    const FILTERS = [
+      { id: 'all', label: 'All', n: ALL.length },
+      { id: 'quiet', label: 'Quiet', n: ALL.filter((p) => p.tag === 'quiet').length },
+      { id: 'catchup', label: 'Catch-up', n: ALL.filter((p) => p.tag === 'catchup').length }
+    ];
+    const filters = FILTERS.map((f) => {
+      const on = f.id === this.state.filter;
+      return {
+        label: f.label, n: f.n,
+        bg: on ? '#1D4E89' : '#FFFFFF',
+        border: on ? '#1D4E89' : '#E6DFD4',
+        ink: on ? '#FFFFFF' : '#14202E',
+        badgeInk: on ? '#A9C6E8' : '#8B7B63',
+        pick: () => this.setState({ filter: f.id })
+      };
+    });
+
+    return {
+      people: people,
+      filters: filters,
+      count: people.length,
+      empty: people.length === 0,
+      query: this.state.q,
+      onSearch: (e) => this.setState({ q: e.target.value })
+    };
+  }
+}
+</script>
+</body>
+</html>

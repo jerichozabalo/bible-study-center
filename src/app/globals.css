@@ -1,0 +1,83 @@
+@import "tailwindcss";
+
+/**
+ * The palette, lifted from the artboards rather than invented. Every value
+ * here appears in `design/*.dc.html`; nothing here is a Tailwind default.
+ * If a screen needs a colour that is not in this list, the artboard is the
+ * place to settle it first.
+ */
+@theme {
+  --color-sand: #f7f4ef; /* page */
+  --color-shell: #f1ede5; /* inset panels, disabled keys */
+  --color-card: #ffffff;
+  --color-line: #e6dfd4; /* hairline borders */
+  --color-stone: #c3b8a5; /* chevrons, empty dots */
+
+  --color-ink: #14202e; /* headings, body */
+  --color-slate: #61708a; /* secondary text */
+  --color-tan: #8b7b63; /* eyebrow labels, tertiary text */
+
+  --color-blue: #1d4e89; /* the brand blue */
+  --color-blue-deep: #143761; /* pressed, on-white text over blue */
+  --color-blue-tint: #e7eff9; /* icon wells */
+  --color-blue-pale: #a9c6e8; /* eyebrow text ON blue */
+  --color-blue-soft: #c4d9f0; /* body text ON blue */
+
+  --color-mint: #7fc4a0; /* the "tonight" dot */
+  --color-amber-ink: #9a5b0b; /* attention icon */
+  --color-amber-well: #fbf0dc;
+
+  --font-display: var(--font-bricolage), "Figtree", system-ui, sans-serif;
+  --font-sans: var(--font-figtree), system-ui, -apple-system, sans-serif;
+}
+
+/**
+ * These are DEFAULTS, so they belong in `@layer base` — and the layer is
+ * load-bearing, not tidiness.
+ *
+ * Unlayered CSS beats every cascade layer, at any specificity. Written outside
+ * a layer, `h1 { line-height: 1.14 }` silently defeats `leading-[1.05]` on the
+ * element itself, because Tailwind puts utilities in `@layer utilities`. That
+ * is exactly what happened: the sign-in heading rendered at the wrong leading
+ * and `mt-[26px]` computed to 0px, with nothing in the markup to explain why
+ * (QA pass, 2026-08-21).
+ *
+ * Anything added here later must stay inside the layer for the same reason.
+ */
+@layer base {
+  html,
+  body {
+    height: 100%;
+  }
+
+  body {
+    margin: 0;
+    background: var(--color-sand);
+    color: var(--color-ink);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    /* A tap on a button should not select the label under it — this is a phone
+       app first, and text selection there is almost always a mis-tap. */
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--font-display);
+    /* Tailwind's preflight resets headings to `font-weight: inherit`, which
+       lands them on the body's 400. The artboards draw every heading bold, and
+       only the 600 and 700 faces are loaded. */
+    font-weight: 700;
+    margin: 0;
+    letter-spacing: -0.022em;
+    line-height: 1.14;
+  }
+}
+
+/* The scroll region under the header. Hiding the bar is the artboard's choice
+   (`.scroll` in Main.dc.html) — on a phone there is no bar to hide, and on a
+   desktop browser the frame reads as a phone, not a page. */
+.scroll::-webkit-scrollbar {
+  width: 0;
+}

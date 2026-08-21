@@ -1,0 +1,111 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Bible Study Tayo — lockups</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Anton&family=Staatliches&family=Alfa+Slab+One&family=Oswald:wght@500;700&family=Archivo+Black&family=Figtree:wght@400;600;700&family=Bricolage+Grotesque:opsz,wght@12..96,700&display=swap">
+<script src="./illus.js"></script>
+<style>
+  :root{--paper:#F7F4EF;--ink:#14202E;--blue:#1D4E89;--muted:#61708A;--line:#E6DFD4}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:Figtree,system-ui,sans-serif;padding:34px 30px 70px}
+  h1{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:32px;margin:0;letter-spacing:-.022em}
+  .sub{color:var(--muted);font-size:15px;margin-top:8px;max-width:800px;line-height:1.55}
+  .bar{display:flex;gap:8px;align-items:center;margin:22px 0 24px;flex-wrap:wrap}
+  .bar b{font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-right:4px}
+  button{font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+  .stage{min-height:260px;display:flex;align-items:center;justify-content:center;padding:28px;transition:background .18s}
+  .meta{padding:14px 18px 17px;border-top:1px solid var(--line)}
+  .lab{font-size:13px;font-weight:700;letter-spacing:.03em;color:var(--blue)}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:5px}
+  /* lockups */
+  .lk{display:flex;align-items:center;gap:20px}
+  .lk.stack{flex-direction:column;gap:14px}
+  .lk svg{display:block}
+  .wm{line-height:.92;letter-spacing:.005em}
+  .anton{font-family:Anton,sans-serif;text-transform:uppercase}
+  .staat{font-family:Staatliches,sans-serif;text-transform:uppercase;letter-spacing:.02em}
+  .slab{font-family:'Alfa Slab One',serif}
+  .osw{font-family:Oswald,sans-serif;text-transform:uppercase;font-weight:700}
+  .rule{height:3px;background:currentColor;margin:7px 0}
+  .foot{margin-top:32px;font-size:13px;color:var(--muted);line-height:1.7;border-top:1px solid var(--line);padding-top:18px}
+  code{background:#EFE9DF;padding:2px 6px;border-radius:5px;font-size:12px}
+</style></head><body>
+
+<h1>Wordmark — six lockups</h1>
+<div class="sub">The mark is settled; this is the type beside it. All six use L1 at the size it is meant for. Condensed caps are the 1950s advertising voice — the era set headlines tight and heavy because column space cost money. Check every one reversed before deciding.</div>
+
+<div class="bar">
+  <b>Surface</b>
+  <button data-ink="#14202E" data-bg="#F7F4EF" class="on">Ink on paper</button>
+  <button data-ink="#F7F4EF" data-bg="#14202E">Reversed</button>
+  <button data-ink="#1D4E89" data-bg="#F7F4EF">Brand blue</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="foot">
+  Type is live web font here for judging. On pick, the final lockup files get the text converted to outlines so they render anywhere without the font installed.<br>
+  Fonts are all free/open (Google Fonts): Anton, Staatliches, Alfa Slab One, Oswald.
+</div>
+
+<script>
+const M = (s, ink) => ILLUS.svg('r5', { size: s, ink });
+
+const LOCKUPS = [
+  ['A · Stacked, Anton', 'Heaviest option. Mark over name, both centred. The default for an app store listing.',
+   ink => `<div class="lk stack"><div>${M(150, ink)}</div>
+      <div class="wm anton" style="font-size:37px;text-align:center;color:${ink}">Bible Study<br>Tayo</div></div>`],
+
+  ['B · Horizontal, Staatliches', 'Mark left, name right on two lines. Fits a site header or an email signature strip.',
+   ink => `<div class="lk"><div>${M(112, ink)}</div>
+      <div class="wm staat" style="font-size:38px;color:${ink}">Bible Study<br>Tayo</div></div>`],
+
+  ['C · Badge, curved type', 'Name curved around the mark inside its own ring — the most period-correct of the six, and the one that needs no separate icon.',
+   ink => `<svg width="260" height="260" viewBox="0 0 260 260">
+      <defs><path id="arcTop" d="M30 130a100 100 0 0 1 200 0" fill="none"/>
+             <path id="arcBot" d="M36 130a94 94 0 0 0 188 0" fill="none"/></defs>
+      <circle cx="130" cy="130" r="126" fill="none" stroke="${ink}" stroke-width="7"/>
+      <circle cx="130" cy="130" r="113" fill="none" stroke="${ink}" stroke-width="2"/>
+      <g transform="translate(50 46)">${M(160, ink)}</g>
+      <text class="staat" fill="${ink}" font-size="25" letter-spacing="3">
+        <textPath href="#arcTop" startOffset="50%" text-anchor="middle">BIBLE STUDY</textPath></text>
+      <text class="staat" fill="${ink}" font-size="25" letter-spacing="3">
+        <textPath href="#arcBot" startOffset="50%" text-anchor="middle" side="right">TAYO</textPath></text>
+    </svg>`],
+
+  ['D · Slab, stacked', 'Alfa Slab One — friendlier and rounder than the condensed cuts. Reads warmer, takes more width.',
+   ink => `<div class="lk stack"><div>${M(140, ink)}</div>
+      <div class="slab" style="font-size:27px;text-align:center;line-height:1.1;color:${ink}">Bible Study<br>Tayo</div></div>`],
+
+  ['E · Rule sandwich, Oswald', 'Name between two heavy rules — the classic newspaper-ad masthead. Works well as a header strip.',
+   ink => `<div class="lk stack"><div>${M(130, ink)}</div>
+      <div style="color:${ink};text-align:center;min-width:250px">
+        <div class="rule"></div>
+        <div class="osw" style="font-size:31px;letter-spacing:.06em">Bible Study Tayo</div>
+        <div class="rule"></div></div></div>`],
+
+  ['F · TAYO emphasised', 'Splits the name: quiet English, loud Tagalog. Puts the weight on the word that makes it ours.',
+   ink => `<div class="lk"><div>${M(120, ink)}</div>
+      <div style="color:${ink}">
+        <div class="osw" style="font-size:19px;letter-spacing:.16em;font-weight:500">Bible Study</div>
+        <div class="anton" style="font-size:56px;line-height:.9;letter-spacing:.01em">Tayo</div></div></div>`]
+];
+
+function paint(ink, bg) {
+  document.getElementById('grid').innerHTML = LOCKUPS.map(([lab, note, fn]) => `
+    <div class="card">
+      <div class="stage" style="background:${bg}">${fn(ink)}</div>
+      <div class="meta"><div class="lab">${lab}</div><div class="note">${note}</div></div>
+    </div>`).join('');
+}
+paint('#14202E', '#F7F4EF');
+document.querySelectorAll('.bar button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.bar button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  paint(b.dataset.ink, b.dataset.bg);
+});
+</script>
+</body></html>

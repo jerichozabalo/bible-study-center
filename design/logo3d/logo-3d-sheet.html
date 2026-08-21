@@ -1,0 +1,76 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Bible Study Tayo — 3D logo takes</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<style>
+  :root{--paper:#F7F4EF;--ink:#14202E;--blue:#1D4E89;--muted:#61708A;--line:#E6DFD4}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:Figtree,system-ui,sans-serif;padding:34px 30px 60px}
+  h1{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:32px;margin:0;letter-spacing:-.022em}
+  .sub{color:var(--muted);font-size:15px;margin-top:8px;max-width:760px;line-height:1.55}
+  .bar{display:flex;gap:8px;align-items:center;margin:22px 0 26px;flex-wrap:wrap}
+  .bar b{font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-right:4px}
+  button{font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  @media(max-width:1100px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden;display:flex;flex-direction:column}
+  .stage{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;transition:background .18s}
+  .stage img{width:100%;height:100%;object-fit:contain;display:block}
+  .meta{padding:16px 18px 18px;border-top:1px solid var(--line)}
+  .lab{font-size:13px;font-weight:700;letter-spacing:.03em;color:var(--blue)}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:6px;text-wrap:pretty}
+  .sizes{display:flex;align-items:flex-end;gap:16px;margin-top:14px;padding-top:13px;border-top:1px solid #F0EAE0}
+  .sizes img{display:block;image-rendering:auto}
+  .sizes span{font-size:10px;color:#9AA7B8;display:block;text-align:center;margin-top:4px}
+  .cell{display:flex;flex-direction:column;align-items:center}
+  .foot{margin-top:34px;font-size:13px;color:var(--muted);line-height:1.6;border-top:1px solid var(--line);padding-top:18px}
+  code{background:#EFE9DF;padding:2px 6px;border-radius:5px;font-size:12px}
+</style></head><body>
+
+<h1>Bible Study Tayo — 3D takes</h1>
+<div class="sub">Six real Three.js renders of the same brief: two people reading a Bible. 1024&thinsp;px, transparent PNG, matte clay lighting. The little row under each card is 104 / 40 / 28 / 16&thinsp;px — that row is the test that matters, and it is where 3D usually loses to flat.</div>
+
+<div class="bar">
+  <b>Surface</b>
+  <button data-bg="#F7F4EF" class="on">Paper</button>
+  <button data-bg="#FFFFFF">White</button>
+  <button data-bg="#1D4E89">Brand blue</button>
+  <button data-bg="#14202E">Dark</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="foot">
+  Source scene: <code>scene.html</code> · re-render with <code>node render.js</code> (or <code>node render.js 1,4</code> for single takes) with <code>python3 -m http.server 8931</code> running in this folder.<br>
+  Earlier glossy round kept in <code>out-v1/</code>. Flat line-art round is the canvas at <code>../logo-options.html</code>.
+</div>
+
+<script>
+const TAKES = [
+  [1,"1 · Clay pair over the book","Matte clay, both leaning in over a real page stack. The straight reading of the brief."],
+  [2,"2 · The flat mark, thickened","Take 2 from the flat sheet given real depth. Keeps a silhouette already tested at 16px."],
+  [3,"3 · Glass book, clay readers","Book in glass, readers solid. Most premium, most fragile — transmission needs a light background."],
+  [4,"4 · App-icon tile","Built as the icon first: mark raised off a squircle tile, casting onto its own face."],
+  [5,"5 · Leader + member","Two different sizes — one disciples the other. The only take that says what the app is for."],
+  [6,"6 · Folded paper","Flat-shaded facets. Least dated of the figure takes, cheapest to reproduce in print."]
+];
+document.getElementById('grid').innerHTML = TAKES.map(([n,lab,note]) => `
+  <div class="card">
+    <div class="stage" style="background:#F7F4EF"><img src="out/take-${n}.png" alt="${lab}"></div>
+    <div class="meta">
+      <div class="lab">${lab}</div>
+      <div class="note">${note}</div>
+      <div class="sizes">
+        ${[104,40,28,16].map(s=>`<div class="cell"><img src="out/take-${n}.png" width="${s}" height="${s}"><span>${s}</span></div>`).join('')}
+      </div>
+    </div>
+  </div>`).join('');
+
+document.querySelectorAll('.bar button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.bar button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.stage').forEach(s => s.style.background = b.dataset.bg);
+});
+</script>
+</body></html>

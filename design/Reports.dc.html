@@ -1,0 +1,202 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Figtree', system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:#1D4E89; text-decoration:none; } a:hover { color:#143761; }
+    h1,h2,h3 { font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif; margin:0; letter-spacing:-0.022em; line-height:1.14; }
+    button { font-family:inherit; border:none; background:none; padding:0; margin:0; color:inherit; cursor:pointer; text-align:left; }
+    .scroll::-webkit-scrollbar { width:0; }
+  </style>
+</helmet>
+<div style="width:390px;height:844px;display:flex;flex-direction:column;background:#F7F4EF;color:#14202E;overflow:hidden">
+
+  <div style="flex-shrink:0;padding:16px 16px 12px">
+    <h2 style="font-size:26px">Reports</h2>
+    <div style="display:flex;gap:6px;margin-top:14px;background:#EDE8DF;border-radius:16px;padding:4px">
+      <sc-for list="{{tabs}}" as="t" hint-placeholder-count="3">
+        <button onClick="{{t.pick}}" style="flex-grow:1;height:46px;border-radius:13px;background:{{t.bg}};color:{{t.ink}};font-size:14px;font-weight:700;display:flex;align-items:center;justify-content:center">{{t.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex-grow:1;min-height:0;overflow-y:auto;padding:2px 16px 18px">
+
+    <sc-if value="{{isPerson}}" hint-placeholder-val="{{true}}">
+      <div>
+        <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;padding:13px 14px">
+          <div style="width:46px;height:46px;border-radius:16px;background:#E7EFF9;color:#1D4E89;display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">MS</div>
+          <div style="flex-grow:1;min-width:0">
+            <div style="font-size:16px;font-weight:700">Maria Santos</div>
+            <div style="font-size:13px;color:#61708A;margin-top:2px">Tuesday BGroup &middot; Edify &middot; baptized 4 May</div>
+          </div>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#C3B8A5" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0"><path d="m6 9 6 6 6-6"></path></svg>
+        </div>
+
+        <div style="margin-top:12px;background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;padding:15px 16px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.13em;color:#8B7B63">BOOK 1 &mdash; ONE BY ONE</div>
+          <div style="font-size:15px;font-weight:700;color:#1D4E89;margin-top:5px">Completed 12 August 2026</div>
+          <div style="margin-top:12px;display:flex;flex-direction:column;gap:11px">
+            <sc-for list="{{sheet}}" as="r" hint-placeholder-count="6">
+              <div style="display:flex;align-items:center;gap:10px">
+                <div style="width:26px;height:26px;border-radius:9px;background:#E7EFF9;color:#1D4E89;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0">{{r.n}}</div>
+                <span style="flex-grow:1;min-width:0;font-size:14.5px;font-weight:600">{{r.title}}</span>
+                <span style="font-size:12.5px;color:#8B7B63;flex-shrink:0">{{r.when}}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isGroup}}" hint-placeholder-val="{{false}}">
+      <div>
+        <div style="display:flex;align-items:baseline;justify-content:space-between">
+          <span style="font-size:16px;font-weight:700">Tuesday BGroup</span>
+          <span style="font-size:13px;color:#8B7B63;font-weight:600">27 held &middot; 3 cancelled</span>
+        </div>
+        <div style="margin-top:12px;display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{history}}" as="h" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:12px;background:{{h.bg}};border:1px solid {{h.border}};border-radius:18px;padding:12px 14px">
+              <div style="width:52px;flex-shrink:0">
+                <div style="font-size:16px;font-weight:700;color:{{h.dateInk}}">{{h.day}}</div>
+                <div style="font-size:11.5px;font-weight:600;color:#8B7B63;letter-spacing:0.05em">{{h.month}}</div>
+              </div>
+              <div style="flex-grow:1;min-width:0">
+                <div style="font-size:14.5px;font-weight:700;color:{{h.ink}}">{{h.title}}</div>
+                <div style="font-size:13px;color:#8B7B63;margin-top:2px">{{h.sub}}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-if>
+
+    <sc-if value="{{isRoll}}" hint-placeholder-val="{{false}}">
+      <div>
+        <div style="display:flex;gap:9px">
+          <sc-for list="{{stats}}" as="s" hint-placeholder-count="3">
+            <div style="flex-grow:1;background:{{s.bg}};border-radius:20px;padding:15px 13px">
+              <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:30px;font-weight:700;color:{{s.ink}};letter-spacing:-0.03em">{{s.n}}</div>
+              <div style="font-size:12.5px;font-weight:700;color:{{s.ink}};margin-top:3px">{{s.label}}</div>
+            </div>
+          </sc-for>
+        </div>
+
+        <div style="margin-top:14px;background:#FFFFFF;border:1px solid #E6DFD4;border-radius:20px;padding:16px">
+          <div style="font-size:11px;font-weight:700;letter-spacing:0.13em;color:#8B7B63">BOOKS COMPLETED</div>
+          <div style="margin-top:13px;display:flex;flex-direction:column;gap:13px">
+            <sc-for list="{{books}}" as="b" hint-placeholder-count="4">
+              <div>
+                <div style="display:flex;align-items:baseline;justify-content:space-between;gap:10px">
+                  <span style="font-size:14px;font-weight:600;min-width:0">{{b.title}}</span>
+                  <span style="font-size:13.5px;font-weight:700;color:#1D4E89;flex-shrink:0">{{b.n}}</span>
+                </div>
+                <div style="margin-top:6px;height:8px;border-radius:5px;background:#EFEAE1;overflow:hidden">
+                  <div style="height:8px;border-radius:5px;background:#1D4E89;width:{{b.pct}}"></div>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+  </div>
+
+  <div style="flex-shrink:0;background:#FFFFFF;border-top:1px solid #E6DFD4;padding:12px 16px 18px">
+    <button style="width:100%;height:56px;border-radius:18px;border:2px solid #1D4E89;color:#1D4E89;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#1D4E89" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12m0 0 4-4m-4 4-4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"></path></svg>
+      Export CSV
+    </button>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { tab: 'person' };
+  }
+  renderVals() {
+    const TABS = [
+      { id: 'person', label: 'Person' },
+      { id: 'group', label: 'Group' },
+      { id: 'roll', label: 'Roll-up' }
+    ];
+    const tabs = TABS.map((t) => {
+      const on = t.id === this.state.tab;
+      return {
+        label: t.label, on: on,
+        bg: on ? '#FFFFFF' : 'transparent',
+        ink: on ? '#14202E' : '#8B7B63',
+        pick: () => this.setState({ tab: t.id })
+      };
+    });
+
+    const sheet = [
+      { n: 1, title: 'One Truth', when: '3 Mar · Tuesday' },
+      { n: 2, title: 'One Way', when: '10 Mar · Tuesday' },
+      { n: 3, title: 'One Proof', when: '24 Mar · Tuesday' },
+      { n: 4, title: 'One Promise', when: '7 Apr · Sunday Youth' },
+      { n: 5, title: 'One Source', when: '5 Aug · Tuesday' },
+      { n: 6, title: 'One Pursuit', when: '12 Aug · Tuesday' }
+    ];
+
+    const HIST = [
+      { day: '12', month: 'AUG', title: 'Session 6 — One Pursuit', sub: '5 of 6 attended', kind: 'held' },
+      { day: '05', month: 'AUG', title: 'Session 5 — One Source', sub: '6 of 6 attended', kind: 'held' },
+      { day: '29', month: 'JUL', title: 'Fellowship — no session', sub: '4 attended', kind: 'social' },
+      { day: '22', month: 'JUL', title: 'Cancelled — brownout', sub: 'Not counted as held', kind: 'cancelled' },
+      { day: '15', month: 'JUL', title: 'Session 4 — One Promise', sub: '5 of 6 attended', kind: 'held' },
+      { day: '08', month: 'JUL', title: 'Session 3 — One Proof', sub: '4 of 6 attended', kind: 'held' }
+    ];
+    const history = HIST.map((h) => ({
+      day: h.day, month: h.month, title: h.title, sub: h.sub,
+      bg: h.kind === 'cancelled' ? '#F1EDE5' : '#FFFFFF',
+      border: h.kind === 'social' ? '#E0BE86' : '#E6DFD4',
+      ink: h.kind === 'cancelled' ? '#8B7B63' : '#14202E',
+      dateInk: h.kind === 'cancelled' ? '#8B7B63' : '#1D4E89'
+    }));
+
+    const stats = [
+      { n: '18', label: 'Active', bg: '#E7EFF9', ink: '#143761' },
+      { n: '4', label: 'Quiet', bg: '#FBF0DC', ink: '#7C4708' },
+      { n: '2', label: 'Stepped away', bg: '#EDEAE3', ink: '#61708A' }
+    ];
+
+    const books = [
+      { title: 'Book 1 — One By One', done: 11, total: 24 },
+      { title: 'Book 2 — Spiritual Disciplines', done: 6, total: 24 },
+      { title: 'Book 3 — The Holy Spirit', done: 4, total: 24 },
+      { title: 'Book 5 — DGroup 101', done: 2, total: 24 }
+    ].map((b) => ({
+      title: b.title,
+      n: b.done + ' people',
+      pct: Math.round((b.done / b.total) * 100) + '%'
+    }));
+
+    return {
+      tabs: tabs,
+      sheet: sheet,
+      history: history,
+      stats: stats,
+      books: books,
+      isPerson: this.state.tab === 'person',
+      isGroup: this.state.tab === 'group',
+      isRoll: this.state.tab === 'roll'
+    };
+  }
+}
+</script>
+</body>
+</html>

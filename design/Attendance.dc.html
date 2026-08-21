@@ -1,0 +1,162 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Figtree', system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:#1D4E89; text-decoration:none; } a:hover { color:#143761; }
+    h1,h2,h3 { font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif; margin:0; letter-spacing:-0.022em; line-height:1.14; }
+    button { font-family:inherit; border:none; background:none; padding:0; margin:0; color:inherit; cursor:pointer; text-align:left; }
+    .scroll::-webkit-scrollbar { width:0; }
+  </style>
+</helmet>
+<div style="width:390px;height:844px;display:flex;flex-direction:column;background:#F7F4EF;color:#14202E;overflow:hidden">
+
+  <div style="flex-shrink:0;background:#FFFFFF;border-bottom:1px solid #E6DFD4;padding:12px 12px 14px">
+    <div style="display:flex;align-items:center;gap:6px">
+      <button style="width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14202E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+      </button>
+      <div style="flex-grow:1;min-width:0">
+        <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:18px;font-weight:700;letter-spacing:-0.02em">Tuesday BGroup</div>
+        <div style="font-size:13px;color:#61708A;margin-top:1px">Tuesday, 19 August &middot; 7:00 PM</div>
+      </div>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:10px;margin-top:12px;background:#E7EFF9;border-radius:16px;padding:11px 13px">
+      <div style="flex-grow:1;min-width:0">
+        <div style="font-size:10px;font-weight:700;letter-spacing:0.13em;color:#4A7BB7">COVERING</div>
+        <div style="font-size:15px;font-weight:700;color:#143761;margin-top:2px">Book 1 &middot; Session 4 &mdash; One Promise</div>
+      </div>
+      <span style="height:40px;padding:0 15px;border-radius:12px;background:#FFFFFF;color:#1D4E89;font-size:14px;font-weight:700;display:flex;align-items:center;flex-shrink:0">Change</span>
+    </div>
+
+    <div style="display:flex;align-items:center;gap:12px;margin-top:14px">
+      <div style="font-size:15px;font-weight:700;color:#14202E;flex-shrink:0">{{doneCount}} of {{total}} marked</div>
+      <div style="flex-grow:1;height:8px;border-radius:5px;background:#E6DFD4;overflow:hidden">
+        <div style="height:8px;border-radius:5px;background:#1D4E89;width:{{pct}}"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="scroll" style="flex-grow:1;min-height:0;overflow-y:auto;padding:12px 14px 16px">
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <sc-for list="{{people}}" as="p" hint-placeholder-count="6">
+        <div style="background:{{p.cardBg}};border:1.5px solid {{p.cardBorder}};border-radius:20px;padding:10px 12px">
+          <div style="display:flex;align-items:center;gap:12px">
+            <div style="width:46px;height:46px;border-radius:16px;background:{{p.avatarBg}};color:{{p.avatarInk}};display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;flex-shrink:0">{{p.initials}}</div>
+            <button onClick="{{p.toggle}}" style="flex-grow:1;min-width:0;display:block;height:56px">
+              <div style="font-size:16px;font-weight:700;line-height:1.2">{{p.name}}</div>
+              <div style="font-size:13px;color:#61708A;margin-top:3px">{{p.sub}}</div>
+            </button>
+            <button onClick="{{p.toggle}}" style="width:52px;height:52px;border-radius:18px;border:2px solid {{p.ringColor}};background:{{p.ringFill}};display:flex;align-items:center;justify-content:center;flex-shrink:0">
+              <sc-if value="{{p.isDone}}" hint-placeholder-val="{{true}}">
+                <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+              </sc-if>
+              <sc-if value="{{p.isPresent}}" hint-placeholder-val="{{false}}">
+                <div style="width:14px;height:14px;border-radius:8px;background:#9A5B0B"></div>
+              </sc-if>
+            </button>
+          </div>
+          <sc-if value="{{p.marked}}" hint-placeholder-val="{{true}}">
+            <button onClick="{{p.cycle}}" style="display:flex;align-items:center;gap:7px;margin-top:8px;margin-left:58px;height:38px;padding:0 13px;border-radius:12px;background:{{p.chipBg}}">
+              <div style="width:7px;height:7px;border-radius:4px;background:{{p.chipDot}}"></div>
+              <span style="font-size:13px;font-weight:700;color:{{p.chipInk}}">{{p.chipLabel}}</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="{{p.chipInk}}" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"></path></svg>
+            </button>
+          </sc-if>
+        </div>
+      </sc-for>
+
+      <button onClick="{{addWalkIn}}" style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border:1.5px dashed #C3B8A5;border-radius:20px;padding:14px 12px">
+        <div style="width:46px;height:46px;border-radius:16px;background:#F1EDE5;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#61708A" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"></path></svg>
+        </div>
+        <div>
+          <div style="font-size:15.5px;font-weight:700;color:#14202E">Add someone else</div>
+          <div style="font-size:13px;color:#61708A;margin-top:2px">Ride-along or a walk-in guest</div>
+        </div>
+      </button>
+    </div>
+  </div>
+
+  <div style="flex-shrink:0;background:#FFFFFF;border-top:1px solid #E6DFD4;padding:12px 16px 18px">
+    <button style="width:100%;height:58px;border-radius:18px;background:#1D4E89;color:#FFFFFF;font-size:17px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:9px">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"></path></svg>
+      Save attendance
+    </button>
+    <div style="text-align:center;font-size:12.5px;color:#8B7B63;margin-top:9px">Saves on this phone. Uploads when you have signal.</div>
+  </div>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = {
+      status: { maria: 'done', ben: 'done', nena: 'none', joel: 'done', divine: 'present', rico: 'none' },
+      walkIn: false
+    };
+  }
+  setStatus(id, v) {
+    const next = Object.assign({}, this.state.status);
+    next[id] = v;
+    this.setState({ status: next });
+  }
+  renderVals() {
+    const base = [
+      { id: 'maria', name: 'Maria Santos', initials: 'MS', sub: '3 of 6 done in One By One' },
+      { id: 'ben', name: 'Ben Cruz', initials: 'BC', sub: 'Missing Session 3 and 4' },
+      { id: 'nena', name: 'Nena Villamor', initials: 'NV', sub: 'Quiet 3 weeks · joined at Session 3' },
+      { id: 'joel', name: 'Joel Ramos', initials: 'JR', sub: '3 of 6 done in One By One' },
+      { id: 'divine', name: 'Divine Uy', initials: 'DU', sub: 'Rode along from Sunday Youth' },
+      { id: 'rico', name: 'Rico Aquino', initials: 'RA', sub: '3 of 6 done in One By One' }
+    ];
+    const rows = this.state.walkIn
+      ? base.concat([{ id: 'guest', name: 'Guest (unsaved)', initials: '+', sub: 'Tap to name and save as a member' }])
+      : base;
+
+    const people = rows.map((p) => {
+      const s = this.state.status[p.id] || 'none';
+      const isDone = s === 'done';
+      const isPresent = s === 'present';
+      return Object.assign({}, p, {
+        isDone: isDone,
+        isPresent: isPresent,
+        marked: isDone || isPresent,
+        cardBg: isDone ? '#FFFFFF' : (isPresent ? '#FFFFFF' : '#FBF9F5'),
+        cardBorder: isDone ? '#1D4E89' : (isPresent ? '#E0BE86' : '#E6DFD4'),
+        avatarBg: isDone ? '#E7EFF9' : '#F1EDE5',
+        avatarInk: isDone ? '#1D4E89' : '#8B7B63',
+        ringColor: isDone ? '#1D4E89' : (isPresent ? '#9A5B0B' : '#D6CEC0'),
+        ringFill: isDone ? '#1D4E89' : 'transparent',
+        chipBg: isDone ? '#E7EFF9' : '#FBF0DC',
+        chipDot: isDone ? '#1D4E89' : '#9A5B0B',
+        chipInk: isDone ? '#143761' : '#7C4708',
+        chipLabel: isDone ? 'Completed Session 4' : 'Present only',
+        toggle: () => this.setStatus(p.id, isDone || isPresent ? 'none' : 'done'),
+        cycle: () => this.setStatus(p.id, isDone ? 'present' : 'done')
+      });
+    });
+
+    const doneCount = people.filter((p) => p.marked).length;
+    return {
+      people: people,
+      doneCount: doneCount,
+      total: people.length,
+      pct: Math.round((doneCount / people.length) * 100) + '%',
+      addWalkIn: () => this.setState({ walkIn: true })
+    };
+  }
+}
+</script>
+</body>
+</html>

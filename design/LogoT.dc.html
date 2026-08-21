@@ -1,0 +1,112 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Figtree', system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:#1D4E89; } a:hover { color:#143761; }
+    h1,h2,h3 { font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif; margin:0; letter-spacing:-0.025em; line-height:1.1; }
+    button { font-family:inherit; border:none; background:none; padding:0; margin:0; color:inherit; cursor:pointer; }
+  </style>
+</helmet>
+<div style="width:880px;height:560px;display:flex;flex-direction:column;background:#FFFFFF;color:#14202E;padding:34px 36px;overflow:hidden">
+
+  <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:24px;flex-shrink:0">
+    <div style="min-width:0">
+      <div style="font-size:12px;font-weight:700;letter-spacing:0.16em;color:#8B7B63">DIRECTION C</div>
+      <h2 style="font-size:34px;margin-top:7px">The lowercase t</h2>
+      <div style="font-size:15.5px;color:#61708A;margin-top:9px;max-width:470px;line-height:1.5">One letterform doing two jobs: the T of <em>Tayo</em>, and a cross that nobody had to announce. Sharpest at tiny sizes &mdash; it is a single shape.</div>
+      <div style="font-size:14px;color:#9A5B0B;margin-top:9px;max-width:470px;line-height:1.45"><strong>Tradeoff:</strong> It commits. The cross is unmistakable, which is right for your ministry and wrong the moment you want a non-church leader to install it.</div>
+    </div>
+    <div style="display:flex;gap:5px;background:#F1EDE5;border-radius:13px;padding:4px;flex-shrink:0">
+      <sc-for list="{{grounds}}" as="g" hint-placeholder-count="3">
+        <button onClick="{{g.pick}}" style="height:38px;padding:0 13px;border-radius:10px;background:{{g.bg}};color:{{g.ink}};font-size:13px;font-weight:700">{{g.label}}</button>
+      </sc-for>
+    </div>
+  </div>
+
+  <div style="flex-grow:1;display:flex;align-items:center;gap:34px;margin-top:22px;min-height:0">
+
+    <div style="width:300px;height:300px;border-radius:34px;background:{{bg}};border:1px solid #EFEAE1;display:flex;align-items:center;justify-content:center;flex-shrink:0">
+      <svg width="164" height="164" viewBox="0 0 64 64" fill="none">
+        <rect x="27.5" y="8" width="9" height="48" rx="4.5" fill="{{c}}"></rect><rect x="14" y="23.5" width="36" height="9" rx="4.5" fill="{{c}}"></rect>
+      </svg>
+    </div>
+
+    <div style="flex-grow:1;min-width:0;display:flex;flex-direction:column;gap:22px">
+
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;color:#8B7B63;margin-bottom:11px">LOCKUP</div>
+        <div style="display:flex;align-items:center;gap:16px">
+          <svg width="52" height="52" viewBox="0 0 64 64" fill="none" style="flex-shrink:0">
+            <rect x="27.5" y="8" width="9" height="48" rx="4.5" fill="#1D4E89"></rect><rect x="14" y="23.5" width="36" height="9" rx="4.5" fill="#1D4E89"></rect>
+          </svg>
+          <div>
+            <div style="font-family:'Bricolage Grotesque',sans-serif;font-size:29px;font-weight:700;letter-spacing:-0.03em;line-height:1.02">Bible Study Tayo</div>
+            <div style="font-size:13.5px;color:#61708A;margin-top:3px;letter-spacing:0.02em">Tayo, magkasama sa Salita.</div>
+          </div>
+        </div>
+      </div>
+
+      <div style="height:1px;background:#EFEAE1"></div>
+
+      <div>
+        <div style="font-size:11px;font-weight:700;letter-spacing:0.15em;color:#8B7B63;margin-bottom:11px">ON A HOMESCREEN &middot; AND AT 20PX</div>
+        <div style="display:flex;align-items:center;gap:20px">
+          <div style="text-align:center">
+            <div style="width:76px;height:76px;border-radius:22px;background:#1D4E89;display:flex;align-items:center;justify-content:center">
+              <svg width="42" height="42" viewBox="0 0 64 64" fill="none"><rect x="27.5" y="8" width="9" height="48" rx="4.5" fill="#FFFFFF"></rect><rect x="14" y="23.5" width="36" height="9" rx="4.5" fill="#FFFFFF"></rect></svg>
+            </div>
+            <div style="font-size:11px;color:#61708A;margin-top:7px">Tayo</div>
+          </div>
+          <div style="text-align:center">
+            <div style="width:76px;height:76px;border-radius:22px;background:#F7F4EF;border:1px solid #E6DFD4;display:flex;align-items:center;justify-content:center">
+              <svg width="42" height="42" viewBox="0 0 64 64" fill="none"><rect x="27.5" y="8" width="9" height="48" rx="4.5" fill="#1D4E89"></rect><rect x="14" y="23.5" width="36" height="9" rx="4.5" fill="#1D4E89"></rect></svg>
+            </div>
+            <div style="font-size:11px;color:#61708A;margin-top:7px">Tayo</div>
+          </div>
+          <div style="width:1px;height:60px;background:#EFEAE1"></div>
+          <div style="display:flex;align-items:center;gap:12px">
+            <svg width="20" height="20" viewBox="0 0 64 64" fill="none"><rect x="27.5" y="8" width="9" height="48" rx="4.5" fill="#14202E"></rect><rect x="14" y="23.5" width="36" height="9" rx="4.5" fill="#14202E"></rect></svg>
+            <svg width="20" height="20" viewBox="0 0 64 64" fill="none"><rect x="27.5" y="8" width="9" height="48" rx="4.5" fill="#9E9384"></rect><rect x="14" y="23.5" width="36" height="9" rx="4.5" fill="#9E9384"></rect></svg>
+            <span style="font-size:12.5px;color:#8B7B63">favicon &amp; greyscale</span>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":880,"height":560}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { ground: 'light' }; }
+  renderVals() {
+    const G = [
+      { id: 'light', label: 'On paper', bg: '#F7F4EF', c: '#1D4E89' },
+      { id: 'blue', label: 'On blue', bg: '#1D4E89', c: '#FFFFFF' },
+      { id: 'mono', label: 'One colour', bg: '#FFFFFF', c: '#14202E' }
+    ];
+    const cur = G.find((g) => g.id === this.state.ground) || G[0];
+    return {
+      grounds: G.map((g) => ({
+        label: g.label,
+        bg: g.id === this.state.ground ? '#FFFFFF' : 'transparent',
+        ink: g.id === this.state.ground ? '#14202E' : '#8B7B63',
+        pick: () => this.setState({ ground: g.id })
+      })),
+      bg: cur.bg,
+      c: cur.c
+    };
+  }
+}
+</script>
+</body>
+</html>

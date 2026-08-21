@@ -1,0 +1,97 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Bible Study Tayo — logo system</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<script src="./emblem.js"></script>
+<script src="./illus.js"></script>
+<style>
+  :root{--paper:#F7F4EF;--ink:#14202E;--blue:#1D4E89;--muted:#61708A;--line:#E6DFD4}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:Figtree,system-ui,sans-serif;padding:34px 30px 70px}
+  h1{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:33px;margin:0;letter-spacing:-.022em}
+  h2{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:19px;margin:0 0 3px;letter-spacing:-.015em}
+  .sub{color:var(--muted);font-size:15px;margin-top:8px;max-width:800px;line-height:1.55}
+  .bar{display:flex;gap:8px;align-items:center;margin:22px 0 8px;flex-wrap:wrap}
+  .bar b{font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-right:4px}
+  button{font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .lvl{background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px 24px;margin-top:18px;
+       display:grid;grid-template-columns:260px 1fr;gap:26px;align-items:center}
+  @media(max-width:820px){.lvl{grid-template-columns:1fr}}
+  .show{background:var(--paper);border-radius:16px;padding:14px;display:flex;align-items:center;justify-content:center;min-height:200px;transition:background .18s}
+  .show img,.show svg{max-width:100%;max-height:210px;display:block}
+  .tag{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:var(--blue)}
+  .note{font-size:13.5px;color:var(--muted);line-height:1.55;margin-top:8px;text-wrap:pretty}
+  .use{font-size:12.5px;margin-top:11px;line-height:1.7}
+  .use b{color:var(--ink)}
+  .sizes{display:flex;align-items:flex-end;gap:22px;margin-top:16px;padding-top:14px;border-top:1px solid #F0EAE0}
+  .cell{display:flex;flex-direction:column;align-items:center}
+  .cell span{font-size:10px;color:#9AA7B8;margin-top:5px}
+  .foot{margin-top:34px;font-size:13px;color:var(--muted);line-height:1.7;border-top:1px solid var(--line);padding-top:18px}
+  code{background:#EFE9DF;padding:2px 6px;border-radius:5px;font-size:12px}
+</style></head><body>
+
+<h1>Bible Study Tayo — one drawing, three levels</h1>
+<div class="sub">The chosen roundel cannot shrink — that much nib work turns to mud below about 32&thinsp;px. So it lives at three levels of reduction. Same drawing, same ring, same two men: the curly one leading, the slick one following. What changes is how much survives.</div>
+
+<div class="bar">
+  <b>Surface</b>
+  <button data-ink="#14202E" data-paper="#F7F4EF" data-bg="#F7F4EF" class="on">Ink on paper</button>
+  <button data-ink="#F7F4EF" data-paper="#14202E" data-bg="#14202E">Reversed</button>
+  <button data-ink="#1D4E89" data-paper="#F7F4EF" data-bg="#F7F4EF">Brand blue</button>
+</div>
+
+<div class="lvl">
+  <div class="show" id="s1"></div>
+  <div>
+    <div class="tag">Level 1 · illustration</div>
+    <h2>The full drawing</h2>
+    <div class="note">Traced from the chosen composition and reduced once, so the hatching thins into confident blacks. Bolder and more 1950s than the raw output — this is the version people should actually see.</div>
+    <div class="use"><b>Use:</b> site header · video thumbnails · print · slides<br><b>Never:</b> anything under 120&thinsp;px</div>
+  </div>
+</div>
+
+<div class="lvl">
+  <div class="show" id="s2"></div>
+  <div>
+    <div class="tag">Level 2 · mark</div>
+    <h2>The emblem</h2>
+    <div class="note">Hand-built, not traced. Seven shapes: ring, two heads, two shoulder masses, the book, the pointing hand. The hairstyles are kept because they are the only thing telling the two men apart once the faces are gone.</div>
+    <div class="use"><b>Use:</b> app header · favicon at 32&thinsp;px+ · stamps · merch<br><b>Files:</b> <code>out/kit/emblem-mark*.svg</code></div>
+  </div>
+</div>
+
+<div class="lvl">
+  <div class="show" id="s3"></div>
+  <div>
+    <div class="tag">Level 3 · icon</div>
+    <h2>The small mark</h2>
+    <div class="note">The pointing hand and the inner keyline come off — they close up and turn to dirt. What is left still reads as two people over an open book, inside a ring, at 16&thinsp;px.</div>
+    <div class="sizes" id="sizes"></div>
+    <div class="use" style="margin-top:12px"><b>Files:</b> <code>out/kit/icon-{16,32,48,192,512,1024}.png</code></div>
+  </div>
+</div>
+
+<div class="foot">
+  Generator: <code>emblem.js</code> — <code>EMBLEM.svg('icon'|'hand'|'medium', {ink, paper})</code>. Two colours, no gradients, no strokes on the artwork.<br>
+  Traces: <code>out/vector/roundel-full.svg</code> (faithful) and <code>roundel-r5.svg</code> (reduced, recommended). Source crop: <code>out/vector/roundel-src.png</code>.<br>
+  Earlier rounds parked, nothing deleted: <code>logo-retro.html</code> (hand-drawn ink), <code>logo-3d-uneven.html</code> (3D).
+</div>
+
+<script>
+function paint(ink, paper, bg) {
+  document.getElementById('s1').innerHTML = ILLUS.svg('r5', { size: 210, ink });
+  document.getElementById('s2').innerHTML = EMBLEM.svg('hand', { size: 210, ink, paper });
+  document.getElementById('s3').innerHTML = EMBLEM.svg('icon', { size: 210, ink, paper });
+  document.getElementById('sizes').innerHTML = [48,32,24,16]
+    .map(s => `<div class="cell">${EMBLEM.svg('icon',{size:s,ink,paper})}<span>${s}</span></div>`).join('');
+  document.querySelectorAll('.show').forEach(el => el.style.background = bg);
+}
+paint('#14202E', '#F7F4EF', '#F7F4EF');
+document.querySelectorAll('.bar button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.bar button').forEach(x => x.classList.remove('on'));
+  b.classList.add('on');
+  paint(b.dataset.ink, b.dataset.paper, b.dataset.bg);
+});
+</script>
+</body></html>

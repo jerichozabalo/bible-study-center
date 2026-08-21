@@ -1,0 +1,21 @@
+node_modules/
+.next/
+out/
+build/
+next-env.d.ts
+tsconfig.tsbuildinfo
+
+# Secrets. `.env.example` is the committed shape; the real values never are.
+.env
+.env.local
+.env*.local
+
+.vercel/
+.DS_Store
+*.log
+
+# Plain-page renders of the artboards, rebuilt on demand by
+# `node design/preview/build.js <Board> '<states>'`. The `.dc.html` boards are
+# the source; these are output.
+design/preview/*-preview.html
+

@@ -1,0 +1,83 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Bible Study Tayo — retro ink</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<script src="./retro.js"></script>
+<style>
+  :root{--paper:#F7F4EF;--ink:#14202E;--blue:#1D4E89;--muted:#61708A;--line:#E6DFD4}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:Figtree,system-ui,sans-serif;padding:34px 30px 60px}
+  h1{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:32px;margin:0;letter-spacing:-.022em}
+  .sub{color:var(--muted);font-size:15px;margin-top:8px;max-width:800px;line-height:1.55}
+  .bar{display:flex;gap:8px;align-items:center;margin:22px 0 26px;flex-wrap:wrap}
+  .bar b{font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-right:4px}
+  button{font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  button.on{background:var(--ink);border-color:var(--ink);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px}
+  @media(max-width:1080px){.grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+  @media(max-width:720px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+  .stage{aspect-ratio:1/1;display:flex;align-items:center;justify-content:center;padding:12%;transition:background .18s}
+  .stage svg{width:100%;height:100%}
+  .meta{padding:15px 18px 18px;border-top:1px solid var(--line)}
+  .lab{font-size:13px;font-weight:700;letter-spacing:.03em;color:var(--blue)}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.45;margin-top:5px;text-wrap:pretty}
+  .row{display:flex;align-items:flex-end;gap:18px;margin-top:13px;padding-top:12px;border-top:1px solid #F0EAE0}
+  .cell{display:flex;flex-direction:column;align-items:center}
+  .cell span{font-size:10px;color:#9AA7B8;margin-top:4px}
+  .verdict{font-size:10.5px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;margin-left:auto;align-self:center}
+  .ok{color:#2E7D52}.no{color:#B8452F}
+  .foot{margin-top:34px;font-size:13px;color:var(--muted);line-height:1.65;border-top:1px solid var(--line);padding-top:18px}
+  code{background:#EFE9DF;padding:2px 6px;border-radius:5px;font-size:12px}
+</style></head><body>
+
+<h1>Retro ink — six marks</h1>
+<div class="sub">Built the way 1950s marks were: pure 1-bit, heavy masses, forms separated by chunky paper channels instead of hairlines, and white cuts that slash across a form and break its contour. One figure is drawn leaning; the member is that same drawing mirrored, smaller. The row under each is 48 / 28 / 20 / 16&thinsp;px live SVG.</div>
+
+<div class="bar">
+  <b>Surface</b>
+  <button data-ink="#14202E" data-paper="#F7F4EF" data-bg="#F7F4EF" class="on">Ink on paper</button>
+  <button data-ink="#F7F4EF" data-paper="#14202E" data-bg="#14202E">Reversed</button>
+  <button data-ink="#1D4E89" data-paper="#F7F4EF" data-bg="#F7F4EF">Brand blue</button>
+  <button data-ink="#14202E" data-paper="#FFFFFF" data-bg="#FFFFFF">Pure white</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="foot">
+  Generator: <code>retro.js</code> — <code>RETRO.svg(n, {ink, paper})</code>. Every mark is two colours, no gradients, no strokes on the artwork itself.<br>
+  Exported: <code>out/retro/retro-1..6.svg</code> plus <code>-rev</code> reversed versions.<br>
+  The 3D round is parked in <code>logo-3d-uneven.html</code> — nothing deleted.
+</div>
+
+<script>
+const CARDS = [
+  [1,"1 · Inked pair","The mark you picked, redrawn. Three cuts per figure — enough to read as ink, few enough to survive.",true],
+  [2,"2 · Heavy woodcut","Every cut plus page lines. Richest at large sizes; the lines close up small.",false],
+  [3,"3 · Roundel","Knocked out of a solid disc. The most 50s trade-mark of the six, and the strongest app icon.",true],
+  [4,"4 · Burst","Direct-response sunburst. Great on a page or a thumbnail. Not an icon.",false],
+  [5,"5 · Cut from the page","Readers knocked out of the book itself. Boldest, but it is wide — it wants a header, not a square.",false],
+  [6,"6 · Ribbon","Mark over a banner with the keyline left empty — that gap is where the wordmark goes.",false]
+];
+function paint(ink, paper, bg) {
+  document.getElementById('grid').innerHTML = CARDS.map(([n,lab,note,small]) => `
+    <div class="card">
+      <div class="stage" style="background:${bg}">${RETRO.svg(n,{size:220,ink,paper})}</div>
+      <div class="meta">
+        <div class="lab">${lab}</div>
+        <div class="note">${note}</div>
+        <div class="row">
+          ${[48,28,20,16].map(s=>`<div class="cell">${RETRO.svg(n,{size:s,ink,paper})}<span>${s}</span></div>`).join('')}
+          <div class="verdict ${small?'ok':'no'}">${small?'holds':'dies small'}</div>
+        </div>
+      </div>
+    </div>`).join('');
+}
+paint('#14202E','#F7F4EF','#F7F4EF');
+document.querySelectorAll('.bar button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.bar button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  paint(b.dataset.ink, b.dataset.paper, b.dataset.bg);
+});
+</script>
+</body></html>

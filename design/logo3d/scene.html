@@ -1,0 +1,432 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<style>html,body{margin:0;background:transparent}canvas{display:block}</style>
+<script type="importmap">
+{"imports":{
+  "three":"./node_modules/three/build/three.module.js",
+  "three/addons/":"./node_modules/three/examples/jsm/"
+}}
+</script>
+</head>
+<body>
+<script src="./mark.js"></script>
+<script type="module">
+import * as THREE from 'three';
+import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+import { SVGLoader } from 'three/addons/loaders/SVGLoader.js';
+
+const P = new URLSearchParams(location.search);
+const TAKE = parseInt(P.get('take') || '1', 10);
+const SIZE = parseInt(P.get('size') || '1024', 10);
+
+/* ---------- brand ---------- */
+const INK   = 0x1D4E89;
+const DEEP  = 0x143761;
+const PAPER = 0xF7F4EF;
+const CREAM = 0xFFFDF8;
+const BRASS = 0xC08A2E;
+const RIBBON= 0xB8452F;
+
+const renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true, preserveDrawingBuffer:true });
+renderer.setPixelRatio(1);
+renderer.setSize(SIZE, SIZE, false);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+document.body.appendChild(renderer.domElement);
+
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.06).texture;
+const camera = new THREE.PerspectiveCamera(24, 1, 0.1, 100);
+
+/* ---------- soft studio light: overhead key so the shadow tucks under ---------- */
+function lights({ keyInt=1.9, fillInt=0.42, rimInt=0.55, ambInt=0.34, shadow=true,
+                 keyPos=[2.0,6.4,2.6], bias=-0.0011, radius=7 } = {}) {
+  const key = new THREE.DirectionalLight(0xFFF6E9, keyInt);
+  key.position.set(keyPos[0], keyPos[1], keyPos[2]);
+  if (shadow) {
+    key.castShadow = true;
+    key.shadow.mapSize.set(2048, 2048);
+    const c = key.shadow.camera;
+    c.left = -3; c.right = 3; c.top = 3; c.bottom = -3; c.near = 0.5; c.far = 24;
+    key.shadow.bias = bias;
+    key.shadow.radius = radius;
+  }
+  scene.add(key);
+  const fill = new THREE.DirectionalLight(0xDCE9FF, fillInt);
+  fill.position.set(-5.0, 1.4, 3.0); scene.add(fill);
+  const rim = new THREE.DirectionalLight(0xFFE9CC, rimInt);
+  rim.position.set(-1.0, 2.2, -5.0); scene.add(rim);
+  scene.add(new THREE.HemisphereLight(0xFFFFFF, 0xD9CFC0, ambInt));
+}
+
+function ground(y, opacity = 0.16) {
+  const g = new THREE.Mesh(new THREE.PlaneGeometry(30, 30), new THREE.ShadowMaterial({ opacity }));
+  g.rotation.x = -Math.PI / 2;
+  g.position.y = y;
+  g.receiveShadow = true;
+  scene.add(g);
+  return g;
+}
+
+function shadowsOn(root) {
+  root.traverse(o => { if (o.isMesh) { o.castShadow = true; o.receiveShadow = true; } });
+}
+
+/* matte clay — no plastic hotspot */
+const clay = (color, extra = {}) => new THREE.MeshStandardMaterial(
+  Object.assign({ color, roughness: 0.90, metalness: 0.0, envMapIntensity: 0.45 }, extra));
+
+function roundedRectShape(w, h, r) {
+  const s = new THREE.Shape();
+  const x = -w/2, y = -h/2;
+  s.moveTo(x + r, y);
+  s.lineTo(x + w - r, y);   s.quadraticCurveTo(x + w, y, x + w, y + r);
+  s.lineTo(x + w, y + h - r); s.quadraticCurveTo(x + w, y + h, x + w - r, y + h);
+  s.lineTo(x + r, y + h);   s.quadraticCurveTo(x, y + h, x, y + h - r);
+  s.lineTo(x, y + r);       s.quadraticCurveTo(x, y, x + r, y);
+  return s;
+}
+
+/* parabolic page curl: local z lifts with distance from the spine edge */
+function curl(geo, k, halfW) {
+  const pos = geo.attributes.position;
+  for (let i = 0; i < pos.count; i++) {
+    const x = pos.getX(i);
+    pos.setZ(i, pos.getZ(i) + k * Math.pow(Math.abs(x) / halfW, 2.1));
+  }
+  pos.needsUpdate = true;
+  geo.computeVertexNormals();
+  return geo;
+}
+
+function flipShape(shape) {
+  const pts = shape.extractPoints(28);
+  const mk = arr => arr.map(p => new THREE.Vector2(p.x, -p.y));
+  const out = new THREE.Shape(mk(pts.shape));
+  out.holes = (pts.holes || []).map(h => new THREE.Path(mk(h)));
+  return out;
+}
+
+function extrudeSVG(inner, material, { depth = 0.22, bevel = 0.035, targetH = 1.6 } = {}) {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">${inner}</svg>`;
+  const paths = new SVGLoader().parse(svg).paths;
+  const group = new THREE.Group();
+  for (const path of paths) {
+    for (const raw of SVGLoader.createShapes(path)) {
+      const geo = new THREE.ExtrudeGeometry(flipShape(raw), {
+        depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel,
+        bevelSegments: 5, curveSegments: 26
+      });
+      geo.computeVertexNormals();
+      group.add(new THREE.Mesh(geo, material));
+    }
+  }
+  const box = new THREE.Box3().setFromObject(group);
+  const size = box.getSize(new THREE.Vector3());
+  const ctr = box.getCenter(new THREE.Vector3());
+  group.children.forEach(c => c.geometry.translate(-ctr.x, -ctr.y, -ctr.z));
+  group.scale.setScalar(targetH / size.y);
+  return group;
+}
+
+/* a reader: egg head sunk into shoulders, pitched down at the book */
+function reader(mat, { scale = 1, pitch = 0.30 } = {}) {
+  const g = new THREE.Group();
+  const shoulderH = 0.46, headR = 0.29;
+
+  const head = new THREE.Mesh(new THREE.SphereGeometry(headR, 64, 48), mat);
+  head.scale.set(0.98, 1.06, 0.94);
+  head.position.set(0, shoulderH + headR * 0.60, 0.03);
+  head.rotation.x = 0.18;
+  g.add(head);
+
+  const body = new THREE.Mesh(
+    new THREE.SphereGeometry(1, 64, 40, 0, Math.PI * 2, 0, Math.PI / 2), mat);
+  body.scale.set(0.50, shoulderH, 0.34);
+  g.add(body);
+
+  const pivot = new THREE.Group();
+  pivot.add(g);
+  pivot.rotation.x = pitch;        // lean forward INTO the book
+  pivot.scale.setScalar(scale);
+  return pivot;
+}
+
+/* open book: curled page stack on a cover, ribbon over the spine */
+function book(matPage, matCover, matRibbon, {
+  w = 0.86, h = 0.64, tilt = 0.30, pages = 4, ribbon = true
+} = {}) {
+  const g = new THREE.Group();
+  for (const side of [-1, 1]) {
+    const arm = new THREE.Group();
+    arm.rotation.z = side * tilt;
+    g.add(arm);
+
+    for (let i = 0; i < pages; i++) {
+      const t = i / Math.max(1, pages - 1);
+      const pw = w * (1 - t * 0.045), ph = h * (1 - t * 0.05);
+      const d = 0.018;
+      const geo = new THREE.ExtrudeGeometry(roundedRectShape(pw, ph, 0.04), {
+        depth: d, bevelEnabled: true, bevelThickness: 0.006, bevelSize: 0.006,
+        bevelSegments: 2, curveSegments: 18
+      });
+      geo.translate(0, 0, -d / 2);
+      curl(geo, 0.055 * (1 - t * 0.5), pw / 2);
+      const page = new THREE.Mesh(geo, matPage);
+      page.rotation.x = -Math.PI / 2;
+      page.position.set(side * (pw / 2 + 0.028), i * 0.019, 0);
+      arm.add(page);
+    }
+
+    const cd = 0.055;
+    const coverGeo = new THREE.ExtrudeGeometry(roundedRectShape(w * 1.07, h * 1.10, 0.05), {
+      depth: cd, bevelEnabled: true, bevelThickness: 0.012, bevelSize: 0.012,
+      bevelSegments: 3, curveSegments: 18
+    });
+    coverGeo.translate(0, 0, -cd / 2);
+    curl(coverGeo, 0.03, w * 1.07 / 2);
+    const cover = new THREE.Mesh(coverGeo, matCover);
+    cover.rotation.x = -Math.PI / 2;
+    cover.position.set(side * (w / 2 + 0.028), -0.055, 0);
+    arm.add(cover);
+  }
+
+  const spine = new THREE.Mesh(new RoundedBoxGeometry(0.085, 0.115, h * 1.10, 4, 0.035), matCover);
+  spine.position.y = -0.030;
+  g.add(spine);
+
+  if (ribbon && matRibbon) {
+    const rb = new THREE.Mesh(new THREE.BoxGeometry(0.055, 0.008, 0.42), matRibbon);
+    rb.position.set(0.02, 0.052, h * 0.42);
+    rb.rotation.x = 0.06;
+    g.add(rb);
+  }
+  return g;
+}
+
+function frameCamera(target, dir, fill = 1.0) {
+  const box = new THREE.Box3().setFromObject(target);
+  const sph = box.getBoundingSphere(new THREE.Sphere());
+  const dist = (sph.radius / Math.sin((camera.fov * Math.PI / 180) / 2)) / fill;
+  camera.position.copy(sph.center).add(dir.clone().normalize().multiplyScalar(dist));
+  camera.lookAt(sph.center);
+  camera.updateProjectionMatrix();
+}
+
+/* the pair, leaning together over the book */
+function pairOverBook(matFig, bk, { leftScale = 1, rightScale = 1, gap = 0.40 } = {}) {
+  const g = new THREE.Group();
+  bk.position.set(0, -0.60, 0.30);
+  g.add(bk);
+  const scales = [leftScale, rightScale];
+  [-1, 1].forEach((side, i) => {
+    const f = reader(matFig, { scale: scales[i], pitch: 0.34 });
+    f.position.set(side * gap, -0.34, -0.30);
+    f.rotation.z = side * 0.09;
+    f.rotation.y = side * -0.16;
+    g.add(f);
+  });
+  return g;
+}
+
+const MARK_SOLID_PAIR = `
+<path d="M15 6a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/>
+<path d="M33 6a6 6 0 1 1 0 12 6 6 0 0 1 0-12z"/>
+<path d="M5 29c0-5.5 4.5-10 10-10s10 4.5 10 10z"/>
+<path d="M23 29c0-5.5 4.5-10 10-10s10 4.5 10 10z"/>
+<path d="M3 32h17c2.2 0 4 1.8 4 4 0-2.2 1.8-4 4-4h17v10H28c-2.2 0-4 1.8-4 4 0-2.2-1.8-4-4-4H3z"/>`;
+
+/* ================= TAKES ================= */
+const takes = {};
+
+/* 1 — Matte clay pair leaning over the book */
+takes[1] = () => {
+  lights();
+  ground(-0.78, 0.17);
+  const g = pairOverBook(
+    clay(INK),
+    book(clay(CREAM, { roughness: 0.95 }), clay(DEEP), clay(RIBBON, { roughness: 0.7 }))
+  );
+  shadowsOn(g);
+  scene.add(g);
+  frameCamera(g, new THREE.Vector3(0.20, 0.40, 1), 1.10);
+};
+
+/* 2 — The flat mark, given real thickness */
+takes[2] = () => {
+  lights({ keyInt: 1.8, rimInt: 0.8 });
+  ground(-1.05, 0.14);
+  const g = extrudeSVG(MARK_SOLID_PAIR, clay(INK, { roughness: 0.62 }),
+    { depth: 0.62, bevel: 0.055, targetH: 1.70 });
+  g.rotation.y = -0.62;
+  g.rotation.x = 0.13;
+  shadowsOn(g);
+  scene.add(g);
+  frameCamera(g, new THREE.Vector3(0.05, 0.26, 1), 1.12);
+};
+
+/* 3 — Glass book, clay readers */
+takes[3] = () => {
+  lights({ keyInt: 2.0, rimInt: 1.4, ambInt: 0.4 });
+  ground(-0.78, 0.10);
+  const glass = new THREE.MeshPhysicalMaterial({
+    color: 0xEDF4FF, roughness: 0.05, metalness: 0.0, transmission: 1.0,
+    thickness: 0.5, ior: 1.45, clearcoat: 1.0, clearcoatRoughness: 0.04, transparent: true
+  });
+  const glassCover = new THREE.MeshPhysicalMaterial({
+    color: 0x8FB4E0, roughness: 0.08, metalness: 0.0, transmission: 0.88,
+    thickness: 0.35, ior: 1.5, transparent: true
+  });
+  const g = pairOverBook(clay(INK, { roughness: 0.75 }),
+    book(glass, glassCover, null, { pages: 2, ribbon: false }));
+  g.traverse(o => { if (o.isMesh && o.material.transmission === undefined) o.castShadow = true; });
+  scene.add(g);
+  frameCamera(g, new THREE.Vector3(0.20, 0.38, 1), 1.10);
+};
+
+/* 4 — App-icon tile, mark raised off the face */
+takes[4] = () => {
+  lights({ keyInt: 2.4, fillInt: 0.22, rimInt: 0.30, ambInt: 0.16,
+           keyPos: [-2.8, 5.2, 3.4], bias: -0.00025, radius: 3 });
+  ground(-1.30, 0.20);
+  const g = new THREE.Group();
+  const tile = new THREE.Mesh(new RoundedBoxGeometry(2.0, 2.0, 0.40, 8, 0.46),
+    clay(INK, { roughness: 0.72 }));
+  g.add(tile);
+  const mark = extrudeSVG(MARK_SOLID_PAIR, clay(PAPER, { roughness: 0.85 }),
+    { depth: 0.34, bevel: 0.05, targetH: 1.02 });
+  mark.position.set(0, 0.02, 0.30);
+  g.add(mark);
+  shadowsOn(g);
+  g.rotation.y = 0.46;
+  g.rotation.x = 0.15;
+  scene.add(g);
+  frameCamera(g, new THREE.Vector3(-0.10, 0.22, 1), 1.12);
+};
+
+/* 5 — Leader + member: one disciples the other over the same book */
+takes[5] = () => {
+  lights();
+  ground(-0.78, 0.17);
+  const g = pairOverBook(
+    clay(INK),
+    book(clay(CREAM, { roughness: 0.95 }), clay(BRASS, { roughness: 0.35, metalness: 0.9 }),
+         clay(RIBBON, { roughness: 0.7 })),
+    { leftScale: 1.0, rightScale: 0.80, gap: 0.38 }
+  );
+  shadowsOn(g);
+  scene.add(g);
+  frameCamera(g, new THREE.Vector3(0.20, 0.40, 1), 1.10);
+};
+
+/* 6 — Folded paper, flat-shaded facets */
+takes[6] = () => {
+  lights({ keyInt: 2.2, fillInt: 0.55, rimInt: 0.5 });
+  ground(-0.78, 0.16);
+  const figMat  = clay(INK,   { flatShading: true, roughness: 0.80 });
+  const pageMat = clay(PAPER, { flatShading: true, roughness: 0.95 });
+  const coverMat= clay(DEEP,  { flatShading: true, roughness: 0.85 });
+
+  const bk = book(pageMat, coverMat, null, { tilt: 0.34, pages: 3, ribbon: false });
+  bk.traverse(o => { if (o.isMesh) o.geometry = o.geometry.toNonIndexed(); });
+
+  const g = new THREE.Group();
+  bk.position.set(0, -0.60, 0.30);
+  g.add(bk);
+  [-1, 1].forEach(side => {
+    const f = new THREE.Group();
+    const head = new THREE.Mesh(new THREE.IcosahedronGeometry(0.29, 1), figMat);
+    head.scale.set(0.98, 1.06, 0.94);
+    head.position.set(0, 0.46 + 0.29 * 0.60, 0.03);
+    f.add(head);
+    const body = new THREE.Mesh(
+      new THREE.SphereGeometry(1, 11, 6, 0, Math.PI * 2, 0, Math.PI / 2), figMat);
+    body.scale.set(0.50, 0.46, 0.34);
+    f.add(body);
+    const pivot = new THREE.Group();
+    pivot.add(f);
+    pivot.rotation.x = 0.34;
+    pivot.position.set(side * 0.40, -0.34, -0.30);
+    pivot.rotation.z = side * 0.09;
+    pivot.rotation.y = side * -0.16;
+    g.add(pivot);
+  });
+  shadowsOn(g);
+  scene.add(g);
+  frameCamera(g, new THREE.Vector3(0.20, 0.40, 1), 1.10);
+};
+
+/* multi-part extruder: parts share one bounding box so z-offsets stay meaningful */
+function extrudeParts(parts, { depth = 0.62, bevel = 0.055, targetH = 1.70 } = {}) {
+  const inner = new THREE.Group();
+  for (const part of parts) {
+    const sub = new THREE.Group();
+    const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">${part.inner}</svg>`;
+    for (const path of new SVGLoader().parse(svg).paths) {
+      for (const raw of SVGLoader.createShapes(path)) {
+        const geo = new THREE.ExtrudeGeometry(flipShape(raw), {
+          depth, bevelEnabled: true, bevelThickness: bevel, bevelSize: bevel,
+          bevelSegments: 5, curveSegments: 26
+        });
+        geo.computeVertexNormals();
+        sub.add(new THREE.Mesh(geo, part.material));
+      }
+    }
+    sub.position.z = (part.zf || 0) * depth;
+    inner.add(sub);
+  }
+  const box = new THREE.Box3().setFromObject(inner);
+  const size = box.getSize(new THREE.Vector3());
+  const ctr = box.getCenter(new THREE.Vector3());
+  inner.position.sub(ctr);
+  const wrap = new THREE.Group();
+  wrap.add(inner);
+  wrap.scale.setScalar(targetH / size.y);
+  return wrap;
+}
+
+/* the chosen direction: take 2's build, unequal pair */
+function unevenMark(sL, sM, { split = 0 } = {}) {
+  const mat = clay(INK, { roughness: 0.62 });
+  const p = MARK.parts(sL, sM);
+  const g = extrudeParts([
+    { inner: p.book,   material: mat },
+    { inner: p.leader, material: mat },
+    { inner: p.member, material: mat, zf: split }
+  ], { depth: 0.62, bevel: 0.055, targetH: 1.70 });
+  g.rotation.y = -0.62;
+  g.rotation.x = 0.13;
+  return g;
+}
+
+function unevenTake(sL, sM, split) {
+  lights({ keyInt: 1.8, rimInt: 0.8 });
+  ground(-1.05, 0.14);
+  const g = unevenMark(sL, sM, { split });
+  shadowsOn(g);
+  scene.add(g);
+  frameCamera(g, new THREE.Vector3(0.05, 0.26, 1), 1.12);
+}
+
+takes[7]  = () => unevenTake(1.00, 0.86, 0);
+takes[8]  = () => unevenTake(1.00, 0.72, 0);
+takes[9]  = () => unevenTake(1.00, 0.58, 0);
+takes[10] = () => unevenTake(1.00, 0.72, 1.15);
+
+try {
+  (takes[TAKE] || takes[1])();
+  renderer.render(scene, camera);
+  window.__done = true;
+} catch (e) {
+  window.__error = String(e && e.stack || e);
+  window.__done = true;
+}
+</script>
+</body>
+</html>

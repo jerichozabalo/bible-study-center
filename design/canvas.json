@@ -1,0 +1,196 @@
+{
+  "pages": [
+    {
+      "id": "screens",
+      "name": "Screens"
+    },
+    {
+      "id": "logo",
+      "name": "Logo directions"
+    }
+  ],
+  "artboards": [
+    {
+      "file": "SignIn.dc.html",
+      "page": "screens",
+      "x": 0,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Sign in / PIN lock"
+    },
+    {
+      "file": "Main.dc.html",
+      "page": "screens",
+      "x": 470,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Home"
+    },
+    {
+      "file": "Attendance.dc.html",
+      "page": "screens",
+      "x": 940,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Mark attendance"
+    },
+    {
+      "file": "NewMeeting.dc.html",
+      "page": "screens",
+      "x": 1410,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "New meeting"
+    },
+    {
+      "file": "People.dc.html",
+      "page": "screens",
+      "x": 0,
+      "y": 980,
+      "w": 390,
+      "h": 844,
+      "title": "People \u2014 people view"
+    },
+    {
+      "file": "Person.dc.html",
+      "page": "screens",
+      "x": 470,
+      "y": 980,
+      "w": 390,
+      "h": 844,
+      "title": "Person detail"
+    },
+    {
+      "file": "Groups.dc.html",
+      "page": "screens",
+      "x": 940,
+      "y": 980,
+      "w": 390,
+      "h": 844,
+      "title": "People \u2014 groups view"
+    },
+    {
+      "file": "GroupDetail.dc.html",
+      "page": "screens",
+      "x": 1410,
+      "y": 980,
+      "w": 390,
+      "h": 844,
+      "title": "Group + advance checkpoint"
+    },
+    {
+      "file": "Reports.dc.html",
+      "page": "screens",
+      "x": 1880,
+      "y": 980,
+      "w": 390,
+      "h": 844,
+      "title": "Reports"
+    },
+    {
+      "file": "LogoTogether.dc.html",
+      "page": "logo",
+      "x": 0,
+      "y": 0,
+      "w": 880,
+      "h": 560,
+      "title": "A \u00b7 Tayo circle"
+    },
+    {
+      "file": "LogoBook.dc.html",
+      "page": "logo",
+      "x": 960,
+      "y": 0,
+      "w": 880,
+      "h": 560,
+      "title": "B \u00b7 Open book"
+    },
+    {
+      "file": "LogoT.dc.html",
+      "page": "logo",
+      "x": 0,
+      "y": 660,
+      "w": 880,
+      "h": 560,
+      "title": "C \u00b7 Lowercase t"
+    },
+    {
+      "file": "LogoBookmark.dc.html",
+      "page": "logo",
+      "x": 960,
+      "y": 660,
+      "w": 880,
+      "h": 560,
+      "title": "D \u00b7 Bookmark"
+    },
+    {
+      "file": "Settings.dc.html",
+      "page": "screens",
+      "x": 2350,
+      "y": 980,
+      "w": 390,
+      "h": 844,
+      "title": "Settings"
+    },
+    {
+      "file": "LogoPeople.dc.html",
+      "page": "logo",
+      "x": 0,
+      "y": -980,
+      "w": 1240,
+      "h": 800,
+      "title": "Two people reading \u2014 8 takes"
+    },
+    {
+      "file": "Calendar.dc.html",
+      "page": "screens",
+      "x": 1880,
+      "y": 0,
+      "w": 390,
+      "h": 844,
+      "title": "Calendar \u2014 week / month"
+    }
+  ],
+  "annotations": [
+    {
+      "id": "flow-note",
+      "page": "screens",
+      "x": 2350,
+      "y": 40,
+      "w": 300,
+      "text": "Each screen is interactive on its own \u2014 tick people, filter, switch tabs, open the checkpoint. Tapping between screens is not wired: they are separate artboards."
+    },
+    {
+      "id": "parked-note",
+      "page": "screens",
+      "x": 2350,
+      "y": 300,
+      "w": 300,
+      "text": "Not drawn \u2014 parked to v1.1:\n\u2022 Certificates (GLC 1, GLC 2)\n\u2022 Leader + member accounts\n\u2022 Reminders \u2014 decided, but v1.1\n\u2022 Member photos\n\nThat is why Settings has no notification section yet.\n\nEverything drawn here is a settled v1 decision."
+    },
+    {
+      "id": "logo-note",
+      "page": "logo",
+      "x": 1300,
+      "y": -980,
+      "w": 320,
+      "text": "Jericho rejected all four earlier directions (below) on 2026-08-20 \u2014 the new brief is TWO PEOPLE READING A BIBLE.\n\nEight takes on that one idea. Use the surface switch to check each on paper, on blue and in one colour.\n\nPick a drawing here, then it gets refined into the real kit: lockups, clear space, app icon, favicon.\n\nThe four below are kept only as history."
+    },
+    {
+      "id": "calendar-note",
+      "page": "screens",
+      "x": 2350,
+      "y": 560,
+      "w": 320,
+      "text": "Calendar is v1; the Google Calendar push is v1.1 (decision 45).\n\nWeek opens by default and the week starts SUNDAY (46). Every state is on screen: a past-due proposed meeting asking to be confirmed (52), a held one, a cancelled one struck through (50), and two groups at the same hour splitting the column (58).\n\nNAV SETTLED (62): People and Groups are now one tab called People, with a segmented control inside. Tab bar = Home \u00b7 Calendar \u00b7 [+] \u00b7 People \u00b7 Reports."
+    }
+  ],
+  "launch": {
+    "view": "canvas",
+    "page": "logo"
+  }
+}

@@ -1,0 +1,127 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Figtree', system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:#1D4E89; text-decoration:none; } a:hover { color:#143761; }
+    h1,h2,h3 { font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif; margin:0; letter-spacing:-0.022em; line-height:1.14; }
+    button { font-family:inherit; border:none; background:none; padding:0; margin:0; color:inherit; cursor:pointer; text-align:left; }
+  </style>
+</helmet>
+<div style="width:390px;height:844px;display:flex;flex-direction:column;background:#F7F4EF;color:#14202E;overflow:hidden">
+
+  <sc-if value="{{isSignIn}}" hint-placeholder-val="{{true}}">
+    <div style="flex-grow:1;display:flex;flex-direction:column;justify-content:space-between;padding:64px 26px 30px">
+      <div>
+        <div style="width:64px;height:64px;border-radius:22px;background:#1D4E89;display:flex;align-items:center;justify-content:center">
+          <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="#FFFFFF" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H19v15H6.5A2.5 2.5 0 0 0 4 20.5z"></path><path d="M4 20.5A2.5 2.5 0 0 1 6.5 18H19v3H6.5"></path></svg>
+        </div>
+        <h1 style="font-size:38px;margin-top:26px;line-height:1.05">Bible Study<br />Tayo</h1>
+        <div style="font-size:16.5px;color:#61708A;margin-top:14px;line-height:1.5;max-width:290px">Every attendee, every session. Attendance works even with no signal.</div>
+      </div>
+
+      <div>
+        <button style="width:100%;height:60px;border-radius:18px;background:#FFFFFF;border:1.5px solid #E6DFD4;display:flex;align-items:center;justify-content:center;gap:11px;font-size:16.5px;font-weight:700;color:#14202E">
+          <svg width="21" height="21" viewBox="0 0 24 24"><path fill="#4285F4" d="M23 12.3c0-.8-.1-1.6-.2-2.3H12v4.5h6.2a5.3 5.3 0 0 1-2.3 3.5v2.9h3.7c2.2-2 3.4-5 3.4-8.6z"></path><path fill="#34A853" d="M12 24c3.1 0 5.7-1 7.6-2.8l-3.7-2.9c-1 .7-2.3 1.1-3.9 1.1-3 0-5.5-2-6.4-4.7H1.8v3C3.7 21.4 7.6 24 12 24z"></path><path fill="#FBBC05" d="M5.6 14.7a7.2 7.2 0 0 1 0-4.6v-3H1.8a12 12 0 0 0 0 10.6z"></path><path fill="#EA4335" d="M12 4.8c1.7 0 3.2.6 4.4 1.7l3.3-3.3C17.7 1.2 15.1 0 12 0 7.6 0 3.7 2.6 1.8 6.1l3.8 3a7.1 7.1 0 0 1 6.4-4.3z"></path></svg>
+          Continue with Google
+        </button>
+        <div style="font-size:14px;color:#8B7B63;margin-top:16px;line-height:1.5;text-align:center">Your records live in your account.<br />Attendance still works with no signal &mdash; it uploads when you are back.</div>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{isPin}}" hint-placeholder-val="{{false}}">
+    <div style="flex-grow:1;display:flex;flex-direction:column;padding:70px 26px 26px">
+      <div style="display:flex;flex-direction:column;align-items:center">
+        <div style="width:54px;height:54px;border-radius:19px;background:{{lockBg}};display:flex;align-items:center;justify-content:center">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="{{lockInk}}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="10" width="16" height="11" rx="3"></rect><path d="{{lockPath}}"></path></svg>
+        </div>
+        <h2 style="font-size:22px;margin-top:17px">{{pinTitle}}</h2>
+        <div style="font-size:14.5px;color:#61708A;margin-top:7px;text-align:center;max-width:250px;line-height:1.45">{{pinNote}}</div>
+
+        <div style="display:flex;gap:14px;margin-top:26px">
+          <sc-for list="{{dots}}" as="d" hint-placeholder-count="4">
+            <div style="width:17px;height:17px;border-radius:10px;background:{{d.bg}};border:2px solid {{d.border}}"></div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="flex-grow:1"></div>
+
+      <div style="display:grid;grid-template-columns:repeat(3, minmax(0, 1fr));gap:12px">
+        <sc-for list="{{keys}}" as="k" hint-placeholder-count="12">
+          <button onClick="{{k.press}}" style="height:70px;border-radius:22px;background:{{k.bg}};display:flex;align-items:center;justify-content:center;font-size:26px;font-weight:600;color:#14202E">
+            <sc-if value="{{k.isBack}}" hint-placeholder-val="{{false}}">
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#61708A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 5H9.5a2 2 0 0 0-1.5.7L3 12l5 6.3a2 2 0 0 0 1.5.7H20a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2Z"></path><path d="m17 9-5 6m0-6 5 6"></path></svg>
+            </sc-if>
+            <sc-if value="{{k.isDigit}}" hint-placeholder-val="{{true}}">{{k.label}}</sc-if>
+          </button>
+        </sc-for>
+      </div>
+
+      <button style="height:52px;margin-top:14px;display:flex;align-items:center;justify-content:center;gap:9px;font-size:15.5px;font-weight:700;color:#1D4E89">
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#1D4E89" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a7 7 0 0 0-7 7v3M12 3a7 7 0 0 1 7 7v6M8.5 21a11 11 0 0 0 1.5-6v-5a2 2 0 0 1 4 0v5M12 21v-4"></path></svg>
+        Use fingerprint
+      </button>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"screen":{"editor":"enum","options":["pin","signin"],"default":"pin","tsType":"string"},"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { entered: 2 };
+  }
+  renderVals() {
+    const screen = this.props.screen || 'pin';
+    const n = this.state.entered;
+    const unlocked = n >= 4;
+
+    const dots = [0, 1, 2, 3].map((i) => ({
+      bg: i < n ? '#1D4E89' : 'transparent',
+      border: i < n ? '#1D4E89' : '#C3B8A5'
+    }));
+
+    const LABELS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'blank', '0', 'back'];
+    const keys = LABELS.map((label) => {
+      const isBack = label === 'back';
+      const isBlank = label === 'blank';
+      return {
+        label: isBack || isBlank ? '' : label,
+        isBack: isBack,
+        isDigit: !isBack && !isBlank,
+        bg: isBlank ? 'transparent' : '#FFFFFF',
+        press: () => {
+          if (isBlank) return;
+          if (isBack) this.setState({ entered: Math.max(0, n - 1) });
+          else this.setState({ entered: Math.min(4, n + 1) });
+        }
+      };
+    });
+
+    return {
+      isSignIn: screen === 'signin',
+      isPin: screen === 'pin',
+      dots: dots,
+      keys: keys,
+      lockBg: unlocked ? '#E7EFF9' : '#F1EDE5',
+      lockInk: unlocked ? '#1D4E89' : '#61708A',
+      lockPath: unlocked ? 'M8 10V7a4 4 0 0 1 7-2.6' : 'M8 10V7a4 4 0 0 1 8 0v3',
+      pinTitle: unlocked ? 'Unlocked' : 'Enter your PIN',
+      pinNote: unlocked ? 'Opening Bible Study Tayo…' : 'Protects your members’ details if your phone is borrowed or lost.'
+    };
+  }
+}
+</script>
+</body>
+</html>

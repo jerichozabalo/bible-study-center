@@ -1,0 +1,79 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Bible Study Tayo — uneven pair</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+<script src="./mark.js"></script>
+<style>
+  :root{--paper:#F7F4EF;--ink:#14202E;--blue:#1D4E89;--muted:#61708A;--line:#E6DFD4}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);color:var(--ink);font-family:Figtree,system-ui,sans-serif;padding:34px 30px 60px}
+  h1{font-family:'Bricolage Grotesque',Figtree,sans-serif;font-size:32px;margin:0;letter-spacing:-.022em}
+  .sub{color:var(--muted);font-size:15px;margin-top:8px;max-width:790px;line-height:1.55}
+  .bar{display:flex;gap:8px;align-items:center;margin:22px 0 26px;flex-wrap:wrap}
+  .bar b{font-size:12px;letter-spacing:.06em;color:var(--muted);text-transform:uppercase;margin-right:4px}
+  button{font:inherit;font-size:13px;font-weight:600;padding:7px 14px;border-radius:999px;
+    border:1px solid var(--line);background:#fff;color:var(--ink);cursor:pointer}
+  button.on{background:var(--blue);border-color:var(--blue);color:#fff}
+  .grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:22px}
+  @media(max-width:900px){.grid{grid-template-columns:1fr}}
+  .card{background:#fff;border:1px solid var(--line);border-radius:22px;overflow:hidden}
+  .card.ref{opacity:.72}
+  .stage{aspect-ratio:16/11;display:flex;align-items:center;justify-content:center;transition:background .18s}
+  .stage img{height:100%;object-fit:contain;display:block}
+  .meta{padding:16px 20px 20px;border-top:1px solid var(--line)}
+  .lab{font-size:13.5px;font-weight:700;letter-spacing:.03em;color:var(--blue)}
+  .note{font-size:12.5px;color:var(--muted);line-height:1.5;margin-top:6px;text-wrap:pretty}
+  .flat{display:flex;align-items:flex-end;gap:20px;margin-top:15px;padding-top:14px;border-top:1px solid #F0EAE0}
+  .cell{display:flex;flex-direction:column;align-items:center}
+  .cell span{font-size:10px;color:#9AA7B8;margin-top:5px}
+  .tag{font-size:10.5px;font-weight:700;letter-spacing:.07em;text-transform:uppercase;color:#9AA7B8;margin-left:auto;align-self:center}
+  .foot{margin-top:34px;font-size:13px;color:var(--muted);line-height:1.65;border-top:1px solid var(--line);padding-top:18px}
+  code{background:#EFE9DF;padding:2px 6px;border-radius:5px;font-size:12px}
+</style></head><body>
+
+<h1>Uneven pair — take 2, four degrees</h1>
+<div class="sub">Same construction you picked: the solid mark given real thickness. The book is identical in all four; only the readers change. The row under each render is the <b>flat SVG twin</b> at 104 / 40 / 28 / 16&thinsp;px — that is the actual mark that ships as the favicon and small icon, not a downscaled render.</div>
+
+<div class="bar">
+  <b>Surface</b>
+  <button data-bg="#F7F4EF" class="on">Paper</button>
+  <button data-bg="#FFFFFF">White</button>
+  <button data-bg="#EAF0F7">Cool</button>
+  <button data-bg="#14202E">Dark</button>
+</div>
+
+<div class="grid" id="grid"></div>
+
+<div class="foot">
+  Mark generator: <code>mark.js</code> — <code>MARK.svg(1, 0.72)</code> emits any ratio, so nothing here is hand-drawn or locked.<br>
+  Flat SVGs exported to <code>out/mark-*.svg</code>. Renders: <code>node render.js 7,8,9,10</code> with <code>python3 -m http.server 8931</code> up in this folder.<br>
+  Symmetric original kept as the reference card — that is the version the stock search flagged.
+</div>
+
+<script>
+const CARDS = [
+  [7, 1, 0.86, "A · barely uneven (0.86)", "Reads as two adults, one slightly nearer. Safest, but closest to the stock symmetric icon.", false],
+  [8, 1, 0.72, "B · clear pair (0.72)", "Leader and member, unmistakably. Still two grown people — not adult-and-child.", false],
+  [9, 1, 0.58, "C · strong (0.58)", "Tips toward parent-and-kid. Warmer, but it narrows what the app looks like it is for.", false],
+  [10, 1, 0.72, "D · B, member stepped forward", "Same silhouette as B; the member extrudes closer to camera. Only visible in 3D — the flat twin is identical to B.", false],
+  [2, 1, 1.00, "Reference · the symmetric original", "What you picked before this round. Here for comparison only.", true]
+];
+document.getElementById('grid').innerHTML = CARDS.map(([n,sL,sM,lab,note,ref]) => `
+  <div class="card${ref?' ref':''}">
+    <div class="stage" style="background:#F7F4EF"><img src="out/take-${n}.png" alt="${lab}"></div>
+    <div class="meta">
+      <div class="lab">${lab}</div>
+      <div class="note">${note}</div>
+      <div class="flat">
+        ${[104,40,28,16].map(s=>`<div class="cell">${MARK.svg(sL,sM,{size:s})}<span>${s}</span></div>`).join('')}
+        <div class="tag">flat twin</div>
+      </div>
+    </div>
+  </div>`).join('');
+
+document.querySelectorAll('.bar button').forEach(b => b.onclick = () => {
+  document.querySelectorAll('.bar button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on');
+  document.querySelectorAll('.stage').forEach(s => s.style.background = b.dataset.bg);
+});
+</script>
+</body></html>

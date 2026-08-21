@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,600;12..96,700&family=Figtree:wght@400;500;600;700&display=swap">
+  <style>
+    * { box-sizing: border-box; }
+    body { margin:0; font-family:'Figtree', system-ui, -apple-system, sans-serif; -webkit-font-smoothing:antialiased; }
+    a { color:#1D4E89; text-decoration:none; } a:hover { color:#143761; }
+    h1,h2,h3 { font-family:'Bricolage Grotesque','Figtree',system-ui,sans-serif; margin:0; letter-spacing:-0.022em; line-height:1.14; }
+    button { font-family:inherit; border:none; background:none; padding:0; margin:0; color:inherit; cursor:pointer; text-align:left; }
+    .scroll::-webkit-scrollbar { width:0; }
+  </style>
+</helmet>
+<div style="width:390px;height:844px;position:relative;display:flex;flex-direction:column;background:#F7F4EF;color:#14202E;overflow:hidden">
+
+  <div style="flex-shrink:0;display:flex;align-items:center;justify-content:space-between;padding:12px 12px 2px">
+    <button style="width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#14202E" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg>
+    </button>
+    <button style="width:44px;height:44px;border-radius:14px;display:flex;align-items:center;justify-content:center">
+      <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="#61708A" stroke-width="2.4" stroke-linecap="round"><circle cx="12" cy="5" r="1"></circle><circle cx="12" cy="12" r="1"></circle><circle cx="12" cy="19" r="1"></circle></svg>
+    </button>
+  </div>
+
+  <div class="scroll" style="flex-grow:1;min-height:0;overflow-y:auto;padding:0 16px 24px">
+
+    <h2 style="font-size:25px">Tuesday BGroup</h2>
+    <div style="font-size:14px;color:#61708A;margin-top:4px">Tuesdays 7:00 PM &middot; 6 members &middot; started 3 March</div>
+
+    <div style="margin-top:16px;background:#1D4E89;border-radius:22px;padding:18px;color:#FFFFFF">
+      <div style="font-size:10px;font-weight:700;letter-spacing:0.13em;color:#A9C6E8">CURRENT BOOK</div>
+      <h3 style="font-size:21px;color:#FFFFFF;margin-top:6px">Book 1 &mdash; One By One</h3>
+      <div style="display:flex;gap:5px;margin-top:13px">
+        <sc-for list="{{bookDots}}" as="d" hint-placeholder-count="6">
+          <div style="flex-grow:1;height:8px;border-radius:5px;background:{{d.bg}}"></div>
+        </sc-for>
+      </div>
+      <div style="font-size:14px;color:#C4D9F0;margin-top:9px">{{bookLine}}</div>
+      <button onClick="{{openSheet}}" style="margin-top:15px;width:100%;height:54px;border-radius:16px;background:#FFFFFF;color:#143761;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center;gap:8px">
+        Advance to Book 2
+        <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="#143761" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14m-6-6 6 6-6 6"></path></svg>
+      </button>
+    </div>
+
+    <div style="display:flex;align-items:baseline;justify-content:space-between;margin:22px 0 11px">
+      <h3 style="font-size:18px">Members</h3>
+      <span style="font-size:13px;font-weight:700;color:#8B7B63">6</span>
+    </div>
+
+    <div style="display:flex;flex-direction:column;gap:8px">
+      <sc-for list="{{members}}" as="m" hint-placeholder-count="6">
+        <div style="display:flex;align-items:center;gap:12px;background:#FFFFFF;border:1px solid #E6DFD4;border-radius:18px;padding:12px 13px">
+          <div style="width:42px;height:42px;border-radius:15px;background:{{m.bg}};color:{{m.ink}};display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0">{{m.initials}}</div>
+          <div style="flex-grow:1;min-width:0">
+            <div style="font-size:15.5px;font-weight:700">{{m.name}}</div>
+            <div style="display:flex;align-items:center;gap:8px;margin-top:6px">
+              <div style="width:84px;height:6px;border-radius:4px;background:#EFEAE1;overflow:hidden">
+                <div style="height:6px;border-radius:4px;background:{{m.barColor}};width:{{m.pct}}"></div>
+              </div>
+              <span style="font-size:12.5px;font-weight:600;color:#8B7B63">{{m.progress}}</span>
+            </div>
+          </div>
+          <sc-if value="{{m.behind}}" hint-placeholder-val="{{true}}">
+            <span style="font-size:11px;font-weight:700;color:#7C4708;background:#FBF0DC;border-radius:8px;padding:4px 8px;flex-shrink:0">CATCH-UP</span>
+          </sc-if>
+        </div>
+      </sc-for>
+    </div>
+
+  </div>
+
+  <sc-if value="{{sheetOpen}}" hint-placeholder-val="{{true}}">
+    <div style="position:absolute;left:0;right:0;top:0;bottom:0;background:rgba(15,26,40,0.5);display:flex;align-items:flex-end">
+      <div style="width:100%;background:#F7F4EF;border-radius:28px 28px 0 0;padding:20px 18px 22px">
+        <div style="width:44px;height:5px;border-radius:3px;background:#D6CEC0;margin:0 auto 16px"></div>
+        <h3 style="font-size:21px">Before you advance</h3>
+        <div style="font-size:14.5px;color:#61708A;margin-top:6px;line-height:1.45">2 members have not finished One By One. Advancing moves the group to Book 2 and puts them on the catch-up list.</div>
+
+        <div style="margin-top:15px;display:flex;flex-direction:column;gap:9px">
+          <sc-for list="{{behind}}" as="b" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:11px;background:#FFFFFF;border:1.5px solid #E0BE86;border-radius:18px;padding:13px 14px">
+              <div style="width:40px;height:40px;border-radius:14px;background:#FBF0DC;color:#9A5B0B;display:flex;align-items:center;justify-content:center;font-size:13.5px;font-weight:700;flex-shrink:0">{{b.initials}}</div>
+              <div style="min-width:0">
+                <div style="font-size:15.5px;font-weight:700">{{b.name}}</div>
+                <div style="font-size:13.5px;color:#7C4708;margin-top:2px">{{b.missing}}</div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+
+        <button onClick="{{closeSheet}}" style="margin-top:16px;width:100%;height:56px;border-radius:17px;border:2px solid #1D4E89;color:#1D4E89;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center">Wait &mdash; plan a makeup</button>
+        <button onClick="{{closeSheet}}" style="margin-top:9px;width:100%;height:56px;border-radius:17px;background:#1D4E89;color:#FFFFFF;font-size:16px;font-weight:700;display:flex;align-items:center;justify-content:center">Advance anyway</button>
+      </div>
+    </div>
+  </sc-if>
+
+</div>
+</x-dc>
+<script data-dc-script data-props='{"$preview":{"width":390,"height":844}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { sheet: true };
+  }
+  renderVals() {
+    const MEMBERS = [
+      { initials: 'MS', name: 'Maria Santos', done: 6, of: 6 },
+      { initials: 'JR', name: 'Joel Ramos', done: 6, of: 6 },
+      { initials: 'RA', name: 'Rico Aquino', done: 6, of: 6 },
+      { initials: 'MS2', name: 'Marlon Sy', done: 6, of: 6 },
+      { initials: 'BC', name: 'Ben Cruz', done: 4, of: 6 },
+      { initials: 'NV', name: 'Nena Villamor', done: 3, of: 6 }
+    ];
+    const members = MEMBERS.map((m) => {
+      const behind = m.done < m.of;
+      return {
+        initials: m.initials.slice(0, 2),
+        name: m.name,
+        progress: m.done + ' of ' + m.of,
+        pct: Math.round((m.done / m.of) * 100) + '%',
+        behind: behind,
+        bg: behind ? '#FBF0DC' : '#E7EFF9',
+        ink: behind ? '#9A5B0B' : '#1D4E89',
+        barColor: behind ? '#9A5B0B' : '#1D4E89'
+      };
+    });
+
+    const bookDots = [];
+    for (let i = 0; i < 6; i++) bookDots.push({ bg: i < 6 ? '#FFFFFF' : 'rgba(255,255,255,0.25)' });
+
+    return {
+      members: members,
+      bookDots: bookDots,
+      bookLine: 'All 6 sessions covered by the group · 4 of 6 members complete',
+      behind: [
+        { initials: 'BC', name: 'Ben Cruz', missing: 'Missing Session 3 and 4' },
+        { initials: 'NV', name: 'Nena Villamor', missing: 'Missing Session 1 and 2 — joined at Session 3' }
+      ],
+      sheetOpen: this.state.sheet,
+      openSheet: () => this.setState({ sheet: true }),
+      closeSheet: () => this.setState({ sheet: false })
+    };
+  }
+}
+</script>
+</body>
+</html>
