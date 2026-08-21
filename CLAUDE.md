@@ -28,6 +28,22 @@ directory name is older than the decision.
 - **Conflict rule:** where a board predates a later decision, the decision log
   wins on structure and behaviour; the board still governs visual idiom —
   layout, spacing, palette, typography, tone of copy.
+- ⛔ **The logo kit beats the boards on what the logo IS.**
+  `design/logo3d/out/kit/` + `design/logo3d/usage.html` are normative. Every
+  board draws a blue squircle containing a Lucide open-book glyph — that is a
+  **placeholder** from before the mark was settled, not the logo, and it is
+  still in the boards. The real mark is the ring with two men and an open book.
+  Use `src/components/Emblem.tsx`, which serves the kit's own SVGs and enforces
+  the measured floors: `emblem-mark` ≥ 32px ("App header, favicon"),
+  `emblem-icon` ≥ 16px ("Browser tab, home screen"). Under a floor, step DOWN a
+  version — never shrink one past it. Assets are copied to `public/logo/` and
+  **never hand-edited**; they are rebuilt by `design/logo3d/emblem.js`.
+- ⚠️ **The artboards are not infallible, and automated checks cannot tell you
+  so** — every diff compares the app *to* them. Two defects reached production
+  this way and both were caught by eye: the People tab icon missing a subpath of
+  Lucide's `users` glyph (boards fixed), and the placeholder logo above (boards
+  left as-is; this file is the correction). If a board looks wrong, say so
+  instead of reproducing it faithfully.
 
 ## Stack
 

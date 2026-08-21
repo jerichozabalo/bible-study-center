@@ -30,7 +30,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
       <div className="mx-auto flex h-dvh w-full max-w-[420px] flex-col overflow-hidden">
         <header className="flex shrink-0 items-center justify-between px-4 pt-4 pb-1">
           <div className="flex items-center gap-[10px]">
-            <Emblem size={30} />
+            <Emblem size={32} />
             <span className="font-display text-[17px] font-bold tracking-[-0.015em]">
               Bible Study Tayo
             </span>

@@ -73,7 +73,7 @@ export default async function SettingsPage() {
       </Section>
 
       <div className="mx-1 mt-7 flex items-center gap-[10px]">
-        <Emblem size={30} />
+        <Emblem size={32} />
         <p className="text-[13.5px] leading-[1.4] text-tan">
           Bible Study Tayo
           <br />
