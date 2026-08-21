@@ -1,6 +1,6 @@
 /**
  * Reading the curriculum. Everything here is a read — the GLC rows arrive from
- * `seed.ts` and user-created books arrive in issue 13 (#22).
+ * `seed.ts` and user-created books from `custom.ts` (#22).
  *
  * Books are ordered the way CCF numbers them (GLC 1's four, then GLC 2's four),
  * with any custom book after them: a picker that puts "Book 1 — One By One"
@@ -40,68 +40,92 @@ export function bookLabel(book: { number: number | null; title: string }): strin
   return book.number === null ? book.title : `Book ${book.number} — ${book.title}`;
 }
 
+const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const SELECT_BOOK = `
+  SELECT b.id,
+         b.number,
+         b.title,
+         p.name AS program_name,
+         (SELECT count(*) FROM sessions s WHERE s.book_id = b.id AND s.retired_at IS NULL)::int
+           AS session_count
+    FROM books b
+    LEFT JOIN programs p ON p.id = b.program_id
+`;
+
 export async function listPrograms(): Promise<Program[]> {
   return query<Program>("SELECT id, name, position FROM programs ORDER BY position ASC");
 }
 
 export async function listBooks(): Promise<BookSummary[]> {
-  const rows = await query<{
-    id: string;
-    number: number | null;
-    title: string;
-    program_name: string | null;
-    session_count: number;
-  }>(
-    `SELECT b.id,
-            b.number,
-            b.title,
-            p.name AS program_name,
-            (SELECT count(*) FROM sessions s WHERE s.book_id = b.id)::int AS session_count
-       FROM books b
-       LEFT JOIN programs p ON p.id = b.program_id
-      ORDER BY p.position ASC NULLS LAST, b.number ASC NULLS LAST, b.created_at ASC`,
+  const rows = await query<BookRow>(
+    `${SELECT_BOOK} ORDER BY p.position ASC NULLS LAST, b.number ASC NULLS LAST, b.created_at ASC`,
+  );
+
+  return rows.map(toSummary);
+}
+
+/**
+ * The books Jericho wrote himself (#22), oldest first — the same order the
+ * picker puts them in, so the two screens do not disagree about which book is
+ * which. Seeded rows belong to no one (#32), so they can never appear here.
+ */
+export async function listOwnBooks(ownerId: string): Promise<BookSummary[]> {
+  const rows = await query<BookRow>(
+    `${SELECT_BOOK} WHERE b.owner_id = $1 ORDER BY b.created_at ASC`,
+    [ownerId],
   );
 
   return rows.map(toSummary);
 }
 
 export async function getBook(id: string): Promise<BookDetail | null> {
-  const rows = await query<{
-    id: string;
-    number: number | null;
-    title: string;
-    program_name: string | null;
-    session_count: number;
-  }>(
-    `SELECT b.id,
-            b.number,
-            b.title,
-            p.name AS program_name,
-            (SELECT count(*) FROM sessions s WHERE s.book_id = b.id)::int AS session_count
-       FROM books b
-       LEFT JOIN programs p ON p.id = b.program_id
-      WHERE b.id = $1`,
-    [id],
-  );
+  if (!UUID_PATTERN.test(id)) return null;
 
-  const book = rows[0];
-  if (!book) return null;
-
-  const sessions = await query<CurriculumSession>(
-    "SELECT id, number, title FROM sessions WHERE book_id = $1 ORDER BY number ASC",
-    [id],
-  );
-
-  return { ...toSummary(book), sessions };
+  const rows = await query<BookRow>(`${SELECT_BOOK} WHERE b.id = $1`, [id]);
+  return rows[0] ? withSessions(rows[0]) : null;
 }
 
-function toSummary(row: {
+/**
+ * One of the leader's own books, for the screen that edits it.
+ *
+ * Scoped rather than filtered afterwards, because the answer for a seeded book
+ * is the same as for a book that does not exist: CCF's published material is
+ * not Jericho's to rewrite, and the edit screen must not open on it.
+ */
+export async function getOwnBook(ownerId: string, id: string): Promise<BookDetail | null> {
+  if (!UUID_PATTERN.test(id)) return null;
+
+  const rows = await query<BookRow>(`${SELECT_BOOK} WHERE b.id = $1 AND b.owner_id = $2`, [
+    id,
+    ownerId,
+  ]);
+  return rows[0] ? withSessions(rows[0]) : null;
+}
+
+async function withSessions(row: BookRow): Promise<BookDetail> {
+  // Retired sessions are excluded everywhere the curriculum is read (#24): the
+  // tombstone exists so a completion that already points at one still resolves,
+  // not so the session stays part of the book.
+  const sessions = await query<CurriculumSession>(
+    `SELECT id, number, title FROM sessions
+      WHERE book_id = $1 AND retired_at IS NULL
+      ORDER BY number ASC`,
+    [row.id],
+  );
+
+  return { ...toSummary(row), sessions };
+}
+
+type BookRow = {
   id: string;
   number: number | null;
   title: string;
   program_name: string | null;
   session_count: number;
-}): BookSummary {
+};
+
+function toSummary(row: BookRow): BookSummary {
   return {
     id: row.id,
     number: row.number,

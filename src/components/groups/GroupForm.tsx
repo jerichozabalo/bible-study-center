@@ -15,6 +15,7 @@
  * validation message from the server gets back onto the screen. The form still
  * posts and works without JavaScript.
  */
+import Link from "next/link";
 import { useActionState } from "react";
 
 import type { GroupFormState } from "@/lib/roster/actions";
@@ -182,6 +183,30 @@ export function GroupForm({
       <p className="mt-[7px] text-[12.5px] leading-[1.45] text-tan">
         The group carries the book, not each member. You can change it later.
       </p>
+
+      {/* Issue 13's entry point, at the end of the picker: the curriculum is
+          encountered here and nowhere else in v1, so this is where a book of
+          Jericho's own has to start. It leads to the list of his own books,
+          which both adds one and is the only place one can be edited — a link
+          straight to the form would leave the editing screen unreachable. */}
+      <Link
+        href="/books"
+        className="mt-[11px] flex h-11 w-fit items-center gap-[6px] rounded-[14px] text-[14.5px] font-bold text-blue active:bg-shell"
+      >
+        <svg
+          width="17"
+          height="17"
+          viewBox="0 0 24 24"
+          fill="none"
+          stroke="#1D4E89"
+          strokeWidth="2.4"
+          strokeLinecap="round"
+          aria-hidden="true"
+        >
+          <path d="M12 5v14M5 12h14" />
+        </svg>
+        Add your own book
+      </Link>
 
       <button
         type="submit"
