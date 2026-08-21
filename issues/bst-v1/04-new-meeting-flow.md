@@ -1,7 +1,7 @@
 ---
 issue: 4
 title: "New-meeting flow: [+] tab with group picker, prefill, always-PROPOSED"
-status: open
+status: done
 blocked-by: [2]
 type: afk
 ---
