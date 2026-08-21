@@ -1,7 +1,7 @@
 ---
 issue: 1
 title: "Tracer: scaffold + Google sign-in + PWA shell + tab bar"
-status: in-progress
+status: done
 blocked-by: []
 type: hitl
 ---
@@ -29,18 +29,30 @@ type: hitl
 > lhr1, syd1, sin1, gru1. `vercel.json` pins functions to `sin1` for the same
 > reason.
 >
-> **What remains, and only Jericho can do it:**
+> **CLOSED 2026-08-21.** Human verification, as actually performed:
 >
-> 1. A real Google round-trip on the deployed URL — sign in, land on Home.
->    Expect Google's "hasn't verified this app" screen first: the client is in
->    Testing mode, so click *Advanced → Go to Bible Study Tayo (unsafe)*.
-> 2. Confirm a **non**-allowlisted Google account is refused with the plain
->    English message.
-> 3. Install the PWA on Android Chrome from the deployed URL.
-> 4. Compare the built screens against `design/SignIn.dc.html` and
->    `design/Main.dc.html` by eye — green tests are not evidence of visual match.
->
-> Until 1–4 are done this issue is not `done`.
+> 1. ✅ **Real Google round-trip** — Jericho signed in on the deployed URL and
+>    landed on Home ("Hello, Jericho").
+> 2. ✅ **Non-allowlisted account refused** — confirmed with a second Google
+>    account.
+> 3. ⚠️ **Android install — NOT OBSERVED.** Closed on evidence rather than on a
+>    performed install: Jericho did not have his phone, and chose to close the
+>    issue rather than stall the backlog behind it (his call, 08-21, made
+>    against a recommendation to split it out). What *was* verified, by browser:
+>    HTTPS, valid manifest with `name`/`short_name`/`start_url`/
+>    `display: standalone`, 192px and 512px icons returning real PNGs, maskable
+>    variants at both sizes, and a service worker registered and active at scope
+>    `/` — i.e. every criterion Chrome uses to offer an install. **If the install
+>    ever misbehaves, this is the check that was never run** — raise it as a new
+>    issue, do not reopen this one.
+> 4. ✅ **Human visual pass** — and it earned its place: Jericho caught the
+>    People tab icon rendering a headless figure. Cause was the artboards
+>    themselves dropping Lucide's fourth subpath, so the build, two QA browser
+>    passes and a computed-style diff all compared the app to a reference
+>    carrying the same defect. Fixed in the app and in `Main.dc.html` /
+>    `Calendar.dc.html` (commit `73bfeea`). ⚠️ The **published canvas artifact
+>    still has the old glyph** — re-seeding the boards from it would bring the
+>    bug back.
 
 # Tracer: scaffold + Google sign-in + PWA shell + tab bar
 
