@@ -18,6 +18,7 @@
 import { useActionState } from "react";
 
 import type { GroupFormState } from "@/lib/roster/actions";
+import type { GroupFormValues } from "@/lib/roster/form";
 import { WEEKDAY_NAMES, formatDuration } from "@/lib/roster/schedule";
 
 export type BookOption = {
@@ -27,14 +28,7 @@ export type BookOption = {
   programName: string | null;
 };
 
-export type GroupFormValues = {
-  name: string;
-  weekday: number;
-  /** `HH:MM` for the time input. */
-  startTime: string;
-  durationMinutes: number;
-  currentBookId: string | null;
-};
+export type { GroupFormValues };
 
 /** The lengths a BGroup night actually runs, in minutes. */
 const DURATIONS = [45, 60, 75, 90, 105, 120, 150, 180];
@@ -59,15 +53,39 @@ export function GroupForm({
   const [state, formAction, pending] = useActionState(action, {});
   const programs = [...new Set(books.map((book) => book.programName))];
 
+  // After a refusal the server hands back what was submitted, so the day, time,
+  // duration and book the leader already chose survive a typo in the name. On a
+  // first paint there is no state yet and the caller's values are the answer.
+  const shown = state.values ?? values;
+
   return (
     <form action={formAction} className="pt-1 pb-2">
       {groupId ? <input type="hidden" name="id" value={groupId} /> : null}
 
+      {/* The board's attention pair, not the field treatment. A white card with
+          a `#E6DFD4` hairline is exactly how every input below renders, so the
+          refusal read as one more text field rather than as a problem (QA pass,
+          2026-08-21). Amber is what the artboards use to mean "look here". */}
       {state.error ? (
         <p
+          id="group-form-error"
           role="alert"
-          className="mb-4 rounded-[18px] border border-line bg-card px-4 py-3 text-[14.5px] leading-[1.45] text-ink"
+          className="mb-4 flex items-start gap-[9px] rounded-[18px] bg-amber-well px-4 py-3 text-[14.5px] leading-[1.45] text-amber-ink"
         >
+          <svg
+            width="18"
+            height="18"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            className="mt-[2px] shrink-0"
+            aria-hidden="true"
+          >
+            <path d="M12 8v5M12 16.5v.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z" />
+          </svg>
           {state.error}
         </p>
       ) : null}
@@ -75,14 +93,20 @@ export function GroupForm({
       <label className={`${EYEBROW} block`} htmlFor="group-name">
         NAME
       </label>
+      {/* Every refusal this form can produce today is about the name, so the
+          field carries the error rather than only the banner announcing it —
+          otherwise a screen reader hears the problem and then meets an input
+          with nothing wrong with it. */}
       <input
         id="group-name"
         name="name"
         type="text"
-        defaultValue={values.name}
+        defaultValue={shown.name}
         placeholder="BGroup Linggo"
         autoComplete="off"
-        className={`${FIELD} mt-[9px]`}
+        aria-invalid={state.error ? true : undefined}
+        aria-describedby={state.error ? "group-form-error" : undefined}
+        className={`${FIELD} mt-[9px] ${state.error ? "border-amber-ink" : ""}`}
       />
 
       <div className={`${EYEBROW} mt-[22px]`}>WEEKLY SCHEDULE</div>
@@ -90,7 +114,7 @@ export function GroupForm({
         <select
           name="weekday"
           aria-label="Day"
-          defaultValue={String(values.weekday)}
+          defaultValue={String(shown.weekday)}
           className={`${FIELD} grow`}
         >
           {WEEKDAY_NAMES.map((day, index) => (
@@ -103,14 +127,14 @@ export function GroupForm({
           name="startTime"
           type="time"
           aria-label="Start time"
-          defaultValue={values.startTime}
+          defaultValue={shown.startTime}
           className={`${FIELD} w-[136px]`}
         />
       </div>
       <select
         name="durationMinutes"
         aria-label="How long it runs"
-        defaultValue={String(values.durationMinutes)}
+        defaultValue={String(shown.durationMinutes)}
         className={`${FIELD} mt-[8px]`}
       >
         {DURATIONS.map((minutes) => (
@@ -129,10 +153,13 @@ export function GroupForm({
       <select
         id="group-book"
         name="currentBookId"
-        defaultValue={values.currentBookId ?? ""}
+        defaultValue={shown.currentBookId ?? ""}
         className={`${FIELD} mt-[9px]`}
       >
-        <option value="">Not chosen yet</option>
+        {/* The same words the card and the detail screen use for the same
+            state. #66 is one word per thing, and "Not chosen yet" here against
+            "No book chosen yet" everywhere else was two. */}
+        <option value="">No book chosen yet</option>
         {programs.map((program) => {
           const inProgram = books.filter((book) => book.programName === program);
           return program === null ? (

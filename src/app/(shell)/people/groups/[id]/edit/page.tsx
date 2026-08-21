@@ -5,7 +5,7 @@
  * future PROPOSED meetings that follow from it is #48b, and belongs to the
  * meetings module (issue 4) — there are no meetings to move yet.
  */
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 
 import { BackRow } from "@/components/BackRow";
 import { GroupForm } from "@/components/groups/GroupForm";
@@ -22,6 +22,12 @@ export default async function EditGroupPage({ params }: { params: Promise<{ id: 
   const [group, books] = await Promise.all([getGroup(user.email, id), listBooks()]);
 
   if (!group) notFound();
+
+  // `updateGroup` refuses an archived group outright, so this is not what makes
+  // the rule true — it is what stops the leader meeting the rule as a failed
+  // save. Same answer `/archive` already gives: send them to the detail, where
+  // the archived banner explains the state. (QA pass, 2026-08-21.)
+  if (group.archivedAt) redirect(`/people/groups/${group.id}`);
 
   return (
     <section>

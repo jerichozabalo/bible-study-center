@@ -57,6 +57,21 @@
     background: var(--color-sand);
     color: var(--color-ink);
     font-family: var(--font-sans);
+    /*
+     * `normal` (~1.22), matching the artboards, NOT Tailwind preflight's 1.5.
+     *
+     * The boards set no body line-height at all — they declare it inline only
+     * where prose wants room to breathe (1.4, 1.45, 1.5) and let everything
+     * else compute `normal`. Inheriting 1.5 made every non-heading run ~25%
+     * taller than drawn: a 18px card title 27px instead of 22px, a 13.5px
+     * schedule line 20.25px instead of 16px, which pushed a group card's inset
+     * panel 9px down the card (QA pass, 2026-08-21). Headings were unaffected
+     * because they are pinned to 1.14 below.
+     *
+     * Utilities still win: any element that wants prose leading says
+     * `leading-[1.45]` and gets it.
+     */
+    line-height: normal;
     -webkit-font-smoothing: antialiased;
     /* A tap on a button should not select the label under it — this is a phone
        app first, and text selection there is almost always a mis-tap. */

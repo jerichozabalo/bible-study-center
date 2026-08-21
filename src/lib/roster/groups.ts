@@ -129,6 +129,13 @@ export async function updateGroup(
 ): Promise<void> {
   const clean = await validate(input);
 
+  // `archived_at IS NULL` is the rule, and it lives in the statement rather
+  // than in a screen. The detail page stops offering Edit once a group is
+  // archived, but that only hides a control — `/people/groups/<id>/edit` was
+  // still answering 200 with a prefilled form, and the save went through (QA
+  // pass, 2026-08-21). An archived group proposes no meetings and cannot be
+  // picked (#60); letting its schedule be rewritten from a stale tab or a
+  // bookmarked URL is the same class of surprise.
   const rows = await query<{ id: string }>(
     `UPDATE groups
         SET name = $3,
@@ -137,7 +144,7 @@ export async function updateGroup(
             duration_minutes = $6,
             current_book_id = $7,
             updated_at = now()
-      WHERE owner_id = $1 AND id = $2
+      WHERE owner_id = $1 AND id = $2 AND archived_at IS NULL
       RETURNING id`,
     [
       ownerId,
@@ -150,7 +157,12 @@ export async function updateGroup(
     ],
   );
 
-  if (rows.length === 0) throw new RosterValidationError("That BGroup no longer exists.");
+  if (rows.length === 0) {
+    // One message for both misses. Whether the row is gone or archived, the
+    // honest answer to "why did my edit not save" is the same, and the caller
+    // that needs to tell them apart (the edit screen) reads the group first.
+    throw new RosterValidationError("That BGroup is archived or no longer exists.");
+  }
 }
 
 /**

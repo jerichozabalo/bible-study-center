@@ -13,10 +13,16 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "../auth/guard";
-import { parseGroupForm } from "./form";
+import { type GroupFormValues, formValuesFrom, parseGroupForm } from "./form";
 import { RosterValidationError, archiveGroup, createGroup, updateGroup } from "./groups";
 
-export type GroupFormState = { error?: string };
+/**
+ * `values` is what the form re-renders from after a refusal. Without it the
+ * four fields the leader already chose fall back to defaults and have to be
+ * picked again, which turns a typo in the name into re-entering the whole form
+ * (QA pass, 2026-08-21).
+ */
+export type GroupFormState = { error?: string; values?: GroupFormValues };
 
 export async function createGroupAction(
   _previous: GroupFormState,
@@ -28,7 +34,9 @@ export async function createGroupAction(
   try {
     id = await createGroup(user.email, parseGroupForm(formData));
   } catch (thrown) {
-    if (thrown instanceof RosterValidationError) return { error: thrown.message };
+    if (thrown instanceof RosterValidationError) {
+      return { error: thrown.message, values: formValuesFrom(formData) };
+    }
     throw thrown;
   }
 
@@ -48,7 +56,9 @@ export async function updateGroupAction(
   try {
     await updateGroup(user.email, id, parseGroupForm(formData));
   } catch (thrown) {
-    if (thrown instanceof RosterValidationError) return { error: thrown.message };
+    if (thrown instanceof RosterValidationError) {
+      return { error: thrown.message, values: formValuesFrom(formData) };
+    }
     throw thrown;
   }
 

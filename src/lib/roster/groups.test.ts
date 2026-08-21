@@ -218,4 +218,19 @@ describe.skipIf(!dbConfigured)("groups", () => {
       RosterValidationError,
     );
   });
+
+  it("refuses to edit an archived group, whatever screen asks", async () => {
+    // QA pass 2026-08-21: the detail page hides Edit once a group is archived,
+    // but `/people/groups/<id>/edit` answered 200 with a prefilled form and the
+    // save went through. Hiding a control is not a rule — the rule belongs
+    // here, where every screen has to come through it.
+    const id = await createGroup(TEST_OWNER, linggo());
+    await archiveGroup(TEST_OWNER, id);
+
+    await expect(
+      updateGroup(TEST_OWNER, id, linggo({ name: "Edited while archived" })),
+    ).rejects.toBeInstanceOf(RosterValidationError);
+
+    expect(await getGroup(TEST_OWNER, id)).toMatchObject({ name: "BGroup Linggo" });
+  });
 });
