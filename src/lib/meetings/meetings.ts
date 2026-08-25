@@ -18,9 +18,10 @@
  * belongs to issue 5's materialiser, and #73's partial unique index is what
  * keeps that path idempotent without forbidding a same-day make-up meeting.
  */
-import { weekdayOf } from "../dates";
+import { weekdayOf, manilaToday } from "../dates";
 import { query, transaction } from "../db";
 import type { Schedule } from "../roster/schedule";
+import { materializeScheduleInTx, shiftProposedMeetingsInTx } from "./calendar";
 
 /** Something the leader typed cannot be saved, and the message says why. */
 export class MeetingValidationError extends Error {
@@ -175,6 +176,10 @@ export async function createMeeting(ownerId: string, input: MeetingInput): Promi
         startTime,
         durationMinutes,
       });
+      // #48b/#49: shift existing future proposed meetings to the new day and
+      // fill the 8-week horizon on the new schedule.
+      await shiftProposedMeetingsInTx(tx, ownerId, input.groupId, weekdayOf(clean.date), startTime, durationMinutes);
+      await materializeScheduleInTx(tx, ownerId, clean.date);
     }
 
     return rows[0].id;
