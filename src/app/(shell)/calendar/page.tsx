@@ -14,7 +14,7 @@
  * `design/Calendar.dc.html` draws the layout; this is that drawing.
  */
 import { addDays, manilaToday } from "@/lib/dates";
-import { getCalendar } from "@/lib/meetings/calendar";
+import { getCalendar, materializeSchedule } from "@/lib/meetings/calendar";
 import { requireUser } from "@/lib/auth/guard";
 
 import { CalendarView } from "./CalendarView";
@@ -24,6 +24,10 @@ export const dynamic = "force-dynamic";
 export default async function CalendarPage() {
   const user = await requireUser();
   const today = manilaToday();
+
+  // Ensure the forward horizon is populated before reading (#5). The
+  // materialiser is idempotent, so this is a no-op when meetings already exist.
+  await materializeSchedule(user.email, today);
 
   // One query for ~6 months. The calendar navigates within this window;
   // revalidation (via server actions) refreshes on any write.
