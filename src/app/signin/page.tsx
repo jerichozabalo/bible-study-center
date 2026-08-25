@@ -49,7 +49,7 @@ export default async function SignInPage({
        but a browser window is whatever width it is — unbounded, the Google
        button stretched to 1388px on a laptop. Capping and centring keeps the
        artboard's proportions wherever it is opened. */
-    <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col justify-between px-[26px] pt-16 pb-[30px]">
+    <main className="mx-auto flex min-h-screen min-h-dvh w-full max-w-[420px] flex-col justify-between px-[26px] pt-16 pb-[30px]">
       <div>
         <Emblem size={64} />
         <h1 className="mt-[26px] text-[38px] leading-[1.05]">

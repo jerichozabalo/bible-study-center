@@ -4,6 +4,17 @@ True observations that did not clear the bar for a numbered issue: nobody is
 blocked or harmed by them at today's scale. One line each — what was seen,
 where, and when. Promote to an issue the day one actually bites.
 
+- **2026-08-25 — Mobile tabs scroll away if `h-dvh` has no `h-screen` fallback.**
+  `src/app/(shell)/layout.tsx` and all full-height pages (`signin`, `offline`,
+  `PinPad`). `dvh` (dynamic viewport height) is unsupported on some browsers —
+  notably iOS Safari < 16.4 and standalone PWA mode — causing the unit to resolve
+  to `auto` and the TabBar to scroll off with the page. Fixed by adding
+  `h-screen` (=`100vh`) before `h-dvh` everywhere, so browsers that don't
+  understand `100dvh` fall back to `100vh` and keep the tab bar pinned.
+  Browsers that do support it still get the dynamic height; either way the
+  container has a real height and `overflow-hidden` on the outer flex contains
+  the scroll to the inner `.scroll` div.
+
 - **2026-08-21 — Turning the app lock OFF asks for nothing.** `LockSettings.tsx`.
   Anyone holding an already-unlocked phone can disable it. Under the bar because
   #19's threat model is a borrowed or lost phone, and someone holding it

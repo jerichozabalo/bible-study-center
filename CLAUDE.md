@@ -129,6 +129,12 @@ Copy `.env.example` to `.env.local` and fill it in. Nothing runs without it.
   assuming the database is down.
 - **Never let a test reach the real database.** `tests/setup.ts` overwrites
   `DATABASE_URL` with `TEST_DATABASE_URL` (a Neon branch). Do not bypass it.
+- **`dvh` needs an `h-screen` fallback.** Every full-height container uses
+  `h-screen h-dvh` (or `min-h-screen min-h-dvh`) so browsers that don't support
+  the dynamic viewport unit (`dvh`) fall back to `100vh` instead of `auto`.
+  Without the fallback the outer flex has no height, `overflow-hidden` contains
+  nothing, and the TabBar (#62) scrolls away with the page on mobile. (iOS < 16.4
+  and standalone PWA mode.)
 - **Vercel deploys the working tree, not git.** Commit as part of every ship or
   git silently drifts behind production.
 - **Stage explicit paths** — never `git add -A`. Concurrent sessions share this

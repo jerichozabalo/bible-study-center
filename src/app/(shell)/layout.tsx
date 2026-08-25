@@ -27,7 +27,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
     <AppLockBoundary account={user.email}>
       {/* Capped and centred for the same reason the sign-in screen is: the
           boards are a 390px phone frame, and a laptop window is not. */}
-      <div className="mx-auto flex h-dvh w-full max-w-[420px] flex-col overflow-hidden">
+      <div className="mx-auto flex h-screen h-dvh w-full max-w-[420px] flex-col overflow-hidden">
         <header className="flex shrink-0 items-center justify-between px-4 pt-4 pb-1">
           <div className="flex items-center gap-[10px]">
             <Emblem size={32} />

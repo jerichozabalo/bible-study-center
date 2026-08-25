@@ -16,7 +16,7 @@ import { Emblem } from "@/components/Emblem";
 
 export default function OfflinePage() {
   return (
-    <main className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-8 text-center">
+    <main className="mx-auto flex min-h-screen min-h-dvh w-full max-w-[420px] flex-col items-center justify-center px-8 text-center">
       <Emblem size={54} />
       <h1 className="mt-5 text-[22px]">No signal</h1>
       <p className="mt-2 max-w-[280px] text-[15px] leading-[1.5] text-slate">

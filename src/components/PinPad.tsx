@@ -37,7 +37,7 @@ export function PinPad({
   children?: React.ReactNode;
 }) {
   return (
-    <div className="mx-auto flex min-h-dvh w-full max-w-[420px] flex-col px-[26px] pt-[70px] pb-[26px]">
+    <div className="mx-auto flex min-h-screen min-h-dvh w-full max-w-[420px] flex-col px-[26px] pt-[70px] pb-[26px]">
       <div className="flex flex-col items-center">
         <div
           className={`flex h-[54px] w-[54px] items-center justify-center rounded-[19px] ${
