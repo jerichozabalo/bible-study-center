@@ -48,6 +48,19 @@ export function CalendarView({
   const [selectedDate, setSelectedDate] = useState<string>(today);
   const [periodDate, setPeriodDate] = useState<string>(today);
 
+  // Paging the period moves the selected day with it — a week keeps the same
+  // weekday, a month the same day-of-month — so the agenda panel below never
+  // strands the leader on an off-screen day (and "New meeting on <that day>").
+  function navigate(dir: -1 | 1) {
+    if (view === "week") {
+      setPeriodDate((d) => addDays(d, dir * 7));
+      setSelectedDate((d) => addDays(d, dir * 7));
+    } else {
+      setPeriodDate((d) => shiftMonth(d, dir));
+      setSelectedDate((d) => shiftMonth(d, dir));
+    }
+  }
+
   return (
     <section className="flex flex-col">
       {/* Header: title + Today + Week/Month toggle */}
@@ -84,11 +97,7 @@ export function CalendarView({
       </div>
 
       {/* Period navigation */}
-      <PeriodNav
-        view={view}
-        periodDate={periodDate}
-        onPeriodChange={setPeriodDate}
-      />
+      <PeriodNav view={view} periodDate={periodDate} onNavigate={navigate} />
 
       {view === "week" ? (
         <WeekView
@@ -132,26 +141,16 @@ function tabClass(selected: boolean): string {
 function PeriodNav({
   view,
   periodDate,
-  onPeriodChange,
+  onNavigate,
 }: {
   view: "week" | "month";
   periodDate: string;
-  onPeriodChange: (date: string) => void;
+  onNavigate: (dir: -1 | 1) => void;
 }) {
-  const year = Number(periodDate.slice(0, 4));
-  const month = Number(periodDate.slice(5, 7));
-
-  const MONTH_NAMES = [
-    "January", "February", "March", "April", "May", "June",
-    "July", "August", "September", "October", "November", "December",
-  ] as const;
-
   let label: string;
-  let prevDate: string;
-  let nextDate: string;
 
   if (view === "week") {
-    // Week view: show "16 — 22 AUGUST 2026" format
+    // "16 — 22 AUGUST 2026", collapsing the month/year when they match.
     const weekStart = startOfWeek(periodDate);
     const weekEnd = addDays(weekStart, 6);
     const startDay = Number(weekStart.slice(8, 10));
@@ -168,26 +167,15 @@ function PeriodNav({
     } else {
       label = `${startDay} ${startMonth} ${startYear} — ${endDay} ${endMonth} ${endYear}`;
     }
-
-    prevDate = addDays(weekStart, -7);
-    nextDate = addDays(weekStart, 7);
   } else {
-    // Month view: show "AUGUST 2026". Step by whole months so month length
-    // never enters into it.
-    label = `${MONTH_NAMES[month - 1].toUpperCase()} ${year}`;
-    const prevM = month === 1 ? 12 : month - 1;
-    const prevY = month === 1 ? year - 1 : year;
-    const nextM = month === 12 ? 1 : month + 1;
-    const nextY = month === 12 ? year + 1 : year;
-    prevDate = `${prevY}-${String(prevM).padStart(2, "0")}-01`;
-    nextDate = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
+    label = `${MONTH_NAMES[Number(periodDate.slice(5, 7)) - 1].toUpperCase()} ${periodDate.slice(0, 4)}`;
   }
 
   return (
     <div className="flex items-center justify-between pb-[10px]">
       <button
         type="button"
-        onClick={() => onPeriodChange(prevDate)}
+        onClick={() => onNavigate(-1)}
         className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] text-slate"
         aria-label={view === "week" ? "Previous week" : "Previous month"}
       >
@@ -196,7 +184,7 @@ function PeriodNav({
       <span className="text-[14.5px] font-bold">{label}</span>
       <button
         type="button"
-        onClick={() => onPeriodChange(nextDate)}
+        onClick={() => onNavigate(1)}
         className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] text-slate"
         aria-label={view === "week" ? "Next week" : "Next month"}
       >
@@ -568,7 +556,7 @@ function MeetingCard({ meeting, today }: { meeting: CalendarEntry; today: string
     pillBg = "#E4F1E9";
     pillInk = "#2E7D52";
   } else if (isPastDue) {
-    barColor = "#FFFFFF";
+    barColor = "#1D4E89"; // #52: a proposed night still owed a decision — a live accent, not a blank bar
     pillShow = true;
     pillLabel = "NEEDS CONFIRMING";
     pillBg = "#FBF0DC";
@@ -607,7 +595,15 @@ function MeetingCard({ meeting, today }: { meeting: CalendarEntry; today: string
   );
 
   return (
-    <div className="rounded-[20px] border-[1.5px] border-line bg-card p-[13px] pb-[14px]">
+    <div
+      className={
+        "rounded-[20px] border-[1.5px] p-[13px] pb-[14px] " +
+        (isPastDue ? "" : "border-line bg-card")
+      }
+      // #52: a past-due night sits in an amber well — the same idiom the
+      // attendance sheet's "did it push through?" prompt uses.
+      style={isPastDue ? { backgroundColor: "#FDF8EE", borderColor: "#F0E3C8" } : undefined}
+    >
       <div className="flex items-start gap-[11px]">
         <div className="w-[4px] flex-shrink-0 rounded-[3px]" style={{ backgroundColor: barColor }} />
         <div className="min-w-0 flex-grow">
@@ -643,7 +639,7 @@ function MeetingCard({ meeting, today }: { meeting: CalendarEntry; today: string
                 <path d="M20 6 9 17l-5-5" />
               </svg>
               <span className="text-[13px] font-bold text-[#2E7D52]">
-                Attendance taken — review
+                Held — open the sheet
               </span>
             </Link>
           )}
@@ -661,7 +657,7 @@ function PastDueActions({ meeting }: { meeting: CalendarEntry }) {
         This date has passed. Did it push through?
       </p>
       <div className="flex gap-[8px]">
-        <form action={resolveMeetingAction}>
+        <form action={resolveMeetingAction} className="flex-1">
           <input type="hidden" name="groupId" value={meeting.groupId} />
           <input type="hidden" name="date" value={meeting.date} />
           <input type="hidden" name="status" value="held" />
@@ -672,7 +668,7 @@ function PastDueActions({ meeting }: { meeting: CalendarEntry }) {
             Yes, mark held
           </button>
         </form>
-        <form action={resolveMeetingAction}>
+        <form action={resolveMeetingAction} className="flex-1">
           <input type="hidden" name="groupId" value={meeting.groupId} />
           <input type="hidden" name="date" value={meeting.date} />
           <input type="hidden" name="status" value="cancelled" />
@@ -823,6 +819,19 @@ const TimeAxis = () => (
 function startOfWeek(date: string): string {
   const day = weekdayOf(date);
   return addDays(date, -day);
+}
+
+/** `date` moved by whole months, clamping the day (31 Jan → 28/29 Feb). */
+function shiftMonth(date: string, months: number): string {
+  const year = Number(date.slice(0, 4));
+  const month = Number(date.slice(5, 7));
+  const day = Number(date.slice(8, 10));
+  const total = year * 12 + (month - 1) + months;
+  const y = Math.floor(total / 12);
+  const m = (total % 12) + 1;
+  const lastDay = new Date(Date.UTC(y, m, 0)).getUTCDate();
+  const d = Math.min(day, lastDay);
+  return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
 }
 
 function dayLabel(date: string): string {
