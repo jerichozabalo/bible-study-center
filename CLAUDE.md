@@ -56,8 +56,20 @@ Live at **https://bible-study-tayo.vercel.app**, on Jericho's own Vercel team
 `jericho-s-projects6`. Two Neon databases, both `sin1`, both Free:
 `bible-study-tayo` (production) and `bible-study-tayo-test` (the suite).
 
-Deploy with `npx vercel deploy --prod` — there is no git remote and no
-auto-deploy. Vercel deploys the **working tree**, so commit as part of the ship.
+⛔ **There are two Vercel projects on the team: `bible-study-tayo` (the real
+one — has every production env var, owns the `bible-study-tayo.vercel.app`
+alias) and `biblestudy-tracker` (a dead pre-rename husk with no env vars —
+anything deployed there 500s with `SESSION_SECRET is not set`).** Before
+deploying, confirm `.vercel/project.json` reads `"projectName":"bible-study-tayo"`;
+if not, `npx vercel link --project bible-study-tayo --yes`. Never repoint the
+`bible-study-tayo.vercel.app` alias at a deployment until that deployment
+answers 307/200 rather than 500.
+
+Deploy with `npx vercel deploy --prod`. There **is** a git remote
+(`origin` → `github.com:jerichozabalo/bible-study-center` — the repo name does
+not match the project name), but **no git-integrated auto-deploy**: a deploy is
+always the explicit CLI command. Vercel deploys the **working tree**, so commit
+as part of the ship; `git push` is a separate step, only when asked.
 
 ⚠️ `vercel integration add neon` **never asks for a region** and silently
 defaults to `us-east-1`. Always pass `-m region=sin1`. Valid keys: cle1, iad1,
