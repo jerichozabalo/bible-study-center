@@ -19,6 +19,8 @@
  *
  * `design/Calendar.dc.html` is the drawing this file implements.
  */
+import Link from "next/link";
+
 import { type CalendarEntry } from "@/lib/meetings/calendar";
 import { type Ghost } from "@/lib/meetings/ghosts";
 import { addDays, weekdayOf } from "@/lib/dates";
@@ -557,39 +559,78 @@ function MeetingCard({ meeting, today }: { meeting: CalendarEntry; today: string
     pillInk = "#9A5B0B";
   }
 
+  // Tapping the card opens the meeting's attendance sheet (issue 6) — the way
+  // in for any meeting, past or upcoming, until issue 8's Home hero exists.
+  // Ticking the sheet is what marks a proposed night held (#47). A cancelled
+  // meeting has nothing to take, so its header is inert.
+  const header = (
+    <>
+      <div className="flex items-center gap-[7px]">
+        <span
+          className="text-[16px] font-bold leading-[1.2]"
+          style={{ color: nameColor, textDecoration: textDec }}
+        >
+          {meeting.groupName}
+        </span>
+        {pillShow && (
+          <span
+            className="shrink-0 rounded-[7px] px-[7px] py-[3px] text-[10px] font-bold uppercase"
+            style={{ backgroundColor: pillBg, color: pillInk }}
+          >
+            {pillLabel}
+          </span>
+        )}
+      </div>
+      <div
+        className="mt-[4px] text-[13.5px] text-slate"
+        style={{ textDecoration: textDec }}
+      >
+        {timeStr} · {sessionStr}
+      </div>
+    </>
+  );
+
   return (
     <div className="rounded-[20px] border-[1.5px] border-line bg-card p-[13px] pb-[14px]">
       <div className="flex items-start gap-[11px]">
         <div className="w-[4px] flex-shrink-0 rounded-[3px]" style={{ backgroundColor: barColor }} />
         <div className="min-w-0 flex-grow">
-          <div className="flex items-center gap-[7px]">
-            <span
-              className="text-[16px] font-bold leading-[1.2]"
-              style={{ color: nameColor, textDecoration: textDec }}
-            >
-              {meeting.groupName}
-            </span>
-            {pillShow && (
-              <span
-                className="shrink-0 rounded-[7px] px-[7px] py-[3px] text-[10px] font-bold uppercase"
-                style={{ backgroundColor: pillBg, color: pillInk }}
-              >
-                {pillLabel}
-              </span>
-            )}
-          </div>
-          <div
-            className="mt-[4px] text-[13.5px] text-slate"
-            style={{ textDecoration: textDec }}
-          >
-            {timeStr} · {sessionStr}
-          </div>
+          {isCancelled ? (
+            header
+          ) : (
+            <Link href={`/meetings/${meeting.id}`} className="block">
+              {header}
+            </Link>
+          )}
 
-          {/* Past-due confirmation buttons (#52) */}
+          {/* Past-due confirmation buttons (#52) — a sibling of the link, never
+              nested in it (a <form> inside an <a> is invalid). */}
           {isPastDue && <PastDueActions meeting={meeting} />}
 
-          {/* Held meeting: green check + attendance */}
-          {isHeld && <HeldFooter attendance="8 of 8 marked" />}
+          {/* Held meeting: a check and the way back to the sheet. */}
+          {isHeld && (
+            <Link
+              href={`/meetings/${meeting.id}`}
+              className="mt-[11px] flex items-center gap-[7px]"
+            >
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="#2E7D52"
+                strokeWidth="2.6"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M20 6 9 17l-5-5" />
+              </svg>
+              <span className="text-[13px] font-bold text-[#2E7D52]">
+                Attendance taken — review
+              </span>
+            </Link>
+          )}
         </div>
       </div>
     </div>
@@ -627,27 +668,6 @@ function PastDueActions({ meeting }: { meeting: CalendarEntry }) {
           </button>
         </form>
       </div>
-    </div>
-  );
-}
-
-function HeldFooter({ attendance }: { attendance: string }) {
-  return (
-    <div className="mt-[11px] flex items-center gap-[7px]">
-      <svg
-        width="15"
-        height="15"
-        viewBox="0 0 24 24"
-        fill="none"
-        stroke="#2E7D52"
-        strokeWidth="2.6"
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        aria-hidden="true"
-      >
-        <path d="M20 6 9 17l-5-5" />
-      </svg>
-      <span className="text-[13px] font-bold text-[#2E7D52]">{attendance}</span>
     </div>
   );
 }

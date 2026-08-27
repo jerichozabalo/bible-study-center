@@ -81,6 +81,19 @@ where, and when. Promote to an issue the day one actually bites.
   `src/components/attendance/AttendanceSheet.tsx` — one form, two submits.
   Low harm (retype), but it happens mid-meeting. Observed by reading the form
   semantics, not in a browser.
+- **2026-08-27 — The calendar agenda's "New meeting on <day>" button is inert.**
+  `CalendarView.tsx` `NewMeetingButton` — a `<button type="button">` with no
+  handler. The [+] tab (`/new`) is the real create path, but it takes no date
+  param, so wiring this button to it would drop the day the leader tapped.
+  Wants either a `?date=` on `/new` or an in-place create. Low harm — the [+]
+  tab works — but the button looks broken. Found while fixing the attendance
+  nav gap below.
+- **2026-08-27 — Held meeting cards no longer show an attendance count.**
+  `MeetingCard` used to render a hardcoded `"8 of 8 marked"` for every held
+  meeting (fake — `getCalendar` fetches no completion counts). Replaced with a
+  plain "Attendance taken — review" link. A real "N of M" needs the count in
+  the calendar query or a per-card fetch; that belongs with issue 8/9's
+  derivations, not here.
 - **2026-08-21 — `getSheet` costs two round trips** (`getMeeting`, then the
   roster read). `src/lib/attendance/sheet.ts`. Irrelevant at one BGroup's
   scale; noted beside the `listPickerGroups` line above.
