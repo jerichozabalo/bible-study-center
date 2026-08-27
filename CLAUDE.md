@@ -33,11 +33,18 @@ directory name is older than the decision.
   board draws a blue squircle containing a Lucide open-book glyph — that is a
   **placeholder** from before the mark was settled, not the logo, and it is
   still in the boards. The real mark is the ring with two men and an open book.
-  Use `src/components/Emblem.tsx`, which serves the kit's own SVGs and enforces
-  the measured floors: `emblem-mark` ≥ 32px ("App header, favicon"),
-  `emblem-icon` ≥ 16px ("Browser tab, home screen"). Under a floor, step DOWN a
-  version — never shrink one past it. Assets are copied to `public/logo/` and
-  **never hand-edited**; they are rebuilt by `design/logo3d/emblem.js`.
+  **2026-08-27: Jericho chose `design/logo3d/out/vector/roundel-full.svg`** —
+  the detailed retro-ink illustration — as the app's logo, over the hand-built
+  `emblem-mark` (which read as a generic "users" glyph at every size).
+  `src/components/Emblem.tsx` now serves `public/logo/roundel{,-blue,-rev}.svg`
+  (ink / brand-blue / sand-reversed colour variants of that one path); the
+  favicon + PWA icons (`public/icons/*`) are rendered from the same file by
+  `design/logo3d/app-icons.mjs` (run from repo root, needs `sharp`). Known,
+  accepted deviation: the kit's usage sheet floors this illustration at ~120px;
+  the app uses it at 32px in the header and 16px in the tab because the blob
+  mark said nothing. Colour variants and icons are generated, **never
+  hand-edited** — re-run `app-icons.mjs` after any change to the source SVG.
+  The old `emblem-*.svg` are left in `public/logo/` unused.
 - ⚠️ **The artboards are not infallible, and automated checks cannot tell you
   so** — every diff compares the app *to* them. Two defects reached production
   this way and both were caught by eye: the People tab icon missing a subpath of
