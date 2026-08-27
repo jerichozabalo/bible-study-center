@@ -291,18 +291,34 @@ function WeekView({
         })}
       </div>
 
-      {/* Time grid */}
-      <div className="mt-[4px] h-[216px] overflow-y-auto">
-        <div className="relative h-[272px]">
-          <TimeAxis />
-          <div className="absolute inset-0 flex gap-[2px]">
-            {days.map((day) => {
-              const dayMeetings = meetings.filter((m) => m.date === day);
-              const dayGhosts = ghosts.filter((g) => g.date === day);
-              return (
-                <TimeColumn key={day} meetings={dayMeetings} ghosts={dayGhosts} />
-              );
-            })}
+      {/* Time grid — a 34px hour-label column (matching the day strip's leading
+          spacer, so headers sit over their columns) + the 7 day columns. */}
+      <div className="mt-[4px] h-[216px] overflow-y-auto px-[2px]">
+        <div className="relative flex h-[272px] gap-[2px]">
+          <div className="relative w-[34px] flex-shrink-0">
+            <TimeAxis />
+          </div>
+          <div className="relative flex-1">
+            {HOURS.map((h, i) => (
+              <div
+                key={h}
+                className="absolute inset-x-0 h-px bg-line"
+                style={{ top: `${i * HOUR_H}px` }}
+              />
+            ))}
+            <div className="absolute inset-0 flex gap-[2px]">
+              {days.map((day) => {
+                const dayMeetings = meetings.filter((m) => m.date === day);
+                const dayGhosts = ghosts.filter((g) => g.date === day);
+                return (
+                  <TimeColumn
+                    key={day}
+                    meetings={dayMeetings}
+                    ghosts={dayGhosts}
+                  />
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

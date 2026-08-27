@@ -81,6 +81,12 @@ where, and when. Promote to an issue the day one actually bites.
   `src/components/attendance/AttendanceSheet.tsx` — one form, two submits.
   Low harm (retype), but it happens mid-meeting. Observed by reading the form
   semantics, not in a browser.
+- **2026-08-27 — Week time grid was missing its 34px hour-label column** (fixed
+  same day). `a3da049` rendered the hour labels as `position:absolute right-0`
+  over the Saturday column instead of in a leading 34px column like the board,
+  so the 7 day columns sat 34px left of their day-strip headers and every
+  meeting block appeared under the wrong day. The board (`Calendar.dc.html`
+  lines 62–84) puts the axis in its own `width:34px` flex child.
 - **2026-08-27 — The calendar agenda's "New meeting on <day>" button is inert.**
   `CalendarView.tsx` `NewMeetingButton` — a `<button type="button">` with no
   handler. The [+] tab (`/new`) is the real create path, but it takes no date
