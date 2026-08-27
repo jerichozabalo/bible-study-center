@@ -4,6 +4,20 @@ True observations that did not clear the bar for a numbered issue: nobody is
 blocked or harmed by them at today's scale. One line each — what was seen,
 where, and when. Promote to an issue the day one actually bites.
 
+- **2026-08-27 — Issue 5 browser QA pass: 17/18 checks PASS, no functional
+  failures.** Ghost taps + idempotency, past-due resolve, cancelled rendering,
+  the attendance route (tap card → sheet → save → held), Week/Month layout and
+  paging all verified against a seeded test DB. Fixed on the spot: agenda now
+  tracks period paging; past-due card got its amber well + blue bar back; resolve
+  buttons made equal-width; held-link copy softened. Seed/session helpers live
+  at `scripts/qa-{seed-calendar,mint-session}.mts` (need `SESSION_SECRET` +
+  `DATABASE_URL=$TEST_DATABASE_URL`).
+- **2026-08-27 — Issue 5 coverage gaps the QA pass could not exercise:** the
+  same-hour column split and the "+N" collapse (#58) never rendered (seed has
+  one meeting per group per day); schedule-change shifting future PROPOSED
+  meetings (#48b) is adjacent to issue 5 and untested end-to-end; offline cache
+  read (#61/#70) waits on issue 11. Worth a targeted seed when someone next
+  touches the calendar.
 - **2026-08-25 — Mobile tabs scroll away if `h-dvh` has no `h-screen` fallback.**
   `src/app/(shell)/layout.tsx` and all full-height pages (`signin`, `offline`,
   `PinPad`). `dvh` (dynamic viewport height) is unsupported on some browsers —
