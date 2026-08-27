@@ -16,8 +16,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireUser } from "../auth/guard";
-import { CalendarError, cancelMeeting, resolveMeeting } from "./calendar";
-import { createMeeting } from "./meetings";
+import { CalendarError, cancelMeeting, materializeGhost, resolveMeeting } from "./calendar";
 
 /**
  * The one-tap resolve for a past-due proposed meeting (#52).
@@ -66,28 +65,25 @@ export async function cancelMeetingAction(formData: FormData): Promise<void> {
 }
 
 /**
- * Create a meeting from a tapped ghost on the calendar (#5). The ghost is a
- * materialised proposed meeting that the leader wants to own — tapping it
- * creates a `origin = 'created'` meeting on the same night, so the proposed
- * generated ghost stays behind as history.
+ * Tap a ghost slot beyond the 8-week horizon (#49). The ghost is drawn from the
+ * group's schedule, not stored; tapping it materialises exactly that one
+ * meeting — `origin = 'generated'`, still PROPOSED (#47) — on the same terms as
+ * the #7 materialiser, and is idempotent (#73), so a double-tap or a retry
+ * writes one row. The form posts the group id and the local date.
  */
-export async function createMeetingFromGhostAction(formData: FormData): Promise<void> {
+export async function materializeGhostAction(formData: FormData): Promise<void> {
   const user = await requireUser();
   const groupId = String(formData.get("groupId") ?? "");
   const date = String(formData.get("date") ?? "");
-  const bookId = String(formData.get("bookId") ?? "") || null;
-  const sessionId = String(formData.get("sessionId") ?? "") || null;
 
-  await createMeeting(user.email, {
-    groupId,
-    date,
-    startTime: null,
-    durationMinutes: null,
-    bookId,
-    sessionId,
-    notes: null,
-    repeatWeekly: false,
-  });
+  try {
+    await materializeGhost(user.email, groupId, date);
+  } catch (thrown) {
+    if (thrown instanceof CalendarError) {
+      throw new Error(thrown.message);
+    }
+    throw thrown;
+  }
 
   revalidatePath("/calendar");
 }

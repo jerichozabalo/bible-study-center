@@ -59,10 +59,11 @@ where, and when. Promote to an issue the day one actually bites.
   (parallelised). `src/lib/meetings/prefill.ts`. A handful of round trips at
   Jericho's scale; wants a set-based rewrite only if the group list passes ~10.
 - **2026-08-21 — Home renders "Held" for any meeting that is not proposed**,
-  which will be wrong for `cancelled` once issue 5 can cancel one.
-  `src/app/(shell)/page.tsx`. Unreachable today: nothing sets `cancelled` yet.
-  Issue 5 owns the greyed-and-struck-through rendering and should fix this line
-  as it lands.
+  which would be wrong for `cancelled`. `src/app/(shell)/page.tsx`. **Resolved
+  by exclusion (2026-08-27, issue 5):** `listUpcomingMeetings` filters
+  `status <> 'cancelled'`, so a cancelled meeting never reaches `MeetingRow`.
+  The ternary is still `proposed ? "Proposed" : "Held"`; if the Home list ever
+  starts showing cancelled nights, that line needs a third branch.
 - **2026-08-21 — `src/lib/migrate.test.ts` asserts a global truth about a
   shared branch** (`appliedMigrations() === migrationFiles()`). Every parallel
   worktree sees it red, because the one test database's ledger holds migrations

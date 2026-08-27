@@ -12,11 +12,18 @@
  * Yes / Cancelled buttons that post to `resolveMeetingAction`; cancelled
  * meetings (#50) render greyed and struck through.
  *
+ * Ghosts (#49) are slots the group's schedule implies beyond the 8-week
+ * materialised edge — no row exists yet. They render hollow (the board's "not
+ * created yet" idiom) in both views and in the agenda; tapping one posts to
+ * `materializeGhostAction`, which writes that single proposed meeting.
+ *
  * `design/Calendar.dc.html` is the drawing this file implements.
  */
 import { type CalendarEntry } from "@/lib/meetings/calendar";
+import { type Ghost } from "@/lib/meetings/ghosts";
 import { addDays, weekdayOf } from "@/lib/dates";
 import {
+  materializeGhostAction,
   resolveMeetingAction,
 } from "@/lib/meetings/calendar-actions";
 import { WEEKDAY_NAMES, formatTime } from "@/lib/roster/schedule";
@@ -28,13 +35,16 @@ const HOUR_H = 44; // px per hour row
 
 export function CalendarView({
   meetings,
+  ghosts,
   today,
 }: {
   meetings: CalendarEntry[];
+  ghosts: Ghost[];
   today: string;
 }) {
   const [view, setView] = useState<"week" | "month">("week");
   const [selectedDate, setSelectedDate] = useState<string>(today);
+  const [periodDate, setPeriodDate] = useState<string>(today);
 
   return (
     <section className="flex flex-col">
@@ -44,7 +54,10 @@ export function CalendarView({
         <div className="flex items-center gap-[8px]">
           <button
             type="button"
-            onClick={() => setSelectedDate(today)}
+            onClick={() => {
+              setSelectedDate(today);
+              setPeriodDate(today);
+            }}
             className="h-[34px] rounded-[12px] border border-line bg-card px-[13px] text-[13px] font-bold text-blue"
           >
             Today
@@ -69,26 +82,39 @@ export function CalendarView({
       </div>
 
       {/* Period navigation */}
-      <PeriodNav />
+      <PeriodNav
+        view={view}
+        periodDate={periodDate}
+        onPeriodChange={setPeriodDate}
+      />
 
       {view === "week" ? (
         <WeekView
           selectedDate={selectedDate}
+          periodDate={periodDate}
           onDateChange={setSelectedDate}
           meetings={meetings}
+          ghosts={ghosts}
           today={today}
         />
       ) : (
         <MonthView
           selectedDate={selectedDate}
+          periodDate={periodDate}
           onDateChange={setSelectedDate}
           meetings={meetings}
+          ghosts={ghosts}
           today={today}
         />
       )}
 
       {/* Selected-day agenda */}
-      <Agenda selectedDate={selectedDate} meetings={meetings} today={today} />
+      <Agenda
+        selectedDate={selectedDate}
+        meetings={meetings}
+        ghosts={ghosts}
+        today={today}
+      />
     </section>
   );
 }
@@ -101,21 +127,76 @@ function tabClass(selected: boolean): string {
 }
 
 /** prev / next period + period label */
-function PeriodNav() {
+function PeriodNav({
+  view,
+  periodDate,
+  onPeriodChange,
+}: {
+  view: "week" | "month";
+  periodDate: string;
+  onPeriodChange: (date: string) => void;
+}) {
+  const year = Number(periodDate.slice(0, 4));
+  const month = Number(periodDate.slice(5, 7));
+
+  const MONTH_NAMES = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December",
+  ] as const;
+
+  let label: string;
+  let prevDate: string;
+  let nextDate: string;
+
+  if (view === "week") {
+    // Week view: show "16 — 22 AUGUST 2026" format
+    const weekStart = startOfWeek(periodDate);
+    const weekEnd = addDays(weekStart, 6);
+    const startDay = Number(weekStart.slice(8, 10));
+    const endDay = Number(weekEnd.slice(8, 10));
+    const startMonth = MONTH_NAMES[Number(weekStart.slice(5, 7)) - 1].toUpperCase();
+    const endMonth = MONTH_NAMES[Number(weekEnd.slice(5, 7)) - 1].toUpperCase();
+    const startYear = weekStart.slice(0, 4);
+    const endYear = weekEnd.slice(0, 4);
+
+    if (startMonth === endMonth && startYear === endYear) {
+      label = `${startDay} — ${endDay} ${startMonth} ${startYear}`;
+    } else if (startYear === endYear) {
+      label = `${startDay} ${startMonth} — ${endDay} ${endMonth} ${startYear}`;
+    } else {
+      label = `${startDay} ${startMonth} ${startYear} — ${endDay} ${endMonth} ${endYear}`;
+    }
+
+    prevDate = addDays(weekStart, -7);
+    nextDate = addDays(weekStart, 7);
+  } else {
+    // Month view: show "AUGUST 2026". Step by whole months so month length
+    // never enters into it.
+    label = `${MONTH_NAMES[month - 1].toUpperCase()} ${year}`;
+    const prevM = month === 1 ? 12 : month - 1;
+    const prevY = month === 1 ? year - 1 : year;
+    const nextM = month === 12 ? 1 : month + 1;
+    const nextY = month === 12 ? year + 1 : year;
+    prevDate = `${prevY}-${String(prevM).padStart(2, "0")}-01`;
+    nextDate = `${nextY}-${String(nextM).padStart(2, "0")}-01`;
+  }
+
   return (
     <div className="flex items-center justify-between pb-[10px]">
       <button
         type="button"
+        onClick={() => onPeriodChange(prevDate)}
         className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] text-slate"
-        aria-label="Previous"
+        aria-label={view === "week" ? "Previous week" : "Previous month"}
       >
         <ChevronLeftIcon />
       </button>
-      <span className="text-[14.5px] font-bold">August 2026</span>
+      <span className="text-[14.5px] font-bold">{label}</span>
       <button
         type="button"
+        onClick={() => onPeriodChange(nextDate)}
         className="flex h-[34px] w-[34px] items-center justify-center rounded-[11px] text-slate"
-        aria-label="Next"
+        aria-label={view === "week" ? "Next week" : "Next month"}
       >
         <ChevronRightIcon />
       </button>
@@ -148,16 +229,20 @@ function ChevronRightIcon() {
  */
 function WeekView({
   selectedDate,
+  periodDate,
   onDateChange,
   meetings,
+  ghosts,
   today,
 }: {
   selectedDate: string;
+  periodDate: string;
   onDateChange: (date: string) => void;
   meetings: CalendarEntry[];
+  ghosts: Ghost[];
   today: string;
 }) {
-  const weekStart = startOfWeek(selectedDate);
+  const weekStart = startOfWeek(periodDate);
   const days = Array.from({ length: 7 }, (_, i) =>
     addDays(weekStart, i),
   );
@@ -172,6 +257,7 @@ function WeekView({
           const isToday = day === today;
           const dayMeetings = meetings.filter((m) => m.date === day);
           const hasCancelled = dayMeetings.some((m) => m.status === "cancelled");
+          const hasGhost = ghosts.some((g) => g.date === day);
           return (
             <button
               key={day}
@@ -191,7 +277,9 @@ function WeekView({
                       ? "bg-blue-tint text-blue"
                       : hasCancelled
                         ? "bg-stone text-tan"
-                        : "text-ink")
+                        : dayMeetings.length === 0 && hasGhost
+                          ? "border border-dashed border-stone text-tan"
+                          : "text-ink")
                 }
               >
                 {Number(day.slice(8, 10))}
@@ -208,7 +296,10 @@ function WeekView({
           <div className="absolute inset-0 flex gap-[2px]">
             {days.map((day) => {
               const dayMeetings = meetings.filter((m) => m.date === day);
-              return <TimeColumn key={day} meetings={dayMeetings} />;
+              const dayGhosts = ghosts.filter((g) => g.date === day);
+              return (
+                <TimeColumn key={day} meetings={dayMeetings} ghosts={dayGhosts} />
+              );
             })}
           </div>
         </div>
@@ -223,17 +314,21 @@ function WeekView({
  */
 function MonthView({
   selectedDate,
+  periodDate,
   onDateChange,
   meetings,
+  ghosts,
   today,
 }: {
   selectedDate: string;
+  periodDate: string;
   onDateChange: (date: string) => void;
   meetings: CalendarEntry[];
+  ghosts: Ghost[];
   today: string;
 }) {
-  const month = Number(selectedDate.slice(5, 7));
-  const year = Number(selectedDate.slice(0, 4));
+  const month = Number(periodDate.slice(5, 7));
+  const year = Number(periodDate.slice(0, 4));
   const days = monthDays(year, month);
 
   return (
@@ -259,6 +354,7 @@ function MonthView({
             const isSelected = dateStr === selectedDate;
             const isToday = dateStr === today;
             const dayMeetings = meetings.filter((m) => m.date === dateStr);
+            const dayGhostCount = ghosts.filter((g) => g.date === dateStr).length;
             return (
               <button
                 key={`${wi}-${di}`}
@@ -284,13 +380,21 @@ function MonthView({
                       className={
                         "h-[5px] w-[5px] rounded-[3px] " +
                         (m.status === "cancelled"
-                          ? "border border-stone bg-transparent"
+                          ? "bg-stone"
                           : m.status === "held"
                             ? "bg-mint"
                             : "bg-blue")
                       }
                     />
                   ))}
+                  {/* Ghosts (#49): a hollow dot — "not created yet". */}
+                  {dayMeetings.length === 0 &&
+                    Array.from({ length: Math.min(dayGhostCount, 3) }).map((_, i) => (
+                      <span
+                        key={`g${i}`}
+                        className="h-[5px] w-[5px] rounded-[3px] border border-stone bg-transparent"
+                      />
+                    ))}
                 </span>
               </button>
             );
@@ -328,13 +432,17 @@ function MonthView({
 function Agenda({
   selectedDate,
   meetings,
+  ghosts,
   today,
 }: {
   selectedDate: string;
   meetings: CalendarEntry[];
+  ghosts: Ghost[];
   today: string;
 }) {
   const dayMeetings = meetings.filter((m) => m.date === selectedDate);
+  const dayGhosts = ghosts.filter((g) => g.date === selectedDate);
+  const total = dayMeetings.length + dayGhosts.length;
 
   return (
     <div className="mt-[10px] flex flex-col gap-[10px]">
@@ -343,11 +451,11 @@ function Agenda({
           {WEEKDAY_NAMES[weekdayOf(selectedDate)]}, {dayLabel(selectedDate)}
         </span>
         <span className="text-[12.5px] font-medium text-tan">
-          {dayMeetings.length === 0
+          {total === 0
             ? "nothing scheduled"
-            : dayMeetings.length === 1
+            : total === 1
               ? "1 meeting"
-              : `${dayMeetings.length} meetings`}
+              : `${total} meetings`}
         </span>
       </div>
 
@@ -355,9 +463,49 @@ function Agenda({
         <MeetingCard key={meeting.id} meeting={meeting} today={today} />
       ))}
 
+      {/* Ghosts (#49): a slot the schedule knows about but no row exists for.
+          Tapping creates exactly that meeting. */}
+      {dayGhosts.map((ghost) => (
+        <GhostCard key={`${ghost.groupId}:${ghost.date}`} ghost={ghost} />
+      ))}
+
       {/* The "new meeting" ghost action at the bottom of the agenda */}
       <NewMeetingButton date={selectedDate} />
     </div>
+  );
+}
+
+/**
+ * A ghost slot in the agenda (#49) — drawn from the group's schedule, past the
+ * 8-week materialised edge. It renders hollow, following the board's "not
+ * created yet" idiom, and the whole card is the tap target: submitting posts to
+ * `materializeGhostAction`, which writes that one proposed meeting (#73).
+ */
+function GhostCard({ ghost }: { ghost: Ghost }) {
+  return (
+    <form action={materializeGhostAction}>
+      <input type="hidden" name="groupId" value={ghost.groupId} />
+      <input type="hidden" name="date" value={ghost.date} />
+      <button
+        type="submit"
+        className="flex w-full items-start gap-[11px] rounded-[20px] border-[1.5px] border-dashed border-stone bg-transparent p-[13px] pb-[14px] text-left"
+      >
+        <div className="w-[4px] flex-shrink-0 self-stretch rounded-[3px] bg-stone" />
+        <div className="min-w-0 flex-grow">
+          <div className="flex items-center gap-[7px]">
+            <span className="text-[16px] font-bold leading-[1.2] text-tan">
+              {ghost.groupName}
+            </span>
+            <span className="shrink-0 rounded-[7px] bg-shell px-[7px] py-[3px] text-[10px] font-bold uppercase text-tan">
+              Not created yet
+            </span>
+          </div>
+          <div className="mt-[4px] text-[13.5px] text-slate">
+            {formatTime(ghost.startTime)} · Tap to create this meeting
+          </div>
+        </div>
+      </button>
+    </form>
   );
 }
 
@@ -537,12 +685,21 @@ function PlusIcon() {
 /**
  * Time grid column for one day. Meeting blocks stack vertically at their hour;
  * when two groups meet at the same hour each takes half the column (#58).
+ * Ghost slots (#49) share the column on the same terms and render hollow with a
+ * dashed edge — tapping one posts to `materializeGhostAction`.
  */
-function TimeColumn({ meetings }: { meetings: CalendarEntry[] }) {
-  if (meetings.length === 0) return <div className="flex-1" />;
+function TimeColumn({
+  meetings,
+  ghosts,
+}: {
+  meetings: CalendarEntry[];
+  ghosts: Ghost[];
+}) {
+  const slots = meetings.length + ghosts.length;
+  if (slots === 0) return <div className="flex-1" />;
 
   const START_HOUR = 15; // 3pm, the artboard's grid origin
-  const columnWidth = 100 / meetings.length;
+  const columnWidth = 100 / slots;
 
   return (
     <div className="relative flex-1">
@@ -572,9 +729,40 @@ function TimeColumn({ meetings }: { meetings: CalendarEntry[] }) {
             }}
           >
             <span style={{ color: ink, textDecoration: strike }}>
-              {meetings.length > 1 ? "" : meeting.groupName}
+              {slots > 1 ? "" : meeting.groupName}
             </span>
           </div>
+        );
+      })}
+      {ghosts.map((ghost, gi) => {
+        const i = meetings.length + gi;
+        const hour = Number(ghost.startTime.slice(0, 2));
+        const mins = Number(ghost.startTime.slice(3, 5));
+        const top = (hour - START_HOUR) * HOUR_H + (mins / 60) * HOUR_H;
+        const height = (ghost.durationMinutes / 60) * HOUR_H;
+
+        return (
+          <form
+            key={`${ghost.groupId}:${ghost.date}`}
+            action={materializeGhostAction}
+            className="absolute"
+            style={{
+              top: `${top}px`,
+              height: `${height}px`,
+              left: `${i * columnWidth}%`,
+              width: `${columnWidth}%`,
+            }}
+          >
+            <input type="hidden" name="groupId" value={ghost.groupId} />
+            <input type="hidden" name="date" value={ghost.date} />
+            <button
+              type="submit"
+              aria-label={`Create ${ghost.groupName} meeting`}
+              className="h-full w-full overflow-hidden rounded-[6px] border border-dashed border-stone bg-transparent p-[3px] text-left text-[9px] font-bold text-tan"
+            >
+              {slots > 1 ? "" : ghost.groupName}
+            </button>
+          </form>
         );
       })}
     </div>

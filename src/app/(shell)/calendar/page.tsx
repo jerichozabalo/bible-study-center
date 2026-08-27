@@ -14,7 +14,8 @@
  * `design/Calendar.dc.html` draws the layout; this is that drawing.
  */
 import { addDays, manilaToday } from "@/lib/dates";
-import { getCalendar, materializeSchedule } from "@/lib/meetings/calendar";
+import { getCalendar, getGroupSchedules, materializeSchedule } from "@/lib/meetings/calendar";
+import { computeGhosts } from "@/lib/meetings/ghosts";
 import { requireUser } from "@/lib/auth/guard";
 
 import { CalendarView } from "./CalendarView";
@@ -35,5 +36,10 @@ export default async function CalendarPage() {
   const toDate = addDays(today, 30 * 6); // six months forward
   const meetings = await getCalendar(user.email, { from: fromDate, to: toDate });
 
-  return <CalendarView meetings={meetings} today={today} />;
+  // Ghosts (#49): proposed slots past the 8-week materialised edge, drawn from
+  // each live group's schedule — not rows. Tapping one materialises it.
+  const schedules = await getGroupSchedules(user.email);
+  const ghosts = computeGhosts(schedules, meetings, { from: fromDate, to: toDate }, today);
+
+  return <CalendarView meetings={meetings} ghosts={ghosts} today={today} />;
 }

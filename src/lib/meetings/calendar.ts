@@ -27,6 +27,16 @@ import { addDays, weekdayOf, manilaToday } from "../dates";
 import type { TransactionClient } from "../db";
 import { query, transaction } from "../db";
 
+/** Group schedule for ghost computation — not stored, drawn from the group's recurring pattern. */
+export type GroupSchedule = {
+  id: string;
+  name: string;
+  weekday: number; // 0 = Sunday
+  startTime: string; // HH:MM:SS
+  durationMinutes: number;
+  currentBookId: string | null;
+};
+
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
 /** 8 weeks forward from the materialiser's start date (#49/#59). */
@@ -109,6 +119,35 @@ export async function getCalendar(
 }
 
 /**
+ * Get live group schedules for ghost computation.
+ * Used by the calendar page to draw ghosts beyond the 8-week materialised horizon.
+ */
+export async function getGroupSchedules(ownerId: string): Promise<GroupSchedule[]> {
+  const rows = await query<{
+    id: string;
+    name: string;
+    weekday: number;
+    start_time: string;
+    duration_minutes: number;
+    current_book_id: string | null;
+  }>(
+    `SELECT id, name, weekday, start_time, duration_minutes, current_book_id
+       FROM groups
+      WHERE owner_id = $1 AND archived_at IS NULL
+      ORDER BY name ASC`,
+    [ownerId],
+  );
+  return rows.map((r) => ({
+    id: r.id,
+    name: r.name,
+    weekday: r.weekday,
+    startTime: r.start_time,
+    durationMinutes: r.duration_minutes,
+    currentBookId: r.current_book_id,
+  }));
+}
+
+/**
  * Materialise 8 weeks of proposed meetings from each live group's schedule.
  *
  * Called from issue 4's server action after a recurring meeting is created or
@@ -151,30 +190,68 @@ export async function materializeScheduleInTx(
     const startDate = firstOccurrence(fromDate, group.weekday);
 
     for (let i = 0; i < MATERIALISE_WEEKS; i++) {
-      const date = addDays(startDate, i * 7);
-
-      // A meeting on this (group, date) already exists — whether held by a
-      // past attendance sheet, cancelled, human-created, or a generated one
-      // from a prior run — the calendar must not have two rows on the same
-      // day. The `NOT EXISTS` guard is the check-then-insert that the partial
-      // unique index (#73) cannot cover on its own: that index only dedupes
-      // generated-vs-generated, not generated-vs-held.
-      await tx.query(
-        `INSERT INTO meetings
-           (owner_id, led_by, group_id, date, start_time, duration_minutes,
-            book_id, session_id, notes, status, origin)
-         SELECT $1, $1, $2, $3::date, $4, $5, g.current_book_id,
-                -- The prefill session is the book's first; the attendance
-                -- sheet is where a real session gets attached (#53).
-                (SELECT id FROM sessions WHERE book_id = g.current_book_id ORDER BY number ASC LIMIT 1),
-                NULL, 'proposed', 'generated'
-          FROM groups g WHERE g.id = $2
-           AND NOT EXISTS (SELECT 1 FROM meetings m
-                            WHERE m.owner_id = $1 AND m.group_id = $2 AND m.date = $3::date)`,
-        [ownerId, group.id, date, group.start_time, group.duration_minutes],
-      );
+      await insertGeneratedMeeting(tx, ownerId, group.id, addDays(startDate, i * 7));
     }
   }
+}
+
+/**
+ * Insert one generated proposed meeting for `(groupId, date)` from that group's
+ * current schedule — the single write every generation path shares (#73).
+ *
+ * A meeting on this (group, date) already exists — whether held by a past
+ * attendance sheet, cancelled, human-created, or a generated one from a prior
+ * run — the calendar must not have two rows on the same day. The `NOT EXISTS`
+ * guard is the check-then-insert that the partial unique index (#73) cannot
+ * cover on its own: that index only dedupes generated-vs-generated, not
+ * generated-vs-held. `ON CONFLICT DO NOTHING` closes the remaining race between
+ * two concurrent generation runs, which is the normal case on this network.
+ * The group filter (`archived_at IS NULL`, `owner_id`) means an archived or
+ * someone-else's group writes nothing (#60/#32).
+ */
+async function insertGeneratedMeeting(
+  tx: TransactionClient,
+  ownerId: string,
+  groupId: string,
+  date: string,
+): Promise<void> {
+  await tx.query(
+    `INSERT INTO meetings
+       (owner_id, led_by, group_id, date, start_time, duration_minutes,
+        book_id, session_id, notes, status, origin)
+     SELECT $1, $1, g.id, $3::date, g.start_time, g.duration_minutes, g.current_book_id,
+            -- The prefill session is the book's first; the attendance
+            -- sheet is where a real session gets attached (#53).
+            (SELECT id FROM sessions WHERE book_id = g.current_book_id ORDER BY number ASC LIMIT 1),
+            NULL, 'proposed', 'generated'
+      FROM groups g
+     WHERE g.id = $2 AND g.owner_id = $1 AND g.archived_at IS NULL
+       AND NOT EXISTS (SELECT 1 FROM meetings m
+                        WHERE m.owner_id = $1 AND m.group_id = $2 AND m.date = $3::date)
+     ON CONFLICT DO NOTHING`,
+    [ownerId, groupId, date],
+  );
+}
+
+/**
+ * Tapping a ghost (#49): the calendar draws proposed slots beyond the 8-week
+ * materialised horizon straight from the group's schedule — they are not rows.
+ * Tapping one creates exactly that meeting, on the same terms as the
+ * materialiser (`origin = 'generated'`, still PROPOSED per #47), and is
+ * idempotent per #73 — a retried tap, the normal case on this network, writes
+ * one row.
+ */
+export async function materializeGhost(
+  ownerId: string,
+  groupId: string,
+  date: string,
+): Promise<void> {
+  if (!UUID_PATTERN.test(groupId)) {
+    throw new CalendarError("That BGroup does not exist.");
+  }
+  await transaction(async (tx) => {
+    await insertGeneratedMeeting(tx, ownerId, groupId, date);
+  });
 }
 
 /**

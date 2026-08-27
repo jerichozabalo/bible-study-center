@@ -14,6 +14,7 @@ import { createMeeting } from "./meetings";
 import {
   cancelMeeting,
   getCalendar,
+  materializeGhost,
   materializeSchedule,
   resolveMeeting,
   shiftProposedMeetings,
@@ -322,6 +323,60 @@ describe.skipIf(!dbConfigured)("calendar", () => {
       const meetings = await getCalendar(TEST_OWNER, { from: "2026-08-23", to: "2026-10-20" });
       const proposed = meetings.filter((m) => m.status === "proposed");
       expect(proposed).toHaveLength(8);
+    });
+  });
+
+  describe("materializeGhost (tapping a ghost beyond the 8-week horizon, #49/#73)", () => {
+    // A date well past the 8-week materialised edge — a ghost slot on the calendar.
+    const GHOST_DATE = "2026-12-06"; // a Sunday, ~15 weeks out
+
+    it("creates one proposed generated meeting on the tapped date, from the group's schedule", async () => {
+      await materializeGhost(TEST_OWNER, group, GHOST_DATE);
+
+      const meetings = await getCalendar(TEST_OWNER, { from: GHOST_DATE, to: GHOST_DATE });
+      expect(meetings).toHaveLength(1);
+      expect(meetings[0].status).toBe("proposed");
+      expect(meetings[0].origin).toBe("generated");
+      expect(meetings[0].startTime).toBe("16:00:00");
+      expect(meetings[0].durationMinutes).toBe(90);
+      expect(meetings[0].bookNumber).toBe(1);
+    });
+
+    it("is idempotent — a retried ghost tap produces one row (#73)", async () => {
+      await materializeGhost(TEST_OWNER, group, GHOST_DATE);
+      await materializeGhost(TEST_OWNER, group, GHOST_DATE);
+      await materializeGhost(TEST_OWNER, group, GHOST_DATE);
+
+      const meetings = await getCalendar(TEST_OWNER, { from: GHOST_DATE, to: GHOST_DATE });
+      expect(meetings).toHaveLength(1);
+    });
+
+    it("leaves an existing meeting on that date untouched", async () => {
+      await materializeSchedule(TEST_OWNER, "2026-08-23");
+      await cancelMeeting(TEST_OWNER, group, "2026-08-30");
+
+      await materializeGhost(TEST_OWNER, group, "2026-08-30");
+
+      const meetings = await getCalendar(TEST_OWNER, { from: "2026-08-30", to: "2026-08-30" });
+      expect(meetings).toHaveLength(1);
+      expect(meetings[0].status).toBe("cancelled");
+    });
+
+    it("does nothing for an archived group (#60)", async () => {
+      const { archiveGroup } = await import("../roster/groups");
+      await archiveGroup(TEST_OWNER, group);
+
+      await materializeGhost(TEST_OWNER, group, GHOST_DATE);
+
+      const meetings = await getCalendar(TEST_OWNER, { from: GHOST_DATE, to: GHOST_DATE });
+      expect(meetings).toHaveLength(0);
+    });
+
+    it("is owner-scoped (#32)", async () => {
+      await materializeGhost("someone.else@example.com", group, GHOST_DATE);
+
+      const meetings = await getCalendar(TEST_OWNER, { from: GHOST_DATE, to: GHOST_DATE });
+      expect(meetings).toHaveLength(0);
     });
   });
 });

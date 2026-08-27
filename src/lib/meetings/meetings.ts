@@ -18,7 +18,7 @@
  * belongs to issue 5's materialiser, and #73's partial unique index is what
  * keeps that path idempotent without forbidding a same-day make-up meeting.
  */
-import { weekdayOf, manilaToday } from "../dates";
+import { weekdayOf } from "../dates";
 import { query, transaction } from "../db";
 import type { Schedule } from "../roster/schedule";
 import { materializeScheduleInTx, shiftProposedMeetingsInTx } from "./calendar";

@@ -1,7 +1,7 @@
 ---
 issue: 5
 title: Calendar page (Month/Week, materialiser + ghosts, past-due resolve)
-status: open
+status: done
 blocked-by: [4]
 type: afk
 ---
