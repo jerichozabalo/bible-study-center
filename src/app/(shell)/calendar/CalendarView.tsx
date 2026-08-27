@@ -263,7 +263,7 @@ function WeekView({
               key={day}
               type="button"
               onClick={() => onDateChange(day)}
-              className="flex flex-col items-center gap-[3px] rounded-[12px] px-[4px] py-[5px] text-[13px]"
+              className="flex flex-1 flex-col items-center gap-[3px] rounded-[12px] px-[4px] py-[5px] text-[13px] min-w-0"
             >
               <span className={isToday ? "text-blue" : "text-tan"}>
                 {WEEKDAYS_SHORT[weekdayOf(day)]}
@@ -362,7 +362,7 @@ function MonthView({
                 onClick={() => !isOther && onDateChange(dateStr)}
                 disabled={isOther}
                 className={
-                  "relative flex h-[44px] flex-col items-center justify-center gap-[2px] rounded-[12px] text-[13px] " +
+                  "relative flex h-[44px] min-w-0 flex-1 flex-col items-center justify-center gap-[2px] rounded-[12px] text-[13px] " +
                   (isOther
                     ? "text-slate"
                     : isSelected
