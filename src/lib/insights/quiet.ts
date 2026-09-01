@@ -29,6 +29,12 @@
  *
  * A group that stops meeting entirely flags nobody new — there are no fresh
  * held meetings to miss. #52's past-due flags surface that, not this (#64).
+ *
+ * Mid-book joiners (#28): the window is only the held meetings on or after the
+ * day a member joined their home group. A night the group held before they were
+ * in it is not one they "missed", so someone added to a running group does not
+ * land on Home's attention list the moment they are typed in — the same seam
+ * `insights/progress` draws its joined-at markers from.
  */
 import { query } from "../db";
 
@@ -63,6 +69,7 @@ export async function getQuietMembers(ownerId: string): Promise<QuietMember[]> {
     `WITH held AS (
        SELECT m.id,
               m.group_id,
+              m.date,
               row_number() OVER (
                 PARTITION BY m.group_id
                 ORDER BY m.date DESC, m.start_time DESC, m.id DESC
@@ -85,7 +92,13 @@ export async function getQuietMembers(ownerId: string): Promise<QuietMember[]> {
               ) AS attended
          FROM people p
          JOIN groups g ON g.id = p.home_group_id AND g.owner_id = $1
+         -- #28 — only nights the member could have been at: their current
+         -- membership's join date onward. A group held meeting before they
+         -- joined is not one they missed.
+         LEFT JOIN group_memberships gm
+           ON gm.person_id = p.id AND gm.group_id = g.id AND gm.ended_on IS NULL
          JOIN held h ON h.group_id = g.id
+          AND (gm.joined_on IS NULL OR h.date >= gm.joined_on)
         WHERE p.owner_id = $1
           AND p.removed_at IS NULL
           AND p.stepped_away_on IS NULL

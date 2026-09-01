@@ -32,7 +32,7 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
   let bookOne: string;
   let sessions: string[];
 
-  let martes: string;
+  let tuesdayGroup: string;
   let maria: string;
 
   beforeAll(async () => {
@@ -48,8 +48,8 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
     await resetMeetings();
     await resetRoster();
 
-    martes = await createGroup(TEST_OWNER, {
-      name: "BGroup Martes",
+    tuesdayGroup = await createGroup(TEST_OWNER, {
+      name: "Tuesday BGroup",
       weekday: 2,
       startTime: "19:00",
       durationMinutes: 90,
@@ -57,7 +57,7 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
     });
     maria = await createPerson(TEST_OWNER, {
       name: "Maria Santos",
-      homeGroupId: martes,
+      homeGroupId: tuesdayGroup,
       joinedOn: "2026-05-01",
     });
   });
@@ -79,11 +79,11 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
   }
 
   it("flags a member who missed the last 3 held meetings of their home group", async () => {
-    const one = await held(martes, "2026-06-02", 0);
-    const two = await held(martes, "2026-06-09", 1);
-    await held(martes, "2026-06-16", 2);
-    await held(martes, "2026-06-23", 3);
-    await held(martes, "2026-06-30", 4);
+    const one = await held(tuesdayGroup, "2026-06-02", 0);
+    const two = await held(tuesdayGroup, "2026-06-09", 1);
+    await held(tuesdayGroup, "2026-06-16", 2);
+    await held(tuesdayGroup, "2026-06-23", 3);
+    await held(tuesdayGroup, "2026-06-30", 4);
     await tick(one, maria);
     await tick(two, maria);
 
@@ -93,8 +93,8 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
     expect(quiet[0]).toMatchObject({
       personId: maria,
       name: "Maria Santos",
-      homeGroupId: martes,
-      homeGroupName: "BGroup Martes",
+      homeGroupId: tuesdayGroup,
+      homeGroupName: "Tuesday BGroup",
       consecutiveMissed: 3,
       threshold: 3,
       lastSeen: "2026-06-09",
@@ -102,19 +102,19 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
   });
 
   it("does not flag a member who was at the most recent held meeting", async () => {
-    await held(martes, "2026-06-02", 0);
-    await held(martes, "2026-06-09", 1);
-    await held(martes, "2026-06-16", 2);
-    const latest = await held(martes, "2026-06-23", 3);
+    await held(tuesdayGroup, "2026-06-02", 0);
+    await held(tuesdayGroup, "2026-06-09", 1);
+    await held(tuesdayGroup, "2026-06-16", 2);
+    const latest = await held(tuesdayGroup, "2026-06-23", 3);
     await tick(latest, maria);
 
     expect(await getQuietMembers(TEST_OWNER)).toEqual([]);
   });
 
   it("lets a NULL-session presence reset the streak (#26/#65)", async () => {
-    await held(martes, "2026-06-02", 0);
-    const fellowship = await held(martes, "2026-06-09", null);
-    await held(martes, "2026-06-16", 2);
+    await held(tuesdayGroup, "2026-06-02", 0);
+    const fellowship = await held(tuesdayGroup, "2026-06-09", null);
+    await held(tuesdayGroup, "2026-06-16", 2);
     // Present at the fellowship night, covered nothing — still contact.
     await tick(fellowship, maria, "present-only");
 
@@ -123,17 +123,17 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
   });
 
   it("never ticks the counter across a cancelled month (#50/#64)", async () => {
-    const one = await held(martes, "2026-06-02", 0);
-    const two = await held(martes, "2026-06-09", 1);
-    const three = await held(martes, "2026-06-16", 2);
+    const one = await held(tuesdayGroup, "2026-06-02", 0);
+    const two = await held(tuesdayGroup, "2026-06-09", 1);
+    const three = await held(tuesdayGroup, "2026-06-16", 2);
     await tick(one, maria);
     await tick(two, maria);
     await tick(three, maria);
     // A cancelled month: four nights called off, none held.
-    await addCancelledMeeting(TEST_OWNER, martes, "2026-06-23");
-    await addCancelledMeeting(TEST_OWNER, martes, "2026-06-30");
-    await addCancelledMeeting(TEST_OWNER, martes, "2026-07-07");
-    await addCancelledMeeting(TEST_OWNER, martes, "2026-07-14");
+    await addCancelledMeeting(TEST_OWNER, tuesdayGroup, "2026-06-23");
+    await addCancelledMeeting(TEST_OWNER, tuesdayGroup, "2026-06-30");
+    await addCancelledMeeting(TEST_OWNER, tuesdayGroup, "2026-07-07");
+    await addCancelledMeeting(TEST_OWNER, tuesdayGroup, "2026-07-14");
 
     expect(await getQuietMembers(TEST_OWNER)).toEqual([]);
   });
@@ -156,8 +156,16 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
     await setQuietThreshold(TEST_OWNER, groupA, 2);
     await setQuietThreshold(TEST_OWNER, groupB, 4);
 
-    const ana = await createPerson(TEST_OWNER, { name: "Ana Reyes", homeGroupId: groupA });
-    const bea = await createPerson(TEST_OWNER, { name: "Bea Lim", homeGroupId: groupB });
+    const ana = await createPerson(TEST_OWNER, {
+      name: "Ana Reyes",
+      homeGroupId: groupA,
+      joinedOn: "2026-05-01",
+    });
+    const bea = await createPerson(TEST_OWNER, {
+      name: "Bea Lim",
+      homeGroupId: groupB,
+      joinedOn: "2026-05-01",
+    });
 
     // Same attendance history for both: three held nights, all missed.
     for (const date of ["2026-06-01", "2026-06-08", "2026-06-15"]) {
@@ -172,34 +180,63 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
     expect(bea).toBeDefined();
   });
 
+  it("does not flag a member for meetings held before they joined the group (#28)", async () => {
+    // Three held nights the group ran before Ben was ever in it.
+    await held(tuesdayGroup, "2026-06-02", 0);
+    await held(tuesdayGroup, "2026-06-09", 1);
+    await held(tuesdayGroup, "2026-06-16", 2);
+
+    const ben = await createPerson(TEST_OWNER, {
+      name: "Ben Cruz",
+      homeGroupId: tuesdayGroup,
+      joinedOn: "2026-06-20",
+    });
+
+    // Ben has missed nothing yet — those nights are not his to miss.
+    const quiet = await getQuietMembers(TEST_OWNER);
+    expect(quiet.map((member) => member.personId)).not.toContain(ben);
+
+    // Once the group holds three nights he could have been at and skips them all,
+    // he is quiet like anyone else.
+    await held(tuesdayGroup, "2026-06-23", 3);
+    await held(tuesdayGroup, "2026-06-30", 4);
+    await held(tuesdayGroup, "2026-07-07", 5);
+
+    const later = await getQuietMembers(TEST_OWNER);
+    expect(later.find((member) => member.personId === ben)).toMatchObject({
+      consecutiveMissed: 3,
+      threshold: 3,
+    });
+  });
+
   it("never flags a stepped-away member (#10/#66)", async () => {
-    await held(martes, "2026-06-02", 0);
-    await held(martes, "2026-06-09", 1);
-    await held(martes, "2026-06-16", 2);
+    await held(tuesdayGroup, "2026-06-02", 0);
+    await held(tuesdayGroup, "2026-06-09", 1);
+    await held(tuesdayGroup, "2026-06-16", 2);
     await setSteppedAway(TEST_OWNER, maria, true);
 
     expect(await getQuietMembers(TEST_OWNER)).toEqual([]);
   });
 
   it("reports last-seen from the most recent completion anywhere, ride-alongs included (#31)", async () => {
-    const sabado = await createGroup(TEST_OWNER, {
-      name: "BGroup Sabado",
+    const saturdayGroup = await createGroup(TEST_OWNER, {
+      name: "Saturday BGroup",
       weekday: 6,
       startTime: "16:00",
       durationMinutes: 90,
       currentBookId: bookOne,
     });
 
-    await held(martes, "2026-06-02", 0);
-    await held(martes, "2026-06-09", 1);
+    await held(tuesdayGroup, "2026-06-02", 0);
+    await held(tuesdayGroup, "2026-06-09", 1);
     // A ride-along at another group, between the home group's nights.
-    const visit = await addHeldMeeting(TEST_OWNER, sabado, "2026-06-11", {
+    const visit = await addHeldMeeting(TEST_OWNER, saturdayGroup, "2026-06-11", {
       bookId: bookOne,
       sessionId: sessions[2],
     });
     await tick(visit, maria);
-    await held(martes, "2026-06-16", 3);
-    await held(martes, "2026-06-23", 4);
+    await held(tuesdayGroup, "2026-06-16", 3);
+    await held(tuesdayGroup, "2026-06-23", 4);
 
     const quiet = await getQuietMembers(TEST_OWNER);
 
@@ -214,12 +251,12 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
   });
 
   it("ignores removed people and people with no home group", async () => {
-    await held(martes, "2026-06-02", 0);
-    await held(martes, "2026-06-09", 1);
-    await held(martes, "2026-06-16", 2);
+    await held(tuesdayGroup, "2026-06-02", 0);
+    await held(tuesdayGroup, "2026-06-09", 1);
+    await held(tuesdayGroup, "2026-06-16", 2);
 
     await createPerson(TEST_OWNER, { name: "No Group", homeGroupId: null });
-    const gone = await createPerson(TEST_OWNER, { name: "Gone Away", homeGroupId: martes });
+    const gone = await createPerson(TEST_OWNER, { name: "Gone Away", homeGroupId: tuesdayGroup });
     await removePerson(TEST_OWNER, gone);
 
     const quiet = await getQuietMembers(TEST_OWNER);
