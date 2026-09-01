@@ -117,3 +117,19 @@ where, and when. Promote to an issue the day one actually bites.
 - **2026-08-21 — `getSheet` costs two round trips** (`getMeeting`, then the
   roster read). `src/lib/attendance/sheet.ts`. Irrelevant at one BGroup's
   scale; noted beside the `listPickerGroups` line above.
+
+- **2026-09-01 — `getCatchUpTargets` names an upcoming night but the app records
+  no intent**, so the same target keeps showing on a person's screen until that
+  night is held. `src/lib/attendance/catchup.ts`. Expected in v1 — invite drafts
+  are v1.1 (#31, closed 2026-08-20) — noted because it will read as nagging once
+  several BGroups run in parallel.
+- **2026-09-01 — issue 7 adds two DB round trips per attendance-page load**
+  (`getSheet` + `getCatchUpCandidates`) and one per person-page load
+  (`getCatchUpTargets`). Fine at today's roster size; on a cold Neon branch the
+  person page now pays a second wake-up round trip. Set-based merge only if it
+  ever bites.
+- **2026-09-01 — issue 7 judgement calls not spelled out in the issue:**
+  stepped-away people (#10) and people with no home BGroup are excluded from
+  both the catch-up list and guest derivation; a fellowship night and an
+  all-caught-up night render no catch-up section at all (silence over an empty
+  state). Flagged here in case Jericho wants any of them shown.
