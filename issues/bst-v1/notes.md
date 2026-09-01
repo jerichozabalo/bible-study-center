@@ -4,6 +4,19 @@ True observations that did not clear the bar for a numbered issue: nobody is
 blocked or harmed by them at today's scale. One line each — what was seen,
 where, and when. Promote to an issue the day one actually bites.
 
+- **2026-09-01 — Issue 10: no Export entry under Settings › RECORDS.**
+  `src/app/(shell)/settings/page.tsx`'s header comment says that section should
+  carry "issue 10 (CSV Export)". Issue 10 put Export on each Reports view (per
+  the board), and a second nav path wasn't in scope. A leader hunting for
+  "Export" in Settings finds nothing there. Discoverability only — fully reachable
+  from the Reports tab. Promote if it actually trips Jericho up.
+- **2026-09-01 — Issue 10: roll-up CSV has no "generated at" date.** Omitted so
+  the golden-file test stays deterministic. An exported roll-up file doesn't say
+  which day it reflects. One-line fix + a clock seam if wanted.
+- **2026-09-01 — Issue 10: removing a person retroactively lowers a past
+  meeting's attendee count** in the group report (`getGroupReport` counts only
+  `people.removed_at IS NULL`). Consistent with "tombstones aren't reporting
+  data", but could surprise someone reconciling an export against a paper count.
 - **2026-08-27 — Issue 5 browser QA pass: 17/18 checks PASS, no functional
   failures.** Ghost taps + idempotency, past-due resolve, cancelled rendering,
   the attendance route (tap card → sheet → save → held), Week/Month layout and
