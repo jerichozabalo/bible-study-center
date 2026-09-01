@@ -26,6 +26,7 @@ import {
   archiveGroup,
   createGroup,
   setCurrentBook,
+  setQuietThreshold,
   unarchiveGroup,
   updateGroup,
 } from "./groups";
@@ -151,6 +152,24 @@ export async function unarchiveGroupAction(formData: FormData): Promise<void> {
   revalidatePath("/people/groups");
   revalidatePath("/people");
   redirect(`/people/groups/${id}`);
+}
+
+/**
+ * The Settings QUIET LIST picker (#10/#64) — one write per BGroup, 2 / 3 / 4.
+ *
+ * No form state: the picker only ever offers three valid values for a live
+ * group, so there is nothing the leader can type wrong and nothing to say back.
+ * Same shape as the person's one-tap controls above.
+ */
+export async function setQuietThresholdAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const threshold = Number(formData.get("threshold") ?? Number.NaN);
+
+  await setQuietThreshold(user.email, id, threshold);
+
+  revalidatePath("/settings");
+  revalidatePath("/");
 }
 
 /** The same contract for a person: what refused, and what to render again. */

@@ -48,10 +48,15 @@ export type GroupSummary = {
   currentBookTitle: string | null;
   currentBookSessionCount: number;
   memberCount: number;
+  /** #10/#64 — miss this many held meetings in a row and the member goes quiet. */
+  quietThreshold: number;
   /** NULL while the group is live (#27). */
   archivedAt: Date | null;
   createdAt: Date;
 };
+
+/** The values the Settings quiet-list picker offers (#64 — 2 / 3 / 4). */
+export const QUIET_THRESHOLDS: readonly number[] = [2, 3, 4];
 
 const TIME_PATTERN = /^([01]\d|2[0-3]):[0-5]\d(:[0-5]\d)?$/;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -68,6 +73,7 @@ const SELECT_GROUP = `
          COALESCE((SELECT count(*) FROM sessions s WHERE s.book_id = b.id), 0)::int
            AS current_book_session_count,
          (SELECT count(*) FROM people p WHERE p.home_group_id = g.id)::int AS member_count,
+         g.quiet_threshold,
          g.archived_at,
          g.created_at
     FROM groups g
@@ -211,6 +217,41 @@ export async function setCurrentBook(
 }
 
 /**
+ * Set how many missed held meetings in a row put a member on the quiet list
+ * (#10/#64) — the write behind the Settings QUIET LIST picker.
+ *
+ * Per-group, not account-wide: a fortnightly group and a weekly one do not go
+ * quiet at the same pace, so "a BGroup can set its own" is the board's own line.
+ * Same shape as `setCurrentBook` — the smallest possible statement, one column,
+ * no tombstone (there is no group-corrections table, and issue 14 recorded why
+ * one is not worth building for a setting like this).
+ *
+ * The only values it takes are 2, 3 and 4 (#64) — a stale form gets a sentence
+ * rather than the CHECK constraint's name.
+ */
+export async function setQuietThreshold(
+  ownerId: string,
+  id: string,
+  threshold: number,
+): Promise<void> {
+  if (!QUIET_THRESHOLDS.includes(threshold)) {
+    throw new RosterValidationError("Pick 2, 3 or 4 meetings.");
+  }
+
+  const rows = await query<{ id: string }>(
+    `UPDATE groups
+        SET quiet_threshold = $3, updated_at = now()
+      WHERE owner_id = $1 AND id = $2 AND archived_at IS NULL
+      RETURNING id`,
+    [ownerId, id, threshold],
+  );
+
+  if (rows.length === 0) {
+    throw new RosterValidationError("That BGroup is archived or no longer exists.");
+  }
+}
+
+/**
  * Archive a group, optionally moving its members somewhere else first (#27).
  *
  * The move is an offer, not a rule: declining it leaves the members pointing at
@@ -302,6 +343,7 @@ type GroupRow = {
   current_book_title: string | null;
   current_book_session_count: number;
   member_count: number;
+  quiet_threshold: number;
   archived_at: Date | null;
   created_at: Date;
 };
@@ -318,6 +360,7 @@ function toSummary(row: GroupRow): GroupSummary {
     currentBookTitle: row.current_book_title,
     currentBookSessionCount: row.current_book_session_count,
     memberCount: row.member_count,
+    quietThreshold: row.quiet_threshold,
     archivedAt: row.archived_at,
     createdAt: row.created_at,
   };

@@ -2,11 +2,11 @@
  * Settings — `design/Settings.dc.html`, reached from the gear in the shell
  * header and not from a sixth tab (#62 fixes the tab bar at five).
  *
- * Two of the board's five groups are built here: ACCOUNT and APP LOCK, which is
- * what issue 12 owns. The other three are other issues' rows and are absent
- * rather than faked — a dead switch that does nothing is worse than a screen
- * that plainly has not grown that section yet:
- *   QUIET LIST  — issue 8 (the per-group threshold, #10/#64)
+ * Three of the board's five groups are built here: ACCOUNT and APP LOCK (issue
+ * 12) and QUIET LIST (issue 8 — the per-group threshold, #10/#64). The other
+ * two are other issues' rows and are absent rather than faked — a dead switch
+ * that does nothing is worse than a screen that plainly has not grown that
+ * section yet:
  *   CURRICULUM  — issues 2 and 13 (programs, books, "add your own")
  *   RECORDS     — issue 10 (CSV Export), issue 3 (archived BGroups), issue 6
  *                 (corrections)
@@ -19,14 +19,17 @@
  */
 import { Emblem } from "@/components/Emblem";
 import { LockSettings } from "@/components/LockSettings";
+import { QuietThresholdSettings } from "@/components/insights/QuietThresholdSettings";
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth/guard";
+import { listGroups } from "@/lib/roster/groups";
 
 /** Reads the session cookie, so it can never be prerendered. */
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
   const user = await requireUser();
+  const groups = await listGroups(user.email);
 
   return (
     <section className="pb-7">
@@ -70,6 +73,16 @@ export default async function SettingsPage() {
 
       <Section label="APP LOCK">
         <LockSettings />
+      </Section>
+
+      <Section label="QUIET LIST">
+        <QuietThresholdSettings
+          groups={groups.map((group) => ({
+            id: group.id,
+            name: group.name,
+            quietThreshold: group.quietThreshold,
+          }))}
+        />
       </Section>
 
       <div className="mx-1 mt-7 flex items-center gap-[10px]">

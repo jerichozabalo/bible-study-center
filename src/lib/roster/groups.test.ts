@@ -18,6 +18,7 @@ import {
   listArchivedGroups,
   listGroups,
   setCurrentBook,
+  setQuietThreshold,
   unarchiveGroup,
   updateGroup,
 } from "./groups";
@@ -291,6 +292,44 @@ describe.skipIf(!dbConfigured)("groups", () => {
         setCurrentBook("someone-else@example.com", id, bookTwo),
       ).rejects.toBeInstanceOf(RosterValidationError);
       expect(await getGroup(TEST_OWNER, id)).toMatchObject({ currentBookId: bookOne });
+    });
+  });
+
+  describe("setQuietThreshold", () => {
+    it("defaults to 3 held meetings and takes 2 or 4 (#10/#64)", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+      expect(await getGroup(TEST_OWNER, id)).toMatchObject({ quietThreshold: 3 });
+
+      await setQuietThreshold(TEST_OWNER, id, 2);
+      expect(await getGroup(TEST_OWNER, id)).toMatchObject({ quietThreshold: 2 });
+
+      await setQuietThreshold(TEST_OWNER, id, 4);
+      expect(await getGroup(TEST_OWNER, id)).toMatchObject({ quietThreshold: 4 });
+    });
+
+    it("refuses anything but 2, 3 or 4", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+
+      for (const bad of [0, 1, 5, 7]) {
+        await expect(setQuietThreshold(TEST_OWNER, id, bad)).rejects.toBeInstanceOf(
+          RosterValidationError,
+        );
+      }
+      expect(await getGroup(TEST_OWNER, id)).toMatchObject({ quietThreshold: 3 });
+    });
+
+    it("refuses an archived BGroup and is owner-scoped (#32/#60)", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+
+      await expect(setQuietThreshold("someone-else@example.com", id, 2)).rejects.toBeInstanceOf(
+        RosterValidationError,
+      );
+
+      await archiveGroup(TEST_OWNER, id);
+      await expect(setQuietThreshold(TEST_OWNER, id, 2)).rejects.toBeInstanceOf(
+        RosterValidationError,
+      );
+      expect(await getGroup(TEST_OWNER, id)).toMatchObject({ quietThreshold: 3 });
     });
   });
 

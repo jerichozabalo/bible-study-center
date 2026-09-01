@@ -6,9 +6,11 @@ import {
   dotState,
   groupBookLine,
   missingSessionsLine,
+  quietLine,
   sessionWhen,
 } from "./display";
 import type { BookProgress, GroupBookProgress, MemberProgress, SessionProgress } from "./progress";
+import type { QuietMember } from "./quiet";
 
 function session(overrides: Partial<SessionProgress> = {}): SessionProgress {
   return {
@@ -272,6 +274,41 @@ describe("advanceIntroLine", () => {
   it("says the good news when the whole BGroup finished (#5)", () => {
     expect(advanceIntroLine(0, "One By One", "Book 2")).toBe(
       "Everyone has finished One By One. Advancing moves the group to Book 2.",
+    );
+  });
+});
+
+/**
+ * The "Needs you" list line — the board's own phrasing, in the meetings unit
+ * (#64), and never a grade on the person (#66).
+ */
+describe("quietLine", () => {
+  function quiet(overrides: Partial<QuietMember> = {}): QuietMember {
+    return {
+      personId: "00000000-0000-0000-0000-0000000000q1",
+      name: "Nena Villamor",
+      homeGroupId: "00000000-0000-0000-0000-0000000000g1",
+      homeGroupName: "BGroup Martes",
+      consecutiveMissed: 3,
+      threshold: 3,
+      lastSeen: "2026-07-28",
+      ...overrides,
+    };
+  }
+
+  it("counts missed meetings and the day they were last seen", () => {
+    expect(quietLine(quiet())).toBe("Missed 3 meetings in a row. Last seen 28 July.");
+  });
+
+  it("stays singular for one missed meeting", () => {
+    expect(quietLine(quiet({ consecutiveMissed: 1 }))).toBe(
+      "Missed 1 meeting in a row. Last seen 28 July.",
+    );
+  });
+
+  it("says so plainly when there is no completion to point at", () => {
+    expect(quietLine(quiet({ lastSeen: null }))).toBe(
+      "Missed 3 meetings in a row. Not seen at a meeting yet.",
     );
   });
 });

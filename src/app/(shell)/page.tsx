@@ -1,18 +1,21 @@
 /**
- * Home. Still mostly a placeholder: `design/Main.dc.html`'s blue "next meeting"
- * hero, its Mark-attendance button and the "Needs you" attention list are issue
- * 8's, and the quiet-list derivation underneath them needs completions that do
- * not exist yet.
+ * Home — `design/Main.dc.html` (#20): the blue "next meeting" hero, then the
+ * "Needs you" attention list, then the rest of the upcoming meetings so a night
+ * created from the [+] tab is always visible (the calendar, issue 5, is where
+ * it properly belongs). The roster stays in its own tab (#62).
  *
- * What it does carry is the plain list of the next few meetings, so a meeting
- * created from the [+] tab is visible somewhere the moment it exists. The
- * calendar (issue 5) is where it properly belongs.
+ * The attention list is the quiet list (#10/#64) — members who have missed
+ * their home group's last N held meetings in a row. It surfaces them and
+ * nothing more; the follow-up is assisted-only and v1.1 (#10).
  */
 import Link from "next/link";
 
+import { AttentionList } from "@/components/insights/AttentionList";
+import { NextMeetingHero } from "@/components/insights/NextMeetingHero";
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth/guard";
 import { formatWeekdayDate, manilaToday } from "@/lib/dates";
+import { getQuietMembers } from "@/lib/insights/quiet";
 import { type MeetingSummary, listUpcomingMeetings } from "@/lib/meetings/meetings";
 import { formatTime } from "@/lib/roster/schedule";
 
@@ -21,29 +24,43 @@ export const dynamic = "force-dynamic";
 export default async function HomePage() {
   const user = await requireUser();
   const firstName = user.name?.split(" ")[0];
-  const upcoming = await listUpcomingMeetings(user.email, { from: manilaToday(), limit: 5 });
+  const today = manilaToday();
+  const [upcoming, quiet] = await Promise.all([
+    listUpcomingMeetings(user.email, { from: today, limit: 6 }),
+    getQuietMembers(user.email),
+  ]);
+
+  const [next, ...rest] = upcoming;
 
   return (
     <section className="py-6">
-      <p className="text-[13px] font-semibold tracking-[0.06em] text-tan">SIGNED IN</p>
-      <h1 className="mt-2 text-[27px]">{firstName ? `Hello, ${firstName}` : "Hello"}</h1>
-      <p className="mt-2 text-[15px] leading-[1.5] text-slate">
-        Your groups, meetings and roster land here. Nothing to show yet — the
-        Home screen fills up as you add people and take attendance.
+      <p className="text-[13px] font-semibold tracking-[0.06em] text-tan">
+        {formatWeekdayDate(today).toUpperCase()}
       </p>
+      <h1 className="mt-2 text-[27px]">{firstName ? `Hello, ${firstName}` : "Hello"}</h1>
 
-      <h3 className="mt-8 mb-[11px] text-[18px]">Next meetings</h3>
-      {upcoming.length === 0 ? (
-        <p className="rounded-[20px] border-[1.5px] border-line bg-card px-4 py-5 text-[14.5px] leading-[1.5] text-slate">
+      {next ? (
+        <div className="mt-5">
+          <NextMeetingHero meeting={next} />
+        </div>
+      ) : (
+        <p className="mt-5 rounded-[20px] border-[1.5px] border-line bg-card px-4 py-5 text-[14.5px] leading-[1.5] text-slate">
           Nothing scheduled yet. Tap the blue [+] to create one.
         </p>
-      ) : (
-        <div className="flex flex-col gap-[10px]">
-          {upcoming.map((meeting) => (
-            <MeetingRow key={meeting.id} meeting={meeting} />
-          ))}
-        </div>
       )}
+
+      <AttentionList quiet={quiet} />
+
+      {rest.length > 0 ? (
+        <>
+          <h3 className="mt-8 mb-[11px] text-[18px]">More meetings</h3>
+          <div className="flex flex-col gap-[10px]">
+            {rest.map((meeting) => (
+              <MeetingRow key={meeting.id} meeting={meeting} />
+            ))}
+          </div>
+        </>
+      ) : null}
 
       {/* Through `SignOutButton`, not a bare form: it also clears this device's
           lock, which is what makes #19's "a forgotten PIN is recovered by
@@ -57,11 +74,10 @@ export default async function HomePage() {
 }
 
 /**
- * Tapping a meeting opens its attendance sheet (issue 6) — the board's "Mark
- * attendance" hero button is issue 8's, and until it exists this row is the way
- * in. It leads to the same screen whether the night is proposed or held: taking
- * attendance is what makes it held (#47), and reopening it is how a tick is
- * corrected (#24).
+ * One of the meetings below the hero and the attention list. Tapping it opens
+ * that meeting's attendance sheet (issue 6), the same as the hero's button. It
+ * leads there whether the night is proposed or held: taking attendance is what
+ * makes it held (#47), and reopening it is how a tick is corrected (#24).
  */
 function MeetingRow({ meeting }: { meeting: MeetingSummary }) {
   const lesson =

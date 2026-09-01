@@ -1,7 +1,7 @@
 ---
 issue: 8
 title: Quiet list + Home attention list + per-group threshold
-status: open
+status: done
 blocked-by: [6, 12]
 type: afk
 ---

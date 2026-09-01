@@ -15,6 +15,7 @@
  */
 import { formatCalendarDayMonth } from "../dates";
 import type { BookProgress, GroupBookProgress, MemberProgress, SessionProgress } from "./progress";
+import type { QuietMember } from "./quiet";
 
 /** What a dot looks like: filled, dashed (#28), or empty. */
 export type DotState = "done" | "before" | "none";
@@ -99,6 +100,24 @@ export function advanceIntroLine(
 
   const who = leftBehindCount === 1 ? "1 member has" : `${leftBehindCount} members have`;
   return `${who} not finished ${bookTitle}. Advancing moves the group to ${nextLabel} and puts them on the catch-up list.`;
+}
+
+/**
+ * "Missed 3 meetings in a row. Last seen 28 July." — one row of Home's "Needs
+ * you" list (#20/#64).
+ *
+ * The board's own phrasing (`design/Main.dc.html`), in the meetings unit that
+ * #64 settled. It describes the situation and never grades the person (#66) —
+ * no "BEHIND", no "delinquent". "Last seen" is their most recent completion
+ * anywhere, a ride-along included (#31); when there is none, it says so plainly
+ * rather than printing an empty date.
+ */
+export function quietLine(member: QuietMember): string {
+  const noun = member.consecutiveMissed === 1 ? "meeting" : "meetings";
+  const missed = `Missed ${member.consecutiveMissed} ${noun} in a row.`;
+
+  if (member.lastSeen === null) return `${missed} Not seen at a meeting yet.`;
+  return `${missed} Last seen ${formatCalendarDayMonth(member.lastSeen)}.`;
 }
 
 /** "joined at Session 3, owes 1 and 2", or nothing to say. */
