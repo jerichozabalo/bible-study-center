@@ -18,7 +18,8 @@
  * - Its guest row appears in the list as "Guest (unsaved)" before it has a
  *   name. Server-first (#70) has no unsaved row to draw: the walk-in is named
  *   and saved in one step, through #67's name-only path, and then it is an
- *   ordinary member of the sheet.
+ *   ordinary member of the sheet. A real visitor — someone whose home BGroup is
+ *   not this one — is an ordinary row too, reading "Nico (BGroup Linggo)" (#31).
  * - Its COVERING panel carries a "Change" pill. There is no screen that edits a
  *   meeting's lesson yet (issue 5), and a control that does nothing is worse
  *   than one that is not drawn.
@@ -31,7 +32,7 @@ import { useActionState, useState } from "react";
 
 import type { SheetFormState } from "@/lib/attendance/actions";
 import type { Mark } from "@/lib/attendance/completions";
-import { markChipLabel } from "@/lib/attendance/form";
+import { guestLabel, markChipLabel } from "@/lib/attendance/form";
 import type { SheetPerson } from "@/lib/attendance/sheet";
 import { initialsOf } from "@/lib/roster/display";
 
@@ -270,7 +271,11 @@ function PersonCard({
           aria-pressed={mark !== null}
           className="min-w-0 grow text-left"
         >
-          <span className="block text-[16px] leading-[1.2] font-bold">{person.name}</span>
+          {/* #31 — a visitor is an ordinary row that says where they came
+              from. There is no guest entity and no second kind of card. */}
+          <span className="block text-[16px] leading-[1.2] font-bold">
+            {guestLabel(person.name, person.guest ? person.homeGroupName : null)}
+          </span>
           {sub ? <span className="mt-[3px] block text-[13px] text-slate">{sub}</span> : null}
         </button>
         <button

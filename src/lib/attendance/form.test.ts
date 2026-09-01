@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { markChipLabel, parseSheetForm } from "./form";
+import { catchUpJoinedNote, guestLabel, markChipLabel, parseSheetForm } from "./form";
 
 describe("parseSheetForm", () => {
   it("reads one mark per person, unticked people included", () => {
@@ -34,6 +34,52 @@ describe("parseSheetForm", () => {
 
     form.set("intent", "save");
     expect(parseSheetForm(form).walkIn).toBeNull();
+  });
+});
+
+describe("guestLabel", () => {
+  it("names the visitor and the BGroup they came from (#31)", () => {
+    expect(guestLabel("Nico", "BGroup Linggo")).toBe("Nico (BGroup Linggo)");
+  });
+
+  it("is the name alone when there is no other BGroup to name", () => {
+    expect(guestLabel("Nico", null)).toBe("Nico");
+  });
+});
+
+describe("catchUpJoinedNote", () => {
+  /** #28 — behind, and the marker is what makes that readable. */
+  it("says when they joined that BGroup and what it was on", () => {
+    expect(
+      catchUpJoinedNote({
+        homeGroupName: "BGroup Linggo",
+        joinedOn: "2026-07-05",
+        joinedAtBookNumber: 1,
+        joinedAtBookTitle: "One By One",
+      }),
+    ).toBe("Joined BGroup Linggo on 5 July 2026, while it was on Book 1 — One By One.");
+  });
+
+  it("leaves the book out when the BGroup had not picked one", () => {
+    expect(
+      catchUpJoinedNote({
+        homeGroupName: "BGroup Linggo",
+        joinedOn: "2026-07-05",
+        joinedAtBookNumber: null,
+        joinedAtBookTitle: null,
+      }),
+    ).toBe("Joined BGroup Linggo on 5 July 2026.");
+  });
+
+  it("says nothing at all without a marker", () => {
+    expect(
+      catchUpJoinedNote({
+        homeGroupName: "BGroup Linggo",
+        joinedOn: null,
+        joinedAtBookNumber: null,
+        joinedAtBookTitle: null,
+      }),
+    ).toBeNull();
   });
 });
 

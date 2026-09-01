@@ -129,6 +129,38 @@ describe.skipIf(!dbConfigured)("attendance sheet", () => {
     ]);
   });
 
+  /**
+   * The derivation itself (#31): the visit is the completion, and "guest" is
+   * what the meeting's group and the person's home group say about it.
+   */
+  it("marks someone whose home BGroup is not this one as a guest (#31)", async () => {
+    const sunday = await createGroup(TEST_OWNER, {
+      name: "BGroup Linggo",
+      weekday: 0,
+      startTime: "16:00",
+      durationMinutes: 90,
+      currentBookId: bookOne,
+    });
+    const nico = await createPerson(TEST_OWNER, { name: "Nico Bautista", homeGroupId: sunday });
+    const rico = await createPerson(TEST_OWNER, { name: "Rico Aquino", homeGroupId: null });
+    await recordSheet(TEST_OWNER, {
+      meetingId: meeting,
+      marks: [
+        { personId: nico, mark: "attended" },
+        { personId: rico, mark: "attended" },
+      ],
+      hold: false,
+    });
+
+    expect((await getSheet(TEST_OWNER, meeting))?.people).toMatchObject([
+      { personId: ben, guest: false },
+      { personId: maria, guest: false },
+      { personId: nico, guest: true, homeGroupName: "BGroup Linggo" },
+      // No home BGroup is not a visit from one.
+      { personId: rico, guest: false },
+    ]);
+  });
+
   it("drops someone removed from the roster, unless the night already records them (#24)", async () => {
     await recordSheet(TEST_OWNER, {
       meetingId: meeting,

@@ -7,11 +7,14 @@
  * (#24), or who rode along from another BGroup (#31) is still part of what
  * happened that night, and a sheet that dropped them would quietly rewrite it.
  *
+ * **Who is a guest** is derived here and nowhere else (#31, no guest entity): a
+ * completion whose meeting's group is not the person's home group IS the visit,
+ * so the marker is what `homeGroupId` and the meeting's group already say. It
+ * is computed rather than stored, which is why a transfer (#27) can turn last
+ * month's member into last month's guest without touching a row.
+ *
  * What this module deliberately does NOT say:
  *
- * - **Who is a guest.** A completion whose meeting's group is not the person's
- *   home group is the visit (#31, no guest entity) — `homeGroupId` and the
- *   meeting's group are both here, and issue 7 derives the marker from them.
  * - **How far anyone has got.** The board's second line ("3 of 6 done in One By
  *   One") is issue 9's, and a number invented here would be an invented one.
  */
@@ -25,6 +28,11 @@ export type SheetPerson = {
   /** Their own BGroup, which is not always the meeting's (#31). */
   homeGroupId: string | null;
   homeGroupName: string | null;
+  /**
+   * #31 — they belong to another BGroup, so tonight is a visit. Someone with no
+   * home BGroup at all is not visiting from one, so they are not a guest.
+   */
+  guest: boolean;
   /** #9/#67 — saved on a name alone and still owed a way to reach them. */
   contactIncomplete: boolean;
   /** #24 — off the roster, still on the night they attended. */
@@ -77,6 +85,8 @@ export async function getSheet(ownerId: string, meetingId: string): Promise<Shee
       name: row.name,
       homeGroupId: row.home_group_id,
       homeGroupName: row.home_group_name,
+      // #31, at render time and from the two facts already on the row.
+      guest: row.home_group_id !== null && row.home_group_id !== meeting.groupId,
       // Derived here exactly as the roster derives it, so the flag clears
       // itself the moment a number lands (#67).
       contactIncomplete: row.phone === null && row.email === null,

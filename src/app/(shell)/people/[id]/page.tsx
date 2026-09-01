@@ -9,7 +9,10 @@
  *   held meetings, which issue 6 delivers. The slot is used by the two things
  *   that ARE true today: a contact still owed (#9/#67) and #10's manual
  *   "Stepped away".
- * - The catch-up line naming a meeting they could fill a gap at is issue 7.
+ * - The catch-up section names the upcoming meetings that cover a session they
+ *   are missing (#31). It is drawn on no board — Person predates the decision —
+ *   so it borrows the Home board's catch-up tone: blue, not amber, because
+ *   CATCH-UP is a path and not a warning (#66).
  *
  * Everything else is the board's: the avatar and title block, the Call / Text /
  * Email row, the chips, and the label/value card under them.
@@ -18,9 +21,10 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { ContactChip } from "@/components/people/PersonRow";
+import { type CatchUpTarget, getCatchUpTargets } from "@/lib/attendance/catchup";
 import { bookLabel } from "@/lib/curriculum/books";
 import { requireUser } from "@/lib/auth/guard";
-import { formatDayMonth, formatLongDate } from "@/lib/dates";
+import { formatDayMonth, formatLongDate, formatWeekdayDate } from "@/lib/dates";
 import {
   removePersonAction,
   restorePersonAction,
@@ -28,6 +32,7 @@ import {
 } from "@/lib/roster/actions";
 import { baptizedLabel, initialsOf } from "@/lib/roster/display";
 import { type Membership, getPerson } from "@/lib/roster/people";
+import { formatTime } from "@/lib/roster/schedule";
 
 export const dynamic = "force-dynamic";
 
@@ -37,6 +42,8 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   const person = await getPerson(user.email, id);
 
   if (!person) notFound();
+
+  const catchUp = await getCatchUpTargets(user.email, person.id);
 
   const current = person.memberships.find((membership) => membership.endedOn === null) ?? null;
   const past = person.memberships.filter((membership) => membership.endedOn !== null);
@@ -214,6 +221,21 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         ) : null}
       </div>
 
+      {catchUp.length === 0 ? null : (
+        <>
+          <h3 className="mt-[22px] mb-[3px] text-[18px]">Catch-up</h3>
+          <p className="mb-[11px] text-[13.5px] leading-[1.45] text-slate">
+            {catchUp.length === 1 ? "A night" : "Nights"} coming up that{" "}
+            {catchUp.length === 1 ? "covers" : "cover"} a session they have not done yet.
+          </p>
+          <div className="flex flex-col gap-[9px]">
+            {catchUp.map((target) => (
+              <CatchUpCard key={target.sessionId} target={target} />
+            ))}
+          </div>
+        </>
+      )}
+
       {/* Issue 9's section. Named rather than absent so the screen reads as
           unfinished rather than as missing something. */}
       <h3 className="mt-[22px] mb-[11px] text-[18px]">Progress</h3>
@@ -256,6 +278,35 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </div>
       )}
     </section>
+  );
+}
+
+/**
+ * One upcoming night that covers a gap (#31), in the Home board's catch-up
+ * colours. It taps through to that meeting's own sheet, which is where the
+ * night is either held or not — the app drafts no invite in v1 (v1.1 owns that,
+ * and the leader sends it themselves).
+ */
+function CatchUpCard({ target }: { target: CatchUpTarget }) {
+  return (
+    <Link
+      href={`/meetings/${target.meetingId}`}
+      className="block rounded-[20px] bg-blue-tint px-[15px] py-[13px] active:bg-[#DBE7F6]"
+    >
+      <div className="text-[15px] font-bold text-blue-deep">
+        Session {target.sessionNumber} — {target.sessionTitle}
+      </div>
+      <div className="mt-[3px] text-[13.5px] leading-[1.45] text-blue-deep">
+        {target.groupName} covers it on {formatWeekdayDate(target.date)} at{" "}
+        {formatTime(target.startTime)}.
+        {/* #31 — another BGroup's night, and the visit credits them all the
+            same. Their own BGroup's night needs no explaining. */}
+        {target.ownGroup ? "" : " They would be riding along."}
+      </div>
+      <div className="mt-[6px] text-[12.5px] text-[#4A7BB7]">
+        {bookLabel({ number: target.bookNumber, title: target.bookTitle })}
+      </div>
+    </Link>
   );
 }
 

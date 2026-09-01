@@ -8,12 +8,18 @@
  * The board's COVERING panel has a "Change" pill beside the lesson. Editing a
  * meeting is issue 5's screen and does not exist, so the panel states the
  * agenda rather than offering a control that goes nowhere.
+ *
+ * Under the sheet, and drawn on no board, is #31's catch-up list: who from the
+ * other BGroups is missing tonight's session. It sits after the sheet because
+ * the room comes first — the ticks are what the leader opened this screen for.
  */
 import { notFound } from "next/navigation";
 
 import { AttendanceSheet } from "@/components/attendance/AttendanceSheet";
+import { CatchUpList } from "@/components/attendance/CatchUpList";
 import { BackRow } from "@/components/BackRow";
 import { saveSheetAction } from "@/lib/attendance/actions";
+import { getCatchUpCandidates } from "@/lib/attendance/catchup";
 import { getSheet } from "@/lib/attendance/sheet";
 import { requireUser } from "@/lib/auth/guard";
 import { formatWeekdayDate } from "@/lib/dates";
@@ -30,6 +36,7 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
   if (!sheet) notFound();
 
   const { meeting } = sheet;
+  const candidates = await getCatchUpCandidates(user.email, meeting.id);
 
   return (
     <section className="pb-4">
@@ -71,6 +78,12 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         people={sheet.people}
         sessionNumber={meeting.sessionNumber}
         held={meeting.status === "held"}
+      />
+
+      <CatchUpList
+        candidates={candidates}
+        sessionNumber={meeting.sessionNumber}
+        sessionTitle={meeting.sessionTitle}
       />
     </section>
   );

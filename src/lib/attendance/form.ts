@@ -7,6 +7,8 @@
  * live here too because the sheet is a client component and must not import a
  * module that reaches the database.
  */
+import { formatLongDate } from "../dates";
+import type { CatchUpCandidate } from "./catchup";
 import type { Mark, SheetMark } from "./completions";
 
 export type SheetForm = {
@@ -39,6 +41,44 @@ export function parseSheetForm(formData: FormData): SheetForm {
     marks,
     walkIn: intent === "walk-in" ? text(formData, "walkInName").trim() : null,
   };
+}
+
+/**
+ * A visitor, in #31's own words: "Nico (BGroup Linggo)" — the name plus the
+ * BGroup they came from, because on this sheet that is the thing about them
+ * that is not obvious. Nothing else marks them: there is no guest entity, and
+ * the row is an ordinary row.
+ */
+export function guestLabel(name: string, homeGroupName: string | null): string {
+  return homeGroupName === null ? name : `${name} (${homeGroupName})`;
+}
+
+/**
+ * #28's joined-at marker under a catch-up candidate — the same sentence the
+ * person screen's `CurrentMembership` writes, said about a BGroup that is not
+ * the one whose sheet is open.
+ *
+ * Null when there is no marker to show, which is what an older record without a
+ * membership row looks like: silence beats a guess about when they arrived.
+ */
+export function catchUpJoinedNote(
+  candidate: Pick<
+    CatchUpCandidate,
+    "homeGroupName" | "joinedOn" | "joinedAtBookNumber" | "joinedAtBookTitle"
+  >,
+): string | null {
+  if (candidate.joinedOn === null) return null;
+
+  const opening = `Joined ${candidate.homeGroupName} on ${formatLongDate(candidate.joinedOn)}`;
+  if (candidate.joinedAtBookTitle === null) return `${opening}.`;
+
+  // Same shape as `bookLabel`, which cannot be imported here: it lives beside a
+  // module that reaches the database, and this file is read by the sheet.
+  const book =
+    candidate.joinedAtBookNumber === null
+      ? candidate.joinedAtBookTitle
+      : `Book ${candidate.joinedAtBookNumber} — ${candidate.joinedAtBookTitle}`;
+  return `${opening}, while it was on ${book}.`;
 }
 
 /**
