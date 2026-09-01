@@ -1,7 +1,7 @@
 ---
 issue: 10
 title: Reports (Person / Group / Roll-up) + CSV Export
-status: open
+status: done
 blocked-by: [6, 9]
 type: afk
 ---
