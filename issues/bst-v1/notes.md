@@ -128,6 +128,20 @@ where, and when. Promote to an issue the day one actually bites.
   (`getCatchUpTargets`). Fine at today's roster size; on a cold Neon branch the
   person page now pays a second wake-up round trip. Set-based merge only if it
   ever bites.
+- **2026-09-01 — issue 9 judgement calls (subagent crashed before reporting;
+  supervisor reviewed the diff):** `setCurrentBook` does NOT tombstone — there
+  is still no group corrections table (issue-14 gap), so advancing leaves no
+  trail beyond `updated_at`; a group on a **custom book** (#22) gets no "Advance"
+  button at all (`getNextBook` returns null with no number/program) — the only
+  way on is "Change book"; the member-row `behind` flag is measured against what
+  the *group* has held, not the whole book; the Person Progress section
+  auto-opens the one in-progress book and lists every published book as "Not
+  started" whether touched or not. All defensible, all commented in code —
+  flagged here in case Jericho wants any of it different.
+- **2026-09-01 — #68 dot-wrap layout is still only unit-tested.** `columnsFor`
+  proves six columns; nobody has *looked* at Book 8's 12 dots as two rows at
+  390px, or the group segment bars at that width. Promote to an issue only if
+  the render is actually wrong on Jericho's phone.
 - **2026-09-01 — issue 7 judgement calls not spelled out in the issue:**
   stepped-away people (#10) and people with no home BGroup are excluded from
   both the catch-up list and guest derivation; a fellowship night and an
