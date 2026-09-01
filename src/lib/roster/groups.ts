@@ -167,6 +167,50 @@ export async function updateGroup(
 }
 
 /**
+ * Move the group to another book — the write behind "Advance anyway" (#4/#18).
+ *
+ * Deliberately the smallest statement in this file. The group carries the book
+ * (#17) and there is no enrolment entity (#16), so advancing is one column:
+ * nobody is enrolled, no completion is written or taken away (#5 — a member's
+ * progress is theirs and does not reset), and #28's joined-at markers keep
+ * naming the book each member actually arrived on.
+ *
+ * It is not `updateGroup` with the other fields left alone, because the
+ * checkpoint screen has no schedule to post and re-posting one is how a stale
+ * form quietly rewrites a group's night.
+ *
+ * Who is left behind, and whether to ask first, is the screen's question —
+ * `insights/progress` answers it. This refuses nothing but a book that does not
+ * exist and a group that is archived (#60).
+ */
+export async function setCurrentBook(
+  ownerId: string,
+  id: string,
+  bookId: string,
+): Promise<void> {
+  if (!UUID_PATTERN.test(bookId)) {
+    throw new RosterValidationError("That book is not in the curriculum.");
+  }
+
+  const book = await query<{ id: string }>("SELECT id FROM books WHERE id = $1", [bookId]);
+  if (book.length === 0) {
+    throw new RosterValidationError("That book is not in the curriculum.");
+  }
+
+  const rows = await query<{ id: string }>(
+    `UPDATE groups
+        SET current_book_id = $3, updated_at = now()
+      WHERE owner_id = $1 AND id = $2 AND archived_at IS NULL
+      RETURNING id`,
+    [ownerId, id, bookId],
+  );
+
+  if (rows.length === 0) {
+    throw new RosterValidationError("That BGroup is archived or no longer exists.");
+  }
+}
+
+/**
  * Archive a group, optionally moving its members somewhere else first (#27).
  *
  * The move is an offer, not a rule: declining it leaves the members pointing at

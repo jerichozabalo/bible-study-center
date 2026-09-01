@@ -1,25 +1,35 @@
 /**
- * One person, as a card — `design/People.dc.html`'s row.
+ * One person, as a card — `design/People.dc.html`'s row, and (with `progress`)
+ * `design/GroupDetail.dc.html`'s member row.
  *
- * Two things the board draws are deliberately not here:
+ * The two boards draw the same card with a different second line: the roster
+ * says which BGroup someone is in, and a BGroup's own member list says how far
+ * they have got through the book it is on — inside a group, naming the group
+ * again says nothing.
  *
- * - **The progress bar.** Coverage needs held meetings (issue 4) and
- *   completions (issue 9); a bar that is honestly 0% on every row today would
- *   be a worse lie than an absent one, and the space is where it will go.
- * - **The QUIET flag.** #64 counts consecutive missed HELD meetings, and there
- *   are none. The flag slot is used by what IS true now: a contact still owed
- *   (#9/#67), and #10's manual "Stepped away".
+ * What the board draws that is still not here: **the QUIET flag.** #64 counts
+ * consecutive missed HELD meetings, and that is issue 8. The flag slot carries
+ * what IS true now — a contact still owed (#9/#67), #10's manual "Stepped
+ * away", and CATCH-UP (#66) for a member the group has left behind.
  *
- * The avatar's amber variant on the board means quiet, so every avatar here is
- * the blue one until issue 6 can tell them apart.
+ * The avatar's amber variant on the board means quiet; here it means behind,
+ * which is the board's own group-row usage.
  */
 import Link from "next/link";
 
 import { bookLabel } from "@/lib/curriculum/books";
+import type { MemberProgress } from "@/lib/insights/progress";
 import { initialsOf } from "@/lib/roster/display";
 import type { PersonSummary } from "@/lib/roster/people";
 
-export function PersonRow({ person }: { person: PersonSummary }) {
+export function PersonRow({
+  person,
+  progress,
+}: {
+  person: PersonSummary;
+  /** Their standing in their BGroup's current book (#17), on that group's screen. */
+  progress?: MemberProgress;
+}) {
   const group =
     person.homeGroupName === null
       ? "No BGroup yet"
@@ -40,7 +50,11 @@ export function PersonRow({ person }: { person: PersonSummary }) {
       href={`/people/${person.id}`}
       className="flex w-full items-center gap-3 rounded-[20px] border border-line bg-card px-[13px] py-3 active:border-blue"
     >
-      <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-[17px] bg-blue-tint text-[15.5px] font-bold text-blue">
+      <div
+        className={`flex h-12 w-12 shrink-0 items-center justify-center rounded-[17px] text-[15.5px] font-bold ${
+          progress?.behind ? "bg-amber-well text-amber-ink" : "bg-blue-tint text-blue"
+        }`}
+      >
         {initialsOf(person.name)}
       </div>
 
@@ -49,8 +63,31 @@ export function PersonRow({ person }: { person: PersonSummary }) {
           <span className="truncate text-[16px] font-bold">{person.name}</span>
           {person.contactIncomplete ? <ContactChip /> : null}
           {person.steppedAwayOn ? <SteppedAwayChip /> : null}
+          {progress?.behind ? <CatchUpChip /> : null}
         </div>
-        <div className="mt-[3px] truncate text-[13.5px] text-slate">{group}</div>
+        {progress === undefined ? (
+          <div className="mt-[3px] truncate text-[13.5px] text-slate">{group}</div>
+        ) : (
+          <div className="mt-[6px] flex items-center gap-2">
+            <div className="h-[6px] w-[84px] shrink-0 overflow-hidden rounded-[4px] bg-shell">
+              <div
+                className={`h-[6px] rounded-[4px] ${
+                  progress.behind ? "bg-amber-ink" : "bg-blue"
+                }`}
+                style={{
+                  width: `${
+                    progress.sessionCount === 0
+                      ? 0
+                      : Math.round((progress.coveredCount / progress.sessionCount) * 100)
+                  }%`,
+                }}
+              />
+            </div>
+            <span className="text-[12.5px] font-semibold text-tan">
+              {progress.coveredCount} of {progress.sessionCount}
+            </span>
+          </div>
+        )}
       </div>
 
       <svg
@@ -79,6 +116,19 @@ export function ContactChip() {
   return (
     <span className="shrink-0 rounded-[8px] bg-amber-well px-[7px] py-[3px] text-[11px] font-bold tracking-[0.04em] text-amber-ink">
       NO CONTACT YET
+    </span>
+  );
+}
+
+/**
+ * #66 — CATCH-UP, never "BEHIND". It marks a member missing something their
+ * BGroup has already covered, which is a night they can still ride along to
+ * (#31), not a verdict.
+ */
+export function CatchUpChip() {
+  return (
+    <span className="shrink-0 rounded-[8px] bg-amber-well px-[7px] py-[3px] text-[11px] font-bold tracking-[0.04em] text-[#7C4708]">
+      CATCH-UP
     </span>
   );
 }

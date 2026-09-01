@@ -1,21 +1,28 @@
 /**
  * One BGroup — `design/GroupDetail.dc.html`.
  *
- * What the board draws that is not here yet, and why: the progress dots and the
- * "Advance to Book 2" checkpoint are issue 9 (they need held meetings and
- * completions to mean anything). The blue card, the schedule line, the member
- * list and the sections around them are the board's.
+ * The blue card carries the book the group is on (#17), how far the group's own
+ * nights have got through it (#68's dots, six per row), and the way to the next
+ * book — which always asks first (#18's checkpoint). The line under the dots is
+ * a roll-up of per-person facts and not a group record (#2): the group covered
+ * a session on a night it held, a member covered it by being there.
  *
  * The board's overflow menu is a bottom row of plain controls instead: with two
  * actions on the screen — edit and archive — a kebab hides them for no gain.
+ * "Change book" moved into the blue card as a second, quieter control, because
+ * the card is where the book now has two things that can happen to it.
  */
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { AdvanceCheckpoint } from "@/components/insights/AdvanceCheckpoint";
 import { BackRow } from "@/components/BackRow";
+import { GroupBookDots } from "@/components/insights/GroupBookDots";
 import { requireUser } from "@/lib/auth/guard";
-import { bookLabel } from "@/lib/curriculum/books";
+import { bookLabel, getNextBook } from "@/lib/curriculum/books";
 import { formatDayMonth } from "@/lib/dates";
+import { groupBookLine } from "@/lib/insights/display";
+import { getGroupBookProgress, leftBehind } from "@/lib/insights/progress";
 import { PersonRow } from "@/components/people/PersonRow";
 import { unarchiveGroupAction } from "@/lib/roster/actions";
 import { getGroup } from "@/lib/roster/groups";
@@ -32,11 +39,15 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
   if (!group) notFound();
 
   const members = await listGroupMembers(user.email, group.id);
+  const progress = await getGroupBookProgress(user.email, group.id);
+  const next = group.currentBookId === null ? null : await getNextBook(group.currentBookId);
 
   const book =
     group.currentBookTitle === null
       ? null
       : bookLabel({ number: group.currentBookNumber, title: group.currentBookTitle });
+
+  const byPerson = new Map((progress?.members ?? []).map((member) => [member.personId, member]));
 
   return (
     <section className="pb-4">
@@ -81,18 +92,43 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       <div className="mt-4 rounded-[22px] bg-blue p-[18px] text-white">
         <div className="text-[10px] font-bold tracking-[0.13em] text-blue-pale">CURRENT BOOK</div>
         <h3 className="mt-[6px] text-[21px] text-white">{book ?? "No book chosen yet"}</h3>
+
+        {progress === null ? null : <GroupBookDots sessions={progress.sessions} />}
+
         <div className="mt-[9px] text-[14px] text-blue-soft">
-          {book === null
+          {progress === null
             ? "The group carries the book — pick one and every meeting prefills from it."
-            : `${group.currentBookSessionCount} sessions in this book`}
+            : groupBookLine(progress)}
         </div>
+
         {group.archivedAt ? null : (
-          <Link
-            href={`/people/groups/${group.id}/edit`}
-            className="mt-[15px] flex h-[54px] w-full items-center justify-center rounded-[16px] bg-card text-[16px] font-bold text-blue-deep"
-          >
-            {book === null ? "Choose a book" : "Change book"}
-          </Link>
+          <>
+            {/* #4 — finishing a book prompts, it never advances by itself, and
+                #18's checkpoint is what the button opens. A custom book (#22)
+                has no published number, so nothing follows it and the only way
+                on is choosing the next book by hand. */}
+            {progress !== null && next !== null ? (
+              <AdvanceCheckpoint
+                groupId={group.id}
+                bookTitle={progress.bookTitle}
+                nextBook={{
+                  id: next.id,
+                  label: next.number === null ? next.title : `Book ${next.number}`,
+                }}
+                leftBehind={leftBehind(progress)}
+              />
+            ) : null}
+            <Link
+              href={`/people/groups/${group.id}/edit`}
+              className={
+                book === null
+                  ? "mt-[15px] flex h-[54px] w-full items-center justify-center rounded-[16px] bg-card text-[16px] font-bold text-blue-deep"
+                  : "mt-[9px] flex h-[50px] w-full items-center justify-center rounded-[16px] border-[1.5px] border-white/40 text-[15px] font-bold text-white"
+              }
+            >
+              {book === null ? "Choose a book" : "Change book"}
+            </Link>
+          </>
         )}
       </div>
 
@@ -118,7 +154,7 @@ export default async function GroupDetailPage({ params }: { params: Promise<{ id
       ) : (
         <div className="flex flex-col gap-[8px]">
           {members.map((person) => (
-            <PersonRow key={person.id} person={person} />
+            <PersonRow key={person.id} person={person} progress={byPerson.get(person.id)} />
           ))}
         </div>
       )}

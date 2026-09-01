@@ -9,6 +9,7 @@ import {
   resetRoster,
 } from "../../../tests/fixtures";
 import { seedCurriculum } from "../curriculum/seed";
+import { query } from "../db";
 import {
   RosterValidationError,
   archiveGroup,
@@ -16,6 +17,7 @@ import {
   getGroup,
   listArchivedGroups,
   listGroups,
+  setCurrentBook,
   unarchiveGroup,
   updateGroup,
 } from "./groups";
@@ -209,6 +211,86 @@ describe.skipIf(!dbConfigured)("groups", () => {
       durationMinutes: 60,
       currentBookId: bookTwo,
       currentBookTitle: "Spiritual Disciplines",
+    });
+  });
+
+  /**
+   * Advancing (#4/#17/#18): the group moves to the next book and NOTHING else
+   * moves with it. No enrolment is created (#16 — there is no such entity), no
+   * completion is written or taken away (#5 — the members' progress is theirs),
+   * and no meeting is touched. The checkpoint that asks first is the screen's;
+   * this is the whole of the write it confirms.
+   */
+  describe("setCurrentBook", () => {
+    it("moves the group to the next book", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+
+      await setCurrentBook(TEST_OWNER, id, bookTwo);
+
+      expect(await getGroup(TEST_OWNER, id)).toMatchObject({
+        currentBookId: bookTwo,
+        currentBookNumber: 2,
+        currentBookTitle: "Spiritual Disciplines",
+      });
+    });
+
+    it("changes the group row and nothing else", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+      const person = await addPerson("Maria Santos", id);
+      const before = await getGroup(TEST_OWNER, id);
+      const memberships = await query(
+        "SELECT person_id, group_id, joined_on, joined_at_book_id, ended_on FROM group_memberships WHERE person_id = $1",
+        [person],
+      );
+
+      await setCurrentBook(TEST_OWNER, id, bookTwo);
+
+      const after = await getGroup(TEST_OWNER, id);
+      expect({ ...after, currentBookId: null, currentBookNumber: null, currentBookTitle: null }).toEqual(
+        { ...before, currentBookId: null, currentBookNumber: null, currentBookTitle: null },
+      );
+      // #28's marker records the book the group was on when someone JOINED.
+      // Advancing does not rewrite it — that is what makes a mid-book joiner
+      // readable a year later.
+      expect(
+        await query(
+          "SELECT person_id, group_id, joined_on, joined_at_book_id, ended_on FROM group_memberships WHERE person_id = $1",
+          [person],
+        ),
+      ).toEqual(memberships);
+      expect(
+        await query("SELECT count(*)::int AS n FROM completions WHERE person_id = $1", [person]),
+      ).toEqual([{ n: 0 }]);
+    });
+
+    it("refuses a book that does not exist", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+
+      await expect(
+        setCurrentBook(TEST_OWNER, id, "00000000-0000-0000-0000-000000000000"),
+      ).rejects.toBeInstanceOf(RosterValidationError);
+      await expect(setCurrentBook(TEST_OWNER, id, "not-a-uuid")).rejects.toBeInstanceOf(
+        RosterValidationError,
+      );
+    });
+
+    it("refuses to advance an archived BGroup (#60)", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+      await archiveGroup(TEST_OWNER, id);
+
+      await expect(setCurrentBook(TEST_OWNER, id, bookTwo)).rejects.toBeInstanceOf(
+        RosterValidationError,
+      );
+      expect(await getGroup(TEST_OWNER, id)).toMatchObject({ currentBookId: bookOne });
+    });
+
+    it("is owner-scoped (#32)", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+
+      await expect(
+        setCurrentBook("someone-else@example.com", id, bookTwo),
+      ).rejects.toBeInstanceOf(RosterValidationError);
+      expect(await getGroup(TEST_OWNER, id)).toMatchObject({ currentBookId: bookOne });
     });
   });
 

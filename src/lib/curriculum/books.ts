@@ -79,6 +79,40 @@ export async function listOwnBooks(ownerId: string): Promise<BookSummary[]> {
   return rows.map(toSummary);
 }
 
+/**
+ * The book after this one in the published order — everything "advance" (#4)
+ * has to know, and the only place that order is written down.
+ *
+ * Books are ordered by program then number (#33), so the book after Book 4 is
+ * Book 5: finishing GLC 1 is a certificate boundary in v1.1, not a dead end the
+ * leader has to step around by hand today.
+ *
+ * NULL for the last book, and NULL for a book Jericho wrote himself (#22) —
+ * a custom book has no number and no program, so nothing can follow it. Custom
+ * books are never offered as what comes next either: they are not part of
+ * anyone's printed curriculum, and the group's "Change book" is how one gets
+ * chosen.
+ */
+export async function getNextBook(id: string): Promise<BookSummary | null> {
+  if (!UUID_PATTERN.test(id)) return null;
+
+  const rows = await query<BookRow>(
+    `${SELECT_BOOK}
+      WHERE b.program_id IS NOT NULL
+        AND (p.position, b.number) > (
+              SELECT here_program.position, here.number
+                FROM books here
+                JOIN programs here_program ON here_program.id = here.program_id
+               WHERE here.id = $1
+            )
+      ORDER BY p.position ASC, b.number ASC
+      LIMIT 1`,
+    [id],
+  );
+
+  return rows[0] ? toSummary(rows[0]) : null;
+}
+
 export async function getBook(id: string): Promise<BookDetail | null> {
   if (!UUID_PATTERN.test(id)) return null;
 

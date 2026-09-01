@@ -1,7 +1,7 @@
 ---
 issue: 9
 title: Strict book completion + advance checkpoint + progress dots
-status: open
+status: done
 blocked-by: [6]
 type: afk
 ---

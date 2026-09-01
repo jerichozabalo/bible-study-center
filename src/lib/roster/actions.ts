@@ -25,6 +25,7 @@ import {
   RosterValidationError,
   archiveGroup,
   createGroup,
+  setCurrentBook,
   unarchiveGroup,
   updateGroup,
 } from "./groups";
@@ -105,6 +106,35 @@ export async function archiveGroupAction(
   revalidatePath("/people/groups");
   revalidatePath("/people");
   redirect("/people/groups");
+}
+
+/**
+ * Advancing a BGroup to the next book (#4/#18) — the confirmation of the
+ * checkpoint, not a way past it.
+ *
+ * It carries form state because the sheet is on the group's own screen and has
+ * nowhere to send a refusal: a group archived in another tab has to say so
+ * where the button was pressed.
+ */
+export async function advanceGroupAction(
+  _previous: GroupFormState,
+  formData: FormData,
+): Promise<GroupFormState> {
+  const user = await requireUser();
+  const id = String(formData.get("id") ?? "");
+  const bookId = String(formData.get("bookId") ?? "");
+
+  try {
+    await setCurrentBook(user.email, id, bookId);
+  } catch (thrown) {
+    if (thrown instanceof RosterValidationError) return { error: thrown.message };
+    throw thrown;
+  }
+
+  revalidatePath("/people");
+  revalidatePath("/people/groups");
+  revalidatePath(`/people/groups/${id}`);
+  redirect(`/people/groups/${id}`);
 }
 
 /**

@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import {
   addDays,
   ageOn,
+  formatCalendarDayMonth,
   formatDayMonth,
   formatLongDate,
   formatWeekdayDate,
@@ -25,6 +26,26 @@ describe("formatDayMonth", () => {
   it("reads the clock in Asia/Manila (#56)", () => {
     // 4am on the 13th in Bulacan, still the 12th in UTC.
     expect(formatDayMonth(new Date("2026-05-12T20:00:00Z"))).toBe("13 May");
+  });
+});
+
+/**
+ * The same shape as `formatDayMonth`, for a calendar day rather than an
+ * instant — the night a session was covered, printed beside it on the Person
+ * board's progress rows.
+ */
+describe("formatCalendarDayMonth", () => {
+  it("prints the day and the month of a calendar day", () => {
+    expect(formatCalendarDayMonth("2026-06-30")).toBe("30 June");
+  });
+
+  it("does not move the day, whatever the server's own zone is", () => {
+    expect(formatCalendarDayMonth("2026-01-01")).toBe("1 January");
+    expect(formatCalendarDayMonth("2026-12-31")).toBe("31 December");
+  });
+
+  it("hands back anything that is not a calendar day untouched", () => {
+    expect(formatCalendarDayMonth("")).toBe("");
   });
 });
 

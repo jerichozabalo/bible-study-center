@@ -3,8 +3,6 @@
  *
  * What the board draws that is not here, and why:
  *
- * - **The Progress section** (dot rows, per-book breakdown) is issue 9: it
- *   needs completions, and inventing dots would be inventing progress.
  * - **The amber "Quiet — missed 3 meetings" panel** is #64's derivation over
  *   held meetings, which issue 6 delivers. The slot is used by the two things
  *   that ARE true today: a contact still owed (#9/#67) and #10's manual
@@ -20,10 +18,12 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { BookProgressCard } from "@/components/insights/BookProgressCard";
 import { ContactChip } from "@/components/people/PersonRow";
 import { type CatchUpTarget, getCatchUpTargets } from "@/lib/attendance/catchup";
 import { bookLabel } from "@/lib/curriculum/books";
 import { requireUser } from "@/lib/auth/guard";
+import { getPersonProgress } from "@/lib/insights/progress";
 import { formatDayMonth, formatLongDate, formatWeekdayDate } from "@/lib/dates";
 import {
   removePersonAction,
@@ -44,6 +44,13 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
   if (!person) notFound();
 
   const catchUp = await getCatchUpTargets(user.email, person.id);
+  const progress = await getPersonProgress(user.email, person.id);
+
+  // The book they are in the middle of opens itself: it is the one the screen
+  // was pulled out to look at. Everything else stays a dot row until it is
+  // asked for.
+  const opened =
+    progress.find((book) => book.coveredCount > 0 && !book.complete)?.bookId ?? null;
 
   const current = person.memberships.find((membership) => membership.endedOn === null) ?? null;
   const past = person.memberships.filter((membership) => membership.endedOn !== null);
@@ -236,13 +243,11 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         </>
       )}
 
-      {/* Issue 9's section. Named rather than absent so the screen reads as
-          unfinished rather than as missing something. */}
       <h3 className="mt-[22px] mb-[11px] text-[18px]">Progress</h3>
-      <div className="rounded-[20px] border border-line bg-card px-4 py-6 text-center">
-        <p className="mx-auto max-w-[250px] text-[14.5px] leading-[1.45] text-slate">
-          Sessions covered arrive with issue 9, once meetings can be held.
-        </p>
+      <div className="flex flex-col gap-[9px]">
+        {progress.map((book) => (
+          <BookProgressCard key={book.bookId} book={book} defaultOpen={book.bookId === opened} />
+        ))}
       </div>
 
       {person.removedAt ? null : (

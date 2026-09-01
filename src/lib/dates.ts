@@ -86,6 +86,20 @@ export function formatLongDate(value: string): string {
 }
 
 /**
+ * "30 June" — `formatDayMonth`'s shape for a calendar day rather than an
+ * instant, which is what a meeting's date is (#56).
+ *
+ * Built from the string like `formatLongDate`, so nothing here can put it
+ * through the server's clock and land on the day before.
+ */
+export function formatCalendarDayMonth(value: string): string {
+  if (!isCalendarDate(value)) return value;
+
+  const [, month, day] = value.split("-");
+  return `${Number(day)} ${MONTH_NAMES[Number(month) - 1]}`;
+}
+
+/**
  * "Wednesday, 19 August" — the note under the new-meeting form's date row.
  *
  * Distinct from `formatLongDate` above: this one names the weekday and drops
