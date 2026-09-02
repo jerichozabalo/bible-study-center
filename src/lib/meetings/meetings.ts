@@ -49,6 +49,13 @@ export type MeetingInput = {
   notes: string | null;
   /** #48: this also sets the GROUP's schedule — there is one recurrence per group. */
   repeatWeekly: boolean;
+  /**
+   * The outbox's idempotency key (#72). A queued meeting is created with this
+   * as its `id`, so a replay after a half-finished flush returns the row the
+   * first attempt wrote instead of a second meeting. Absent for the online
+   * form — the database assigns the id then. Must be a UUID when present.
+   */
+  clientId?: string | null;
 };
 
 export type MeetingSummary = {
@@ -150,9 +157,11 @@ export async function createMeeting(ownerId: string, input: MeetingInput): Promi
   return transaction(async (tx) => {
     const rows = await tx.query<{ id: string }>(
       `INSERT INTO meetings
-         (owner_id, led_by, group_id, date, start_time, duration_minutes, book_id, session_id,
+         (id, owner_id, led_by, group_id, date, start_time, duration_minutes, book_id, session_id,
           notes, status, origin)
-       VALUES ($1, $1, $2, $3, $4, $5, $6, $7, $8, 'proposed', 'created')
+       VALUES (COALESCE($9::uuid, gen_random_uuid()), $1, $1, $2, $3, $4, $5, $6, $7, $8,
+               'proposed', 'created')
+       ON CONFLICT (id) DO NOTHING
        RETURNING id`,
       [
         ownerId,
@@ -163,8 +172,23 @@ export async function createMeeting(ownerId: string, input: MeetingInput): Promi
         clean.bookId,
         clean.sessionId,
         clean.notes,
+        clean.clientId,
       ],
     );
+
+    if (rows.length === 0) {
+      // #72: the client id already names a meeting — this is a replay. Return
+      // that row untouched (append-and-send, not an edit) and do no schedule
+      // work: the first, successful attempt already did it.
+      const existing = await tx.query<{ id: string }>(
+        `SELECT id FROM meetings WHERE id = $1 AND owner_id = $2`,
+        [clean.clientId, ownerId],
+      );
+      if (existing.length === 0) {
+        throw new MeetingValidationError("That meeting could not be created.");
+      }
+      return existing[0].id;
+    }
 
     if (input.repeatWeekly) {
       // #48: the create form's recurring option sets the GROUP's schedule —
@@ -295,9 +319,18 @@ async function validate(input: MeetingInput): Promise<{
   bookId: string | null;
   sessionId: string | null;
   notes: string | null;
+  clientId: string | null;
 }> {
   if (!isRealDate(input.date)) {
     throw new MeetingValidationError("Pick the date this meeting is on.");
+  }
+
+  if (
+    input.clientId !== undefined &&
+    input.clientId !== null &&
+    !UUID_PATTERN.test(input.clientId)
+  ) {
+    throw new MeetingValidationError("That meeting could not be created.");
   }
 
   if (input.startTime !== null && !TIME_PATTERN.test(input.startTime)) {
@@ -323,6 +356,7 @@ async function validate(input: MeetingInput): Promise<{
     bookId,
     sessionId,
     notes: notes === "" ? null : notes,
+    clientId: input.clientId ?? null,
   };
 }
 

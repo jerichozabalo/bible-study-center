@@ -14,6 +14,7 @@ import Link from "next/link";
 
 import { AppLockBoundary } from "@/components/AppLockBoundary";
 import { Emblem } from "@/components/Emblem";
+import { OutboxProvider } from "@/components/outbox/OutboxProvider";
 import { TabBar } from "@/components/TabBar";
 import { requireUser } from "@/lib/auth/guard";
 
@@ -25,6 +26,10 @@ export default async function ShellLayout({ children }: { children: React.ReactN
        shows the PIN pad and nothing else. It is device-local and off until the
        leader switches it on in Settings. */
     <AppLockBoundary account={user.email}>
+      {/* The outbox (#72) wraps the shell so any screen can enqueue a write and
+          read the pending count; it hydrates from IndexedDB and flushes on
+          reconnect. */}
+      <OutboxProvider>
       {/* Capped and centred for the same reason the sign-in screen is: the
           boards are a 390px phone frame, and a laptop window is not. */}
       <div className="mx-auto flex h-screen h-dvh w-full max-w-[420px] flex-col overflow-hidden">
@@ -61,6 +66,7 @@ export default async function ShellLayout({ children }: { children: React.ReactN
 
         <TabBar />
       </div>
+      </OutboxProvider>
     </AppLockBoundary>
   );
 }

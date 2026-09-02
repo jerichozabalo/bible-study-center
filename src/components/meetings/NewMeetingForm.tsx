@@ -25,8 +25,11 @@
  */
 import { useActionState, useState } from "react";
 
+import { useOutbox } from "@/components/outbox/OutboxProvider";
 import type { MeetingFormState } from "@/lib/meetings/actions";
+import { parseMeetingForm } from "@/lib/meetings/form";
 import type { PickerGroup } from "@/lib/meetings/prefill";
+import { MEETING_WRITE } from "@/lib/outbox/transport";
 import {
   moreLabel,
   pickerMetaLine,
@@ -61,6 +64,23 @@ export function NewMeetingForm({
   yesterday: string;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const outbox = useOutbox();
+  const [queued, setQueued] = useState(false);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (typeof navigator === "undefined" || navigator.onLine) return;
+
+    // #72: creating a meeting is one of the two writes that works with no
+    // signal. Queue it and upload on reconnect.
+    event.preventDefault();
+    const { groupId, date, startTime, durationMinutes, bookId, sessionId, notes, repeatWeekly } =
+      parseMeetingForm(new FormData(event.currentTarget));
+    void outbox.enqueue({
+      type: MEETING_WRITE,
+      payload: { groupId, date, startTime, durationMinutes, bookId, sessionId, notes, repeatWeekly },
+    });
+    setQueued(true);
+  }
 
   // The pre-filled group is the first one — #63 orders them so that is the one
   // most recently met with.
@@ -96,7 +116,7 @@ export function NewMeetingForm({
   }
 
   return (
-    <form action={formAction} className="pt-1 pb-2">
+    <form action={formAction} onSubmit={handleSubmit} className="pt-1 pb-2">
       <input type="hidden" name="groupId" value={selected.id} />
       <input type="hidden" name="date" value={date} />
       {/* The time and duration fields carry their own names and only exist
@@ -111,6 +131,13 @@ export function NewMeetingForm({
       {repeatWeekly ? <input type="hidden" name="repeatWeekly" value="on" /> : null}
 
       {state.error ? <FormError message={state.error} /> : null}
+
+      {queued ? (
+        <p className="mb-4 rounded-[18px] bg-blue-tint px-4 py-3 text-[14px] leading-[1.45] text-blue-deep">
+          Saved on this phone. It uploads by itself when you have signal — check the calendar once
+          you are back.
+        </p>
+      ) : null}
 
       <div className={EYEBROW}>GROUP</div>
       <div className="mt-[9px] flex flex-col gap-[8px]">
@@ -311,6 +338,8 @@ export function NewMeetingForm({
           to wonder why a backdated night is not marked held. */}
       <p className="mt-[9px] text-center text-[12.5px] leading-[1.45] text-tan">
         Meetings are created as proposed. You mark one held when you take attendance.
+        <br />
+        Saves offline. Uploads when you have signal.
       </p>
     </form>
   );

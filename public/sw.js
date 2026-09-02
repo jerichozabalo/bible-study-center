@@ -16,6 +16,11 @@
  *   2. Navigations go to the network first and fall back to the cached shell.
  *      Server-rendered HTML is the point of a server-first app; a cache-first
  *      navigation would show yesterday's roster as though it were today's.
+ *   2b. The calendar (#61 as narrowed by #70) is the one screen kept readable
+ *      offline: its last successful render is stashed and served when the
+ *      network is gone, so the schedule — materialised weeks and drawn ghosts
+ *      alike — is still there in a room with no signal. It is still
+ *      network-first, so an online open is always fresh.
  *   3. Build assets (/_next/static/*) are cache-first forever, because their
  *      URLs already carry a build hash — a changed file is a changed URL.
  *
@@ -23,8 +28,9 @@
  * invalidation this file has, and it is enough because rule 3 is the only
  * long-lived cache in it.
  */
-const CACHE = "bst-v1";
+const CACHE = "bst-v2";
 const OFFLINE_URL = "/offline";
+const CALENDAR_URL = "/calendar";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -69,6 +75,30 @@ self.addEventListener("fetch", (event) => {
             return response;
           }),
       ),
+    );
+    return;
+  }
+
+  // Rule 2b. The calendar stays readable offline (#61/#70): network-first, but
+  // every good response is stashed and served back when the network is gone.
+  if (request.mode === "navigate" && url.pathname === CALENDAR_URL) {
+    event.respondWith(
+      fetch(request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(CACHE).then((cache) => cache.put(CALENDAR_URL, copy));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches
+            .match(CALENDAR_URL)
+            .then(
+              (hit) =>
+                hit ?? caches.match(OFFLINE_URL).then((fallback) => fallback ?? Response.error()),
+            ),
+        ),
     );
     return;
   }

@@ -12,6 +12,7 @@ import Link from "next/link";
 
 import { AttentionList } from "@/components/insights/AttentionList";
 import { NextMeetingHero } from "@/components/insights/NextMeetingHero";
+import { HomeUploadCard } from "@/components/outbox/HomeUploadCard";
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth/guard";
 import { formatWeekdayDate, manilaToday } from "@/lib/dates";
@@ -48,6 +49,8 @@ export default async function HomePage() {
           Nothing scheduled yet. Tap the blue [+] to create one.
         </p>
       )}
+
+      <HomeUploadCard />
 
       <AttentionList quiet={quiet} />
 

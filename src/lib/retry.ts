@@ -16,6 +16,11 @@
  */
 const TRANSIENT = [
   "fetch failed",
+  // The same drop, worded by a browser rather than by undici — the outbox
+  // flush (#72) runs its transport through here from the client.
+  "failed to fetch",
+  "load failed",
+  "networkerror",
   "econnreset",
   "econnrefused",
   "etimedout",

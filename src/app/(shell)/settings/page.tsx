@@ -14,11 +14,12 @@
  *
  * The board's first group is headed "ACCOUNT & SYNC" and carries an upload row.
  * "Sync" is a retired word (#66/#72) so the heading is just ACCOUNT, and the
- * row itself belongs to the outbox (issue 11), which is what does the
- * uploading.
+ * row itself is the outbox's (issue 11) — `UploadRow`, which shows the pending
+ * count and flushes on tap.
  */
 import { Emblem } from "@/components/Emblem";
 import { LockSettings } from "@/components/LockSettings";
+import { UploadRow } from "@/components/outbox/UploadRow";
 import { QuietThresholdSettings } from "@/components/insights/QuietThresholdSettings";
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth/guard";
@@ -61,6 +62,9 @@ export default async function SettingsPage() {
               </span>
             </span>
           </div>
+
+          <div className="ml-[67px] h-px bg-line-soft" />
+          <UploadRow />
 
           <div className="ml-[67px] h-px bg-line-soft" />
           <SignOutButton />

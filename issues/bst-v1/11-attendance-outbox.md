@@ -1,7 +1,7 @@
 ---
 issue: 11
 title: Attendance outbox (offline queue, in-order Upload)
-status: open
+status: done
 blocked-by: [4, 6]
 type: afk
 ---

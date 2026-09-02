@@ -30,10 +30,12 @@
  */
 import { useActionState, useState } from "react";
 
+import { useOutbox } from "@/components/outbox/OutboxProvider";
 import type { SheetFormState } from "@/lib/attendance/actions";
 import type { Mark } from "@/lib/attendance/completions";
-import { guestLabel, markChipLabel } from "@/lib/attendance/form";
+import { guestLabel, markChipLabel, parseSheetForm } from "@/lib/attendance/form";
 import type { SheetPerson } from "@/lib/attendance/sheet";
+import { SHEET_WRITE } from "@/lib/outbox/transport";
 import { initialsOf } from "@/lib/roster/display";
 
 export function AttendanceSheet({
@@ -52,6 +54,27 @@ export function AttendanceSheet({
   held: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const outbox = useOutbox();
+
+  // Set once the sheet has been queued on the phone with no signal (#72). The
+  // server never saw it; the outbox uploads it on reconnect.
+  const [queued, setQueued] = useState(false);
+
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
+    // The walk-in path creates a person, which needs the server (issue 18).
+    // Offline it fails like anything else that needs a connection — no queue.
+    if (submitter?.name === "intent" && submitter.value === "walk-in") return;
+    if (typeof navigator === "undefined" || navigator.onLine) return;
+
+    event.preventDefault();
+    const form = parseSheetForm(new FormData(event.currentTarget));
+    void outbox.enqueue({
+      type: SHEET_WRITE,
+      payload: { meetingId: form.meetingId, marks: form.marks },
+    });
+    setQueued(true);
+  }
 
   // The marks the leader has changed since the sheet was drawn. Anyone not in
   // here is at whatever the server last recorded, which is what makes a
@@ -78,10 +101,17 @@ export function AttendanceSheet({
   const percent = people.length === 0 ? 0 : Math.round((marked / people.length) * 100);
 
   return (
-    <form action={formAction} className="pb-2">
+    <form action={formAction} onSubmit={handleSubmit} className="pb-2">
       <input type="hidden" name="meetingId" value={meetingId} />
 
       {state.error ? <FormError message={state.error} /> : null}
+
+      {queued ? (
+        <p className="mt-3 rounded-[18px] bg-blue-tint px-4 py-3 text-[14px] leading-[1.45] text-blue-deep">
+          Saved on this phone. {outbox.pending === 1 ? "1 sheet" : `${outbox.pending} sheets`} waiting
+          to upload — it goes up by itself when you have signal.
+        </p>
+      ) : null}
 
       <div className="mt-[14px] flex items-center gap-3">
         <div className="shrink-0 text-[15px] font-bold">
@@ -221,7 +251,7 @@ export function AttendanceSheet({
       <p className="mt-[9px] text-center text-[12.5px] leading-[1.45] text-tan">
         {held
           ? "This night is already held. What you change here is saved as a correction."
-          : "Saving marks this meeting held. Needs a connection for now."}
+          : "Saves offline. Uploads when you have signal."}
       </p>
     </form>
   );

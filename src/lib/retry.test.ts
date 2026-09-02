@@ -52,6 +52,20 @@ describe("withRetry", () => {
     expect(waits).toEqual([100, 200, 400]);
   });
 
+  it("rides out a browser fetch failure, which is worded differently from undici's", async () => {
+    // In a browser a dropped connection is `TypeError: Failed to fetch` (or
+    // `Load failed` on Safari), not undici's `fetch failed`. The outbox flush
+    // (#72) runs its transport through here, so both have to count as transient.
+    for (const message of ["Failed to fetch", "Load failed"]) {
+      const attempt = vi
+        .fn<() => Promise<string>>()
+        .mockRejectedValueOnce(new TypeError(message))
+        .mockResolvedValueOnce("sent");
+      expect(await withRetry(attempt, { sleep: async () => {} })).toBe("sent");
+      expect(attempt).toHaveBeenCalledTimes(2);
+    }
+  });
+
   it("does not retry a query that was wrong rather than unreachable", async () => {
     // A syntax error or a constraint violation will fail identically on every
     // attempt. Retrying it only makes the failure take three times as long to

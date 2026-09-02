@@ -131,6 +131,40 @@ describe.skipIf(!dbConfigured)("meetings", () => {
     await expect(addGeneratedMeeting(TEST_OWNER, group, "2026-08-23")).rejects.toThrow();
   });
 
+  it("is idempotent when a queued creation replays with the same client id (#72/#73)", async () => {
+    // The outbox (#72) gives a queued meeting a stable client id and replays it
+    // on reconnect; a flush that failed after the row was written retries with
+    // the same id. #73's partial index is scoped to generated meetings, so the
+    // id itself is what keeps a created meeting from being written twice.
+    const clientId = crypto.randomUUID();
+
+    const first = await createMeeting(TEST_OWNER, meeting({ clientId }));
+    const second = await createMeeting(
+      TEST_OWNER,
+      // Same id, different fields: the replay must return the first row
+      // untouched, not a second meeting and not an edit.
+      meeting({ clientId, date: "2099-12-25" }),
+    );
+
+    expect(second).toBe(first);
+    expect((await getMeeting(TEST_OWNER, first))?.date).toBe("2026-08-23");
+    expect((await listUpcomingMeetings(TEST_OWNER, { from: "2026-08-01" })).length).toBe(1);
+  });
+
+  it("still takes a same-day make-up meeting when each carries its own client id (#73)", async () => {
+    const regular = await createMeeting(TEST_OWNER, meeting({ clientId: crypto.randomUUID() }));
+    const makeUp = await createMeeting(TEST_OWNER, meeting({ clientId: crypto.randomUUID() }));
+
+    expect(makeUp).not.toBe(regular);
+    expect((await listUpcomingMeetings(TEST_OWNER, { from: "2026-08-01" })).length).toBe(2);
+  });
+
+  it("refuses a client id that is not a UUID", async () => {
+    await expect(
+      createMeeting(TEST_OWNER, meeting({ clientId: "not-a-uuid" })),
+    ).rejects.toBeInstanceOf(MeetingValidationError);
+  });
+
   it("refuses an archived group (#60)", async () => {
     await archiveGroup(TEST_OWNER, group);
 
