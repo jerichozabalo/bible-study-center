@@ -4,6 +4,26 @@ True observations that did not clear the bar for a numbered issue: nobody is
 blocked or harmed by them at today's scale. One line each — what was seen,
 where, and when. Promote to an issue the day one actually bites.
 
+- **2026-09-03 — Issue 18: server-rendered lists don't refresh after a background outbox flush.**
+  `uploadPerson` / `uploadGroup` (and issue 11's `uploadMeeting`) call
+  `revalidatePath`, but a leader sitting on `/people`, `/`, or `/calendar` when
+  the outbox flushes on reconnect won't see the new rows until they navigate or
+  pull-to-refresh — the client doesn't re-fetch the RSC payload on a flush.
+  One user, workaround = refresh. Promote if it actually confuses Jericho in the
+  field. A fix would have `OutboxProvider` call `router.refresh()` after a flush
+  that uploaded anything.
+- **2026-09-03 — Issue 18: `NewMeetingForm` cards for still-queued offline BGroups
+  are always bookless.** The `books` list isn't on the client, so a picker card
+  for an offline-created BGroup can't show its `currentBookId` or offer sessions
+  — an offline meeting for an offline BGroup records no session. Self-corrects
+  once the BGroup uploads and the form is reopened. `src/components/meetings/NewMeetingForm.tsx`.
+- **2026-09-03 — Issue 18: offline walk-in on the attendance sheet is still
+  online-only.** `addWalkIn` is its own path (creates a person) and issue 18
+  scoped it out; a walk-in captured on an offline sheet, or an offline sheet
+  marking an offline-created person, has no `personRef` mechanism —
+  `SheetPayload` marks carry only a real `personId`. Would need a `personRef` on
+  sheet marks + an offline `addWalkIn` path. Flagged in case it comes up before
+  v1.1.
 - **2026-09-03 — Issue 17: the attendance page loads the whole roster unbounded.**
   `src/app/(shell)/meetings/[id]/page.tsx` now calls `listPeople(user.email)`
   with no limit on every load, to feed the client-side "Add someone else"

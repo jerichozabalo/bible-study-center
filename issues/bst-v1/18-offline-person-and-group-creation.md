@@ -22,6 +22,38 @@ group setup happens at home with signal. Jericho does that setup in the field on
 the same phone, so "add them now, Upload later" is the same need. This issue is
 the amendment; issue 11 built the outbox foundation this extends.
 
+## Status — Tier 1 shipped 2026-09-03 (`5396841`), Tier 2 remains
+**Done and tested:** the offline write path and its dependency graph, end to end.
+`createPerson` / `createGroup` take an optional `clientId` used as the row PK
+(`COALESCE($n::uuid, gen_random_uuid())` + `ON CONFLICT (id) DO NOTHING`, replay
+re-selects — mirrors `createMeeting`, no migration needed); `uploadPerson` /
+`uploadGroup` server actions; `PERSON_WRITE` / `GROUP_WRITE` transport handlers;
+`PersonPayload.homeGroupRef` and `MeetingPayload.groupRef` resolve through
+`ctx.resolve()` like `SheetPayload.meetingRef`; `GroupForm` / `PersonForm` /
+`NewMeetingForm` enqueue offline and offer still-queued BGroups as options;
+`outbox.itemsSnapshot()` / `OutboxProvider.pendingWrites` expose the queue to
+forms. Integration test covers `group → person → meeting → sheet` replaying from
+one flush in dependency order, once each, resuming after a mid-flush failure
+with no duplicate rows. 504 tests green.
+
+**What is LEFT (the rest of this issue):**
+1. **`"failed"` `OutboxItem` status + retry.** Today `status` is
+   `"pending" | "done"` and a handler that still throws after `withRetry` just
+   stops the flush (issue 11's behaviour), leaving the item `pending`. Add
+   `"failed"` + an error note to `store.ts` / `queue.ts`; mark the item `failed`
+   on a terminal throw and stop; add `retry()` on `Outbox` that resets
+   `failed → pending` and flushes; expose it through `OutboxProvider`.
+2. **Pending / failed row states on `/people` (People segment) and the Groups
+   segment.** `src/app/(shell)/people/page.tsx` and the Groups list are
+   unchanged — an offline-created person/group is invisible there until it
+   uploads. Add a client component reading `outbox.pendingWrites`
+   (`PERSON_WRITE` / `GROUP_WRITE` items) that renders "Uploads when you have
+   signal" rows, and failed rows with a retry affordance (needs #1), merged into
+   the server-rendered lists. Follow issue 11's copy idiom.
+3. **Settings + Reports say "online-only" when offline.** A small client
+   banner / disabled state on `/settings` and `/reports` (#72 amended: they stay
+   online-only, no pending states). Check what issue 11 already did.
+
 ## Scope
 - **In:** create a person (name-only path included, #9/#67); create a group
   (with its current book + schedule as the create form already collects).
