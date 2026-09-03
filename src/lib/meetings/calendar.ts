@@ -221,8 +221,12 @@ async function insertGeneratedMeeting(
         book_id, session_id, notes, status, origin)
      SELECT $1, $1, g.id, $3::date, g.start_time, g.duration_minutes, g.current_book_id,
             -- The prefill session is the book's first; the attendance
-            -- sheet is where a real session gets attached (#53).
-            (SELECT id FROM sessions WHERE book_id = g.current_book_id ORDER BY number ASC LIMIT 1),
+            -- sheet is where a real session gets attached (#53). "First" means
+            -- the first one the book still has — a retired session (#24) is not
+            -- part of it, and a night must not open on one.
+            (SELECT id FROM sessions
+              WHERE book_id = g.current_book_id AND retired_at IS NULL
+              ORDER BY number ASC LIMIT 1),
             NULL, 'proposed', 'generated'
       FROM groups g
      WHERE g.id = $2 AND g.owner_id = $1 AND g.archived_at IS NULL

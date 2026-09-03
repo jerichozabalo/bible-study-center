@@ -1,5 +1,6 @@
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { resetCustomBooks } from "../../../tests/curriculum-fixtures";
 import {
   TEST_OWNER,
   addPerson,
@@ -9,6 +10,8 @@ import {
   resetRoster,
 } from "../../../tests/fixtures";
 import { addHeldMeeting, resetMeetings, sessionIdByNumber } from "../../../tests/meeting-fixtures";
+import { getBook } from "../curriculum/books";
+import { createBook, updateBook } from "../curriculum/custom";
 import { seedCurriculum } from "../curriculum/seed";
 import { archiveGroup, createGroup } from "../roster/groups";
 import { createMeeting } from "./meetings";
@@ -27,6 +30,13 @@ describe("nextSession", () => {
 
   it("takes the one after what was last covered", () => {
     expect(nextSession(sessions, 2)).toMatchObject({ number: 3 });
+  });
+
+  it("steps over a number the book no longer has (#24 — a retired session)", () => {
+    // Numbers are identities, not positions (issue 13), so a book that lost its
+    // second session reads 1, 3, 4 and the night after 1 is 3.
+    const gapped = [sessions[0], sessions[2]];
+    expect(nextSession(gapped, 1)).toMatchObject({ number: 3 });
   });
 
   it("has nothing to offer once the book is finished (#4 asks what is next)", () => {
@@ -60,6 +70,12 @@ describe.skipIf(!dbConfigured)("getMeetingPrefill", () => {
       durationMinutes: 90,
       currentBookId: bookOne,
     });
+  });
+
+  // `seed.test.ts` asserts the curriculum is exactly the eight GLC books, so a
+  // custom book left behind here fails a file that has nothing wrong with it.
+  afterAll(async () => {
+    await resetCustomBooks();
   });
 
   it("prefills the group's current book and its first session before anything is held (#53)", async () => {
@@ -128,6 +144,49 @@ describe.skipIf(!dbConfigured)("getMeetingPrefill", () => {
       bookId: bookOne,
       sessionId: null,
       sessionNumber: null,
+    });
+  });
+
+  it("neither lists nor lands on a session the book has retired (#24)", async () => {
+    const bookId = await createBook(TEST_OWNER, {
+      title: "Kingdom Parables",
+      sessions: [
+        { id: null, title: "The Sower" },
+        { id: null, title: "The Wheat and the Weeds" },
+        { id: null, title: "The Mustard Seed" },
+      ],
+    });
+    const before = await getBook(bookId);
+    await updateBook(TEST_OWNER, bookId, {
+      title: before!.title,
+      sessions: [before!.sessions[0], before!.sessions[2]].map((session) => ({
+        id: session.id,
+        title: session.title,
+      })),
+    });
+
+    const custom = await createGroup(TEST_OWNER, {
+      name: "BGroup Sabado",
+      weekday: 6,
+      startTime: "16:00",
+      durationMinutes: 90,
+      currentBookId: bookId,
+    });
+    await addHeldMeeting(TEST_OWNER, custom, "2026-08-09", {
+      bookId,
+      sessionId: before!.sessions[0].id,
+    });
+
+    const prefill = await getMeetingPrefill(TEST_OWNER, custom);
+
+    // The LESSON panel offers what the book has now, tombstone excluded.
+    expect(prefill?.sessions.map((session) => session.number)).toEqual([1, 3]);
+    // And the agenda moves to the session that follows, not to the retired one
+    // and not to "book finished" — a number the book skipped is still a gap the
+    // group walks over (issue 13: numbers are identities, not positions).
+    expect(prefill).toMatchObject({
+      sessionId: before!.sessions[2].id,
+      sessionNumber: 3,
     });
   });
 

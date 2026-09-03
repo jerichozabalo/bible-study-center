@@ -70,7 +70,10 @@ const SELECT_GROUP = `
          g.current_book_id,
          b.number AS current_book_number,
          b.title AS current_book_title,
-         COALESCE((SELECT count(*) FROM sessions s WHERE s.book_id = b.id), 0)::int
+         -- Retired sessions are not part of the book (#24), so they are not part
+         -- of its count either — the Groups card and /books read the same book.
+         COALESCE((SELECT count(*) FROM sessions s
+                    WHERE s.book_id = b.id AND s.retired_at IS NULL), 0)::int
            AS current_book_session_count,
          (SELECT count(*) FROM people p WHERE p.home_group_id = g.id)::int AS member_count,
          g.quiet_threshold,

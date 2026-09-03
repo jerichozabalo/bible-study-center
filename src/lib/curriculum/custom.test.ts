@@ -305,6 +305,35 @@ describe.skipIf(!dbConfigured)("custom books", () => {
       });
     });
 
+    it("counts a retired session on neither the book nor the BGroup card (#24)", async () => {
+      const id = await createBook(TEST_OWNER, parables);
+      const groupId = await createGroup(TEST_OWNER, {
+        name: "BGroup Sabado",
+        weekday: 6,
+        startTime: "16:00",
+        durationMinutes: 90,
+        currentBookId: id,
+      });
+      const before = await getBook(id);
+
+      await updateBook(TEST_OWNER, id, {
+        title: before!.title,
+        sessions: [
+          { id: before!.sessions[0].id, title: before!.sessions[0].title },
+          { id: before!.sessions[2].id, title: before!.sessions[2].title },
+        ],
+      });
+
+      // The Groups card and GroupDetail read `currentBookSessionCount`; /books
+      // reads `sessionCount`. Two screens in the same app must not disagree
+      // about the same book.
+      const book = await getBook(id);
+      expect(book?.sessionCount).toBe(2);
+      expect(await getGroup(TEST_OWNER, groupId)).toMatchObject({
+        currentBookSessionCount: book?.sessionCount,
+      });
+    });
+
     it("reads exactly like a seeded book, field for field", async () => {
       // What prefill (#53), strict completion (#5) and catch-up matching (#31)
       // will each call. None of them exist yet; what this guards is that the

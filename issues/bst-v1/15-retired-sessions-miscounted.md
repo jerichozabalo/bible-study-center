@@ -1,7 +1,7 @@
 ---
 issue: 15
 title: A group's session count includes retired sessions
-status: open
+status: done
 blocked-by: [13]
 type: afk
 ---

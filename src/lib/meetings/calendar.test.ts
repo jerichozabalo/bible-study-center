@@ -1,5 +1,6 @@
-import { beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, beforeAll, beforeEach, describe, expect, it } from "vitest";
 
+import { resetCustomBooks } from "../../../tests/curriculum-fixtures";
 import {
   TEST_OWNER,
   bookIdByNumber,
@@ -8,6 +9,8 @@ import {
   resetRoster,
 } from "../../../tests/fixtures";
 import { resetMeetings, sessionIdByNumber } from "../../../tests/meeting-fixtures";
+import { getBook } from "../curriculum/books";
+import { createBook, updateBook } from "../curriculum/custom";
 import { seedCurriculum } from "../curriculum/seed";
 import { createGroup } from "../roster/groups";
 import { createMeeting } from "./meetings";
@@ -48,6 +51,12 @@ describe.skipIf(!dbConfigured)("calendar", () => {
       durationMinutes: 90,
       currentBookId: bookOne,
     });
+  });
+
+  // `seed.test.ts` asserts the curriculum is exactly the eight GLC books, so a
+  // custom book left behind here fails a file that has nothing wrong with it.
+  afterAll(async () => {
+    await resetCustomBooks();
   });
 
   describe("materializeSchedule", () => {
@@ -138,6 +147,38 @@ describe.skipIf(!dbConfigured)("calendar", () => {
 
       const meetings = await getCalendar(TEST_OWNER, { from: "2026-08-23", to: "2026-10-18" });
       expect(meetings).toHaveLength(8); // only the one group's meetings
+    });
+
+    it("never prefills a generated meeting with a retired session (#24/#53)", async () => {
+      // The materialiser picks the book's first session. "First" has to mean
+      // first *live* one: a custom book whose session 1 was removed still has a
+      // session 1 in the table, tombstoned, and a night must not open on it.
+      const bookId = await createBook(TEST_OWNER, {
+        title: "Kingdom Parables",
+        sessions: [
+          { id: null, title: "The Sower" },
+          { id: null, title: "The Mustard Seed" },
+        ],
+      });
+      const before = await getBook(bookId);
+      await updateBook(TEST_OWNER, bookId, {
+        title: before!.title,
+        sessions: [{ id: before!.sessions[1].id, title: before!.sessions[1].title }],
+      });
+      const custom = await createGroup(TEST_OWNER, {
+        name: "BGroup Sabado",
+        weekday: 6,
+        startTime: "16:00",
+        durationMinutes: 90,
+        currentBookId: bookId,
+      });
+
+      await materializeSchedule(TEST_OWNER, "2026-08-22"); // a Saturday
+
+      const meetings = await getCalendar(TEST_OWNER, { from: "2026-08-22", to: "2026-08-22" });
+      const night = meetings.find((m) => m.groupId === custom);
+      expect(night?.sessionId).toBe(before!.sessions[1].id);
+      expect(night?.sessionNumber).toBe(2);
     });
 
     it("leaves a human-created meeting on the same day intact", async () => {

@@ -56,13 +56,20 @@ export type PickerGroup = {
  * The session that follows `lastCoveredNumber` — pure, so the rule can be read
  * without a database. A finished book yields null: #4 makes choosing the next
  * book a deliberate checkpoint, and guessing at it here would skip it.
+ *
+ * The first session numbered *after* the last one, rather than exactly the next
+ * number: retiring a session (#24) leaves a gap in a custom book's numbering,
+ * because numbers are identities and are never re-used (issue 13). A book that
+ * reads 1, 3, 4 is not finished after session 1.
+ *
+ * `sessions` arrives ordered by number, so the first match is the nearest.
  */
 export function nextSession(
   sessions: CurriculumSession[],
   lastCoveredNumber: number | null,
 ): CurriculumSession | null {
-  const wanted = (lastCoveredNumber ?? 0) + 1;
-  return sessions.find((session) => session.number === wanted) ?? null;
+  const covered = lastCoveredNumber ?? 0;
+  return sessions.find((session) => session.number > covered) ?? null;
 }
 
 /**
@@ -110,8 +117,13 @@ export async function getMeetingPrefill(
   }
 
   const [sessions, lastCovered] = await Promise.all([
+    // Retired sessions are not part of the book (#24) — the form must not offer
+    // one, and the agenda must not land on one. The same clause `books.ts` reads
+    // the curriculum with.
     query<CurriculumSession>(
-      "SELECT id, number, title FROM sessions WHERE book_id = $1 ORDER BY number ASC",
+      `SELECT id, number, title FROM sessions
+        WHERE book_id = $1 AND retired_at IS NULL
+        ORDER BY number ASC`,
       [group.current_book_id],
     ),
     lastCoveredSessionNumber(ownerId, groupId, group.current_book_id),
