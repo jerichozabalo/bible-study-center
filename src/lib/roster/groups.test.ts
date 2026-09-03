@@ -414,4 +414,38 @@ describe.skipIf(!dbConfigured)("groups", () => {
     expect((await getGroup(TEST_OWNER, id))?.archivedAt).toBeInstanceOf(Date);
     expect((await listGroups(TEST_OWNER)).map((group) => group.id)).not.toContain(id);
   });
+
+  // #72 as amended 2026-09-02: a BGroup created with no signal carries the
+  // outbox item's id, and a retried flush replays the same insert.
+  describe("offline creation carries a client id (#72/#73)", () => {
+    const CLIENT_ID = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa";
+
+    it("uses the supplied clientId as the row id", async () => {
+      const id = await createGroup(TEST_OWNER, linggo({ clientId: CLIENT_ID }));
+      expect(id).toBe(CLIENT_ID);
+      expect(await getGroup(TEST_OWNER, CLIENT_ID)).toMatchObject({ name: "BGroup Linggo" });
+    });
+
+    it("is a no-op on replay — same clientId returns the first row, no duplicate", async () => {
+      const first = await createGroup(TEST_OWNER, linggo({ clientId: CLIENT_ID }));
+      const second = await createGroup(
+        TEST_OWNER,
+        linggo({ clientId: CLIENT_ID, name: "A different name" }),
+      );
+
+      expect(second).toBe(first);
+      const rows = await query<{ name: string }>(
+        "SELECT name FROM groups WHERE owner_id = $1",
+        [TEST_OWNER],
+      );
+      expect(rows).toHaveLength(1);
+      expect(rows[0].name).toBe("BGroup Linggo");
+    });
+
+    it("refuses a clientId that is not a UUID", async () => {
+      await expect(
+        createGroup(TEST_OWNER, linggo({ clientId: "queue-1" })),
+      ).rejects.toBeInstanceOf(RosterValidationError);
+    });
+  });
 });

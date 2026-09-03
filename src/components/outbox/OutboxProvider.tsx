@@ -21,10 +21,18 @@ import {
 
 import { browserOutbox } from "@/lib/outbox/browser";
 import type { EnqueueInput } from "@/lib/outbox/queue";
+import type { OutboxItem } from "@/lib/outbox/store";
+
+/** A stable empty array for the server snapshot — a fresh `[]` each render
+ * would make `useSyncExternalStore` loop. */
+const NO_ITEMS: OutboxItem[] = [];
 
 type OutboxHandle = {
   /** Pending local writes waiting to leave the phone. */
   pending: number;
+  /** The pending items themselves — a form reads this to learn which
+   * offline-created BGroups are still queued (issue 18). */
+  pendingWrites: OutboxItem[];
   enqueue: (input: EnqueueInput) => Promise<string>;
   flush: () => void;
 };
@@ -38,6 +46,12 @@ export function OutboxProvider({ children }: { children: React.ReactNode }) {
     outbox.subscribe,
     outbox.snapshot,
     () => 0,
+  );
+
+  const pendingWrites = useSyncExternalStore(
+    outbox.subscribe,
+    outbox.itemsSnapshot,
+    () => NO_ITEMS,
   );
 
   const flush = useCallback(() => {
@@ -67,8 +81,8 @@ export function OutboxProvider({ children }: { children: React.ReactNode }) {
   }, [outbox, flush]);
 
   const value = useMemo<OutboxHandle>(
-    () => ({ pending, enqueue, flush }),
-    [pending, enqueue, flush],
+    () => ({ pending, pendingWrites, enqueue, flush }),
+    [pending, pendingWrites, enqueue, flush],
   );
 
   return <OutboxContext.Provider value={value}>{children}</OutboxContext.Provider>;

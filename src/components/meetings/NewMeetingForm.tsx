@@ -23,13 +23,13 @@
  * group rewrites the agenda below it, and a round trip per tap would make the
  * form feel like a website.
  */
-import { useActionState, useState } from "react";
+import { useActionState, useMemo, useState } from "react";
 
 import { useOutbox } from "@/components/outbox/OutboxProvider";
 import type { MeetingFormState } from "@/lib/meetings/actions";
 import { parseMeetingForm } from "@/lib/meetings/form";
 import type { PickerGroup } from "@/lib/meetings/prefill";
-import { MEETING_WRITE } from "@/lib/outbox/transport";
+import { GROUP_WRITE, MEETING_WRITE, type GroupPayload } from "@/lib/outbox/transport";
 import {
   moreLabel,
   pickerMetaLine,
@@ -67,17 +67,42 @@ export function NewMeetingForm({
   const outbox = useOutbox();
   const [queued, setQueued] = useState(false);
 
+  // A BGroup created offline (#72 amended) is not in the server list this form
+  // was handed. Offer it as a picker card so an offline meeting can be logged
+  // against it — picking it enqueues a `groupRef` + `deps` instead of a
+  // `groupId`, so the meeting replays only once the BGroup has a server id.
+  const pendingGroups = outbox.pendingWrites;
+  const queuedGroups = useMemo<PickerGroup[]>(
+    () =>
+      pendingGroups
+        .filter((item) => item.type === GROUP_WRITE)
+        .map((item) => pickerGroupFromPending(item.id, item.payload as unknown as GroupPayload)),
+    [pendingGroups],
+  );
+  const allGroups = useMemo(() => [...groups, ...queuedGroups], [groups, queuedGroups]);
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     if (typeof navigator === "undefined" || navigator.onLine) return;
 
-    // #72: creating a meeting is one of the two writes that works with no
-    // signal. Queue it and upload on reconnect.
+    // #72: creating a meeting is one of the writes that works with no signal.
+    // Queue it and upload on reconnect.
     event.preventDefault();
     const { groupId, date, startTime, durationMinutes, bookId, sessionId, notes, repeatWeekly } =
       parseMeetingForm(new FormData(event.currentTarget));
+    const offlineGroup = queuedGroups.some((group) => group.id === groupId);
     void outbox.enqueue({
       type: MEETING_WRITE,
-      payload: { groupId, date, startTime, durationMinutes, bookId, sessionId, notes, repeatWeekly },
+      payload: {
+        date,
+        startTime,
+        durationMinutes,
+        bookId,
+        sessionId,
+        notes,
+        repeatWeekly,
+        ...(offlineGroup ? { groupRef: groupId } : { groupId }),
+      },
+      deps: offlineGroup ? [groupId] : [],
     });
     setQueued(true);
   }
@@ -95,9 +120,9 @@ export function NewMeetingForm({
   const [sessionId, setSessionId] = useState<string | null>(groups[0].prefill.sessionId);
   const [repeatWeekly, setRepeatWeekly] = useState(false);
 
-  const selected = groups.find((group) => group.id === selectedId) ?? groups[0];
-  const shown = visibleGroups(groups, selectedId, expanded);
-  const expander = moreLabel(groups.length, expanded);
+  const selected = allGroups.find((group) => group.id === selectedId) ?? groups[0];
+  const shown = visibleGroups(allGroups, selectedId, expanded);
+  const expander = moreLabel(allGroups.length, expanded);
 
   // `pickedDate ||` because a cleared native date input reads as an empty
   // string, and every line below formats this date rather than checking it.
@@ -343,6 +368,38 @@ export function NewMeetingForm({
       </p>
     </form>
   );
+}
+
+/**
+ * A still-queued offline BGroup as a picker card. It has no held meetings and
+ * no session history to pre-fill from, and its book — even if one was chosen —
+ * is not loaded here, so the lesson panel offers the fellowship-night path
+ * until the BGroup has uploaded and the form is reopened with real data.
+ */
+function pickerGroupFromPending(queueId: string, payload: GroupPayload): PickerGroup {
+  return {
+    id: queueId,
+    name: payload.name,
+    weekday: payload.weekday,
+    startTime: payload.startTime,
+    durationMinutes: payload.durationMinutes,
+    memberCount: 0,
+    currentBookId: null,
+    currentBookNumber: null,
+    currentBookTitle: null,
+    lastHeldDate: null,
+    prefill: {
+      groupId: queueId,
+      bookId: null,
+      bookNumber: null,
+      bookTitle: null,
+      sessions: [],
+      sessionId: null,
+      sessionNumber: null,
+      startTime: payload.startTime,
+      durationMinutes: payload.durationMinutes,
+    },
+  };
 }
 
 function GroupCard({

@@ -34,6 +34,14 @@ export type GroupInput = {
   durationMinutes: number;
   /** Optional: a group can exist before its first book is chosen. */
   currentBookId: string | null;
+  /**
+   * The outbox's idempotency key (#72 as amended 2026-09-02). A BGroup created
+   * with no signal is inserted with this as its `id`, so a replay after a
+   * half-finished flush returns the row the first attempt wrote instead of a
+   * second BGroup. Absent for the online form — the database assigns the id
+   * then. Must be a UUID when present.
+   */
+  clientId?: string | null;
 };
 
 export type GroupSummary = {
@@ -116,8 +124,9 @@ export async function createGroup(ownerId: string, input: GroupInput): Promise<s
   const clean = await validate(input);
 
   const rows = await query<{ id: string }>(
-    `INSERT INTO groups (owner_id, name, weekday, start_time, duration_minutes, current_book_id)
-     VALUES ($1, $2, $3, $4, $5, $6)
+    `INSERT INTO groups (id, owner_id, name, weekday, start_time, duration_minutes, current_book_id)
+     VALUES (COALESCE($7::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6)
+     ON CONFLICT (id) DO NOTHING
      RETURNING id`,
     [
       ownerId,
@@ -126,8 +135,22 @@ export async function createGroup(ownerId: string, input: GroupInput): Promise<s
       clean.startTime,
       clean.durationMinutes,
       clean.currentBookId,
+      clean.clientId,
     ],
   );
+
+  if (rows.length === 0) {
+    // #72: the client id already names a BGroup — this is a replay. Return that
+    // row untouched (append-and-send, not an edit); the first attempt saved it.
+    const existing = await query<{ id: string }>(
+      "SELECT id FROM groups WHERE id = $1 AND owner_id = $2",
+      [clean.clientId, ownerId],
+    );
+    if (existing.length === 0) {
+      throw new RosterValidationError("That BGroup could not be created.");
+    }
+    return existing[0].id;
+  }
 
   return rows[0].id;
 }
@@ -373,6 +396,10 @@ async function validate(input: GroupInput): Promise<GroupInput> {
   const name = input.name.trim();
   if (name.length === 0) throw new RosterValidationError("A BGroup needs a name.");
 
+  if (input.clientId != null && !UUID_PATTERN.test(input.clientId)) {
+    throw new RosterValidationError("That BGroup could not be created.");
+  }
+
   if (!Number.isInteger(input.weekday) || input.weekday < 0 || input.weekday > 6) {
     throw new RosterValidationError("Pick the day this BGroup meets.");
   }
@@ -402,5 +429,12 @@ async function validate(input: GroupInput): Promise<GroupInput> {
     }
   }
 
-  return { name, weekday: input.weekday, startTime: input.startTime, durationMinutes: input.durationMinutes, currentBookId };
+  return {
+    name,
+    weekday: input.weekday,
+    startTime: input.startTime,
+    durationMinutes: input.durationMinutes,
+    currentBookId,
+    clientId: input.clientId ?? null,
+  };
 }

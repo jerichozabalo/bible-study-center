@@ -59,6 +59,14 @@ export type PersonInput = {
   baptizedOn?: string | null;
   invitedBy?: string | null;
   notes?: string | null;
+  /**
+   * The outbox's idempotency key (#72 as amended 2026-09-02). A person added
+   * with no signal is inserted with this as its `id`, so a replay after a
+   * half-finished flush returns the row the first attempt wrote instead of a
+   * duplicate. Absent for the online form — the database assigns the id then.
+   * Must be a UUID when present. Only `createPerson` reads it.
+   */
+  clientId?: string | null;
 };
 
 export type PersonSummary = {
@@ -206,10 +214,12 @@ export async function createPerson(ownerId: string, input: PersonInput): Promise
 
   return transaction(async (tx) => {
     const rows = await tx.query<{ id: string }>(
-      `INSERT INTO people (owner_id, name, phone, email, home_group_id, joined_on, birthday,
+      `INSERT INTO people (id, owner_id, name, phone, email, home_group_id, joined_on, birthday,
                            address, civil_status, spiritual_status, baptized, baptized_on,
                            invited_by, notes)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)
+       VALUES (COALESCE($15::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+               $12, $13, $14)
+       ON CONFLICT (id) DO NOTHING
        RETURNING id`,
       [
         ownerId,
@@ -226,8 +236,23 @@ export async function createPerson(ownerId: string, input: PersonInput): Promise
         clean.baptizedOn,
         clean.invitedBy,
         clean.notes,
+        clean.clientId,
       ],
     );
+
+    if (rows.length === 0) {
+      // #72: the client id already names a person — this is a replay. Return
+      // that row untouched; the first, successful attempt already opened the
+      // joined-at marker (#28), so this does no membership work.
+      const existing = await tx.query<{ id: string }>(
+        "SELECT id FROM people WHERE id = $1 AND owner_id = $2",
+        [clean.clientId, ownerId],
+      );
+      if (existing.length === 0) {
+        throw new RosterValidationError("That person could not be created.");
+      }
+      return existing[0].id;
+    }
 
     const id = rows[0].id;
     if (clean.homeGroupId !== null) {
@@ -466,6 +491,7 @@ type CleanPerson = {
   baptizedOn: string | null;
   invitedBy: string | null;
   notes: string | null;
+  clientId: string | null;
 };
 
 async function validate(
@@ -475,6 +501,10 @@ async function validate(
 ): Promise<CleanPerson> {
   const name = (input.name ?? "").trim();
   if (name.length === 0) throw new RosterValidationError("A person needs a name.");
+
+  if (input.clientId != null && !UUID_PATTERN.test(input.clientId)) {
+    throw new RosterValidationError("That person could not be created.");
+  }
 
   const phone = trimmed(input.phone);
   if (phone !== null && phone.replace(/\D/g, "").length < 7) {
@@ -552,6 +582,7 @@ async function validate(
     baptizedOn: baptized ? baptizedOn : null,
     invitedBy: trimmed(input.invitedBy),
     notes: trimmed(input.notes),
+    clientId: input.clientId ?? null,
   };
 }
 

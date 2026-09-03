@@ -175,6 +175,34 @@ describe("createOutbox", () => {
     expect(result).toMatchObject({ uploaded: 1, pending: 0, error: null });
   });
 
+  it("exposes the pending items so a form can see still-queued offline writes", async () => {
+    const store = memoryStore();
+    const { transport } = recordingTransport({
+      group: async (ctx) => ({ serverId: `srv-${ctx.id}` }),
+    });
+    const outbox = createOutbox({ store, transport, retry: noSleep });
+
+    expect(outbox.itemsSnapshot()).toEqual([]);
+
+    const groupId = await outbox.enqueue({
+      type: "group",
+      payload: { name: "BGroup Bukas" },
+    });
+    await outbox.enqueue({
+      type: "meeting",
+      payload: { groupRef: groupId, date: "2026-09-06" },
+      deps: [groupId],
+    });
+
+    const items = outbox.itemsSnapshot();
+    expect(items.map((i) => i.type)).toEqual(["group", "meeting"]);
+    // Stable reference until the queue changes — safe for useSyncExternalStore.
+    expect(outbox.itemsSnapshot()).toBe(items);
+
+    await outbox.flush();
+    expect(outbox.itemsSnapshot()).toEqual([]);
+  });
+
   it("notifies subscribers when the count changes", async () => {
     const store = memoryStore();
     const { transport } = recordingTransport();

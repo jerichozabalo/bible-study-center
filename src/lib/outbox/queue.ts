@@ -70,6 +70,13 @@ export type Outbox = {
   pending(): Promise<number>;
   /** The last-known pending count, synchronous — for `useSyncExternalStore`. */
   snapshot(): number;
+  /**
+   * The last-known pending items, synchronous and reference-stable until the
+   * queue changes — for `useSyncExternalStore`. A form uses this to learn which
+   * offline-created BGroups are still queued, so a person enqueued into one can
+   * carry a ref to it (issue 18's dependency graph).
+   */
+  itemsSnapshot(): OutboxItem[];
   subscribe(listener: () => void): () => void;
 };
 
@@ -93,6 +100,7 @@ export function createOutbox(opts: {
 
   const listeners = new Set<() => void>();
   let count = 0;
+  let pendingItems: OutboxItem[] = [];
   let flushing: Promise<FlushResult> | null = null;
 
   function notify() {
@@ -101,7 +109,10 @@ export function createOutbox(opts: {
 
   async function refresh(): Promise<number> {
     const items = await store.all();
-    count = items.filter((item) => item.status === "pending").length;
+    pendingItems = items
+      .filter((item) => item.status === "pending")
+      .sort((a, b) => a.seq - b.seq);
+    count = pendingItems.length;
     notify();
     return count;
   }
@@ -210,6 +221,7 @@ export function createOutbox(opts: {
     flush,
     pending: refresh,
     snapshot: () => count,
+    itemsSnapshot: () => pendingItems,
     subscribe(listener) {
       listeners.add(listener);
       return () => listeners.delete(listener);

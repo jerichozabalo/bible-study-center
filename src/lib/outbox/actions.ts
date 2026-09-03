@@ -17,6 +17,8 @@ import { revalidatePath } from "next/cache";
 import { requireUser } from "../auth/guard";
 import { type Mark, recordSheet } from "../attendance/completions";
 import { createMeeting } from "../meetings/meetings";
+import { createGroup } from "../roster/groups";
+import { createPerson } from "../roster/people";
 
 export type QueuedMeeting = {
   /** The outbox item's id — the idempotency key (#73's intent). */
@@ -70,4 +72,79 @@ export async function uploadSheet(input: QueuedSheet): Promise<void> {
   revalidatePath("/");
   revalidatePath("/calendar");
   revalidatePath(`/meetings/${input.meetingId}`);
+}
+
+/**
+ * Person and BGroup creation queued on the phone (#72 as amended 2026-09-02).
+ *
+ * Same modules and validation as the online forms; the only difference is the
+ * `clientId` the queue carries so a retried flush returns the first attempt's
+ * row instead of a duplicate. Neither redirects — a flush is a loop.
+ */
+export type QueuedGroup = {
+  clientId: string;
+  name: string;
+  weekday: number;
+  startTime: string;
+  durationMinutes: number;
+  currentBookId: string | null;
+};
+
+export async function uploadGroup(input: QueuedGroup): Promise<{ groupId: string }> {
+  const user = await requireUser();
+
+  const groupId = await createGroup(user.email, {
+    name: input.name,
+    weekday: input.weekday,
+    startTime: input.startTime,
+    durationMinutes: input.durationMinutes,
+    currentBookId: input.currentBookId,
+    clientId: input.clientId,
+  });
+
+  revalidatePath("/people");
+  revalidatePath("/people/groups");
+  return { groupId };
+}
+
+export type QueuedPerson = {
+  clientId: string;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  homeGroupId: string | null;
+  joinedOn: string | null;
+  birthday: string | null;
+  address: string | null;
+  civilStatus: string | null;
+  spiritualStatus: string | null;
+  baptized: boolean;
+  baptizedOn: string | null;
+  invitedBy: string | null;
+  notes: string | null;
+};
+
+export async function uploadPerson(input: QueuedPerson): Promise<{ personId: string }> {
+  const user = await requireUser();
+
+  const personId = await createPerson(user.email, {
+    name: input.name,
+    phone: input.phone,
+    email: input.email,
+    homeGroupId: input.homeGroupId,
+    joinedOn: input.joinedOn,
+    birthday: input.birthday,
+    address: input.address,
+    civilStatus: input.civilStatus,
+    spiritualStatus: input.spiritualStatus,
+    baptized: input.baptized,
+    baptizedOn: input.baptizedOn,
+    invitedBy: input.invitedBy,
+    notes: input.notes,
+    clientId: input.clientId,
+  });
+
+  revalidatePath("/people");
+  revalidatePath("/people/groups");
+  return { personId };
 }

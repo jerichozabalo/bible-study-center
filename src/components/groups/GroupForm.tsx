@@ -16,10 +16,12 @@
  * posts and works without JavaScript.
  */
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
+import { useOutbox } from "@/components/outbox/OutboxProvider";
+import { GROUP_WRITE } from "@/lib/outbox/transport";
 import type { GroupFormState } from "@/lib/roster/actions";
-import type { GroupFormValues } from "@/lib/roster/form";
+import { type GroupFormValues, parseGroupForm } from "@/lib/roster/form";
 import { WEEKDAY_NAMES, formatDuration } from "@/lib/roster/schedule";
 
 export type BookOption = {
@@ -52,7 +54,29 @@ export function GroupForm({
   groupId?: string;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const outbox = useOutbox();
+  const [queued, setQueued] = useState(false);
   const programs = [...new Set(books.map((book) => book.programName))];
+
+  /**
+   * #72 as amended 2026-09-02: creating a BGroup works with no signal. Queue it
+   * and it uploads on reconnect. Editing offline is out of scope (#27) — an
+   * existing group (`groupId` set) still posts and fails like anything online.
+   */
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (groupId) return;
+    if (typeof navigator === "undefined" || navigator.onLine) return;
+
+    event.preventDefault();
+    const { name, weekday, startTime, durationMinutes, currentBookId } = parseGroupForm(
+      new FormData(event.currentTarget),
+    );
+    void outbox.enqueue({
+      type: GROUP_WRITE,
+      payload: { name, weekday, startTime, durationMinutes, currentBookId },
+    });
+    setQueued(true);
+  }
 
   // After a refusal the server hands back what was submitted, so the day, time,
   // duration and book the leader already chose survive a typo in the name. On a
@@ -60,8 +84,14 @@ export function GroupForm({
   const shown = state.values ?? values;
 
   return (
-    <form action={formAction} className="pt-1 pb-2">
+    <form action={formAction} onSubmit={handleSubmit} className="pt-1 pb-2">
       {groupId ? <input type="hidden" name="id" value={groupId} /> : null}
+
+      {queued ? (
+        <p className="mb-4 rounded-[18px] bg-blue-tint px-4 py-3 text-[14px] leading-[1.45] text-blue-deep">
+          Saved on this phone — it uploads by itself when you have signal.
+        </p>
+      ) : null}
 
       {/* The board's attention pair, not the field treatment. A white card with
           a `#E6DFD4` hairline is exactly how every input below renders, so the

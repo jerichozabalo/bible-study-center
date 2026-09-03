@@ -1,7 +1,7 @@
 ---
 issue: 18
 title: Person and group creation work offline (outbox extension)
-status: open
+status: in-progress
 blocked-by: [11]
 type: afk
 ---

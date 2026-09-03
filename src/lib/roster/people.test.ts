@@ -8,6 +8,7 @@ import {
   resetRoster,
 } from "../../../tests/fixtures";
 import { seedCurriculum } from "../curriculum/seed";
+import { query } from "../db";
 import { manilaToday } from "../dates";
 import { RosterValidationError, archiveGroup, createGroup } from "./groups";
 import {
@@ -419,5 +420,60 @@ describe.skipIf(!dbConfigured)("people", () => {
       "Nena Villamor",
     ]);
     expect(await listPeople(TEST_OWNER, { search: "zzz" })).toEqual([]);
+  });
+
+  // #72 as amended 2026-09-02: a person added with no signal carries the outbox
+  // item's id, and a retried flush replays the same insert.
+  describe("offline creation carries a client id (#72/#73)", () => {
+    const CLIENT_ID = "bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb";
+
+    it("uses the supplied clientId as the row id", async () => {
+      const id = await createPerson(TEST_OWNER, nena({ clientId: CLIENT_ID }));
+      expect(id).toBe(CLIENT_ID);
+      expect(await getPerson(TEST_OWNER, CLIENT_ID)).toMatchObject({ name: "Nena Villamor" });
+    });
+
+    it("opens the membership once, and not again on replay", async () => {
+      await createPerson(TEST_OWNER, nena({ clientId: CLIENT_ID }));
+      await createPerson(TEST_OWNER, nena({ clientId: CLIENT_ID, name: "A different name" }));
+
+      const people = await query<{ name: string }>(
+        "SELECT name FROM people WHERE owner_id = $1",
+        [TEST_OWNER],
+      );
+      expect(people).toHaveLength(1);
+      expect(people[0].name).toBe("Nena Villamor");
+
+      const memberships = await query<{ n: string }>(
+        "SELECT count(*)::text AS n FROM group_memberships WHERE person_id = $1",
+        [CLIENT_ID],
+      );
+      expect(memberships[0].n).toBe("1");
+    });
+
+    it("is a no-op on replay even with no home group (#9/#67 name-only path)", async () => {
+      const first = await createPerson(TEST_OWNER, {
+        name: "Walk-in",
+        homeGroupId: null,
+        clientId: CLIENT_ID,
+      });
+      const second = await createPerson(TEST_OWNER, {
+        name: "Walk-in",
+        homeGroupId: null,
+        clientId: CLIENT_ID,
+      });
+      expect(second).toBe(first);
+      const rows = await query<{ n: string }>(
+        "SELECT count(*)::text AS n FROM people WHERE owner_id = $1",
+        [TEST_OWNER],
+      );
+      expect(rows[0].n).toBe("1");
+    });
+
+    it("refuses a clientId that is not a UUID", async () => {
+      await expect(
+        createPerson(TEST_OWNER, nena({ clientId: "queue-1" })),
+      ).rejects.toBeInstanceOf(RosterValidationError);
+    });
   });
 });

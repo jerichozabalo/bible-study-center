@@ -16,10 +16,12 @@
  * screen with what was typed still in it. It posts and works without
  * JavaScript.
  */
-import { useActionState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
+import { useOutbox } from "@/components/outbox/OutboxProvider";
+import { PERSON_WRITE, pendingGroups } from "@/lib/outbox/transport";
 import type { PersonFormState } from "@/lib/roster/actions";
-import type { PersonFormValues } from "@/lib/roster/form";
+import { type PersonFormValues, parsePersonForm } from "@/lib/roster/form";
 import { CIVIL_STATUSES, SPIRITUAL_STATUSES } from "@/lib/roster/display";
 
 export type GroupOption = { id: string; name: string };
@@ -48,9 +50,76 @@ export function PersonForm({
   const [state, formAction, pending] = useActionState(action, {});
   const shown = state.values ?? values;
 
+  const outbox = useOutbox();
+  const [queued, setQueued] = useState(false);
+  const [online, setOnline] = useState(true);
+
+  useEffect(() => {
+    const update = () => setOnline(navigator.onLine);
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
+  // A BGroup created offline is not in the server list this form was handed, so
+  // it is offered from the outbox — but only offline, where picking it means an
+  // enqueued `homeGroupRef`. Online, a stale queue id in the picker would just
+  // be refused by the server.
+  const queuedGroups = online ? [] : pendingGroups(outbox.pendingWrites);
+
+  /**
+   * #72 as amended 2026-09-02: adding a person works with no signal. Queue it
+   * and it uploads on reconnect. Editing offline is out of scope (#27) — an
+   * existing person (`personId` set) still posts and fails like anything
+   * online.
+   */
+  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+    if (personId) return;
+    if (typeof navigator === "undefined" || navigator.onLine) return;
+
+    event.preventDefault();
+    const input = parsePersonForm(new FormData(event.currentTarget));
+    const pickedGroup = queuedGroups.find((group) => group.queueId === input.homeGroupId);
+
+    void outbox.enqueue({
+      type: PERSON_WRITE,
+      payload: {
+        name: input.name,
+        phone: input.phone,
+        email: input.email,
+        joinedOn: input.joinedOn,
+        birthday: input.birthday,
+        address: input.address,
+        civilStatus: input.civilStatus,
+        spiritualStatus: input.spiritualStatus,
+        baptized: input.baptized,
+        baptizedOn: input.baptizedOn,
+        invitedBy: input.invitedBy,
+        notes: input.notes,
+        // A home BGroup that is itself still queued travels as a ref + a dep, so
+        // the person replays only after that BGroup has a server id.
+        ...(pickedGroup
+          ? { homeGroupRef: pickedGroup.queueId }
+          : { homeGroupId: input.homeGroupId }),
+      },
+      deps: pickedGroup ? [pickedGroup.queueId] : [],
+    });
+    setQueued(true);
+  }
+
   return (
-    <form action={formAction} className="pt-1 pb-2">
+    <form action={formAction} onSubmit={handleSubmit} className="pt-1 pb-2">
       {personId ? <input type="hidden" name="id" value={personId} /> : null}
+
+      {queued ? (
+        <p className="mb-4 rounded-[18px] bg-blue-tint px-4 py-3 text-[14px] leading-[1.45] text-blue-deep">
+          Saved on this phone — it uploads by itself when you have signal.
+        </p>
+      ) : null}
 
       {state.error ? (
         <p
@@ -131,6 +200,11 @@ export function PersonForm({
         {groups.map((group) => (
           <option key={group.id} value={group.id}>
             {group.name}
+          </option>
+        ))}
+        {queuedGroups.map((group) => (
+          <option key={group.queueId} value={group.queueId}>
+            {group.name} — not uploaded yet
           </option>
         ))}
       </select>
