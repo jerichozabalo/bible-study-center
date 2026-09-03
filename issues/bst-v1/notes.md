@@ -4,6 +4,13 @@ True observations that did not clear the bar for a numbered issue: nobody is
 blocked or harmed by them at today's scale. One line each — what was seen,
 where, and when. Promote to an issue the day one actually bites.
 
+- **2026-09-03 — Issue 17: the attendance page loads the whole roster unbounded.**
+  `src/app/(shell)/meetings/[id]/page.tsx` now calls `listPeople(user.email)`
+  with no limit on every load, to feed the client-side "Add someone else"
+  ride-along search. Fine at personal-ministry scale (one leader, low hundreds
+  of people); if a roster ever grows large this wants to become a search server
+  action instead of shipping every person to the client. No symptom observed —
+  build and 493 tests clean.
 - **2026-09-03 — Issue 16: a stale group-edit form can re-adopt a retired book.**
   `src/lib/roster/groups.ts` `validate()` and `setCurrentBook()` check only
   `SELECT id FROM books WHERE id = $1` with no `retired_at IS NULL` clause, so a
