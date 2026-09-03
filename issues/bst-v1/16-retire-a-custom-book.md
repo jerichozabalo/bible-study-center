@@ -1,7 +1,7 @@
 ---
 issue: 16
 title: Retire a custom book (creating one is currently a one-way door)
-status: open
+status: done
 blocked-by: [13]
 type: afk
 ---

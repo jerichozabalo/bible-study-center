@@ -16,6 +16,8 @@ export type BookSummary = {
   /** NULL for a custom book; programs are seeded-only in v1 (#33). */
   programName: string | null;
   sessionCount: number;
+  /** #24 — a custom book taken out of the picker, never erased. NULL while live. */
+  retiredAt: Date | null;
 };
 
 export type CurriculumSession = {
@@ -47,6 +49,7 @@ const SELECT_BOOK = `
          b.number,
          b.title,
          p.name AS program_name,
+         b.retired_at,
          (SELECT count(*) FROM sessions s WHERE s.book_id = b.id AND s.retired_at IS NULL)::int
            AS session_count
     FROM books b
@@ -59,7 +62,8 @@ export async function listPrograms(): Promise<Program[]> {
 
 export async function listBooks(): Promise<BookSummary[]> {
   const rows = await query<BookRow>(
-    `${SELECT_BOOK} ORDER BY p.position ASC NULLS LAST, b.number ASC NULLS LAST, b.created_at ASC`,
+    `${SELECT_BOOK} WHERE b.retired_at IS NULL
+      ORDER BY p.position ASC NULLS LAST, b.number ASC NULLS LAST, b.created_at ASC`,
   );
 
   return rows.map(toSummary);
@@ -72,7 +76,23 @@ export async function listBooks(): Promise<BookSummary[]> {
  */
 export async function listOwnBooks(ownerId: string): Promise<BookSummary[]> {
   const rows = await query<BookRow>(
-    `${SELECT_BOOK} WHERE b.owner_id = $1 ORDER BY b.created_at ASC`,
+    `${SELECT_BOOK} WHERE b.owner_id = $1 AND b.retired_at IS NULL ORDER BY b.created_at ASC`,
+    [ownerId],
+  );
+
+  return rows.map(toSummary);
+}
+
+/**
+ * The leader's retired books (issue 16), most recently retired first — the
+ * "Retired" section at the bottom of `/books`, mirroring `listRemovedPeople`.
+ *
+ * Seeded rows belong to no one (#32), so this can never reach the GLC
+ * curriculum, and a retired book is put back from here (`unretireBook`).
+ */
+export async function listRetiredBooks(ownerId: string): Promise<BookSummary[]> {
+  const rows = await query<BookRow>(
+    `${SELECT_BOOK} WHERE b.owner_id = $1 AND b.retired_at IS NOT NULL ORDER BY b.retired_at DESC`,
     [ownerId],
   );
 
@@ -156,6 +176,7 @@ type BookRow = {
   number: number | null;
   title: string;
   program_name: string | null;
+  retired_at: Date | null;
   session_count: number;
 };
 
@@ -166,5 +187,6 @@ function toSummary(row: BookRow): BookSummary {
     title: row.title,
     programName: row.program_name,
     sessionCount: row.session_count,
+    retiredAt: row.retired_at,
   };
 }

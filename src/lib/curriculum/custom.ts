@@ -16,7 +16,7 @@
  * a constraint nobody expected — surfaces as the error it is. The same shape as
  * `roster/groups.ts`.
  */
-import { type TransactionClient, transaction } from "../db";
+import { type TransactionClient, query, transaction } from "../db";
 
 /** Something the leader typed cannot be saved, and the message says why. */
 export class CurriculumValidationError extends Error {
@@ -155,6 +155,78 @@ export async function updateBook(
       clean.sessions.filter((session) => session.id === null).map((session) => session.title),
     );
   });
+}
+
+/**
+ * Retire a custom book (issue 16) — take it out of the picker and the `/books`
+ * list without touching a BGroup that adopted it or any progress recorded
+ * against it (#24). The mirror of `archiveGroup` in `roster/groups.ts`.
+ *
+ * `owner_id = $2` is the whole safety rule, the same clause `updateBook` leans
+ * on: a seeded GLC book has a NULL `owner_id` (#32) and belongs to no one, so
+ * this statement can never match one — a seeded book is simply not retirable.
+ *
+ * A book a BGroup currently holds as its `current_book_id` is refused, and the
+ * group(s) are named. The app never silently NULLs a group's book (#17), and
+ * the honest fix is to change that group's book first. `getBook` still returns
+ * a retired book by id, so wherever a holding group already draws its title and
+ * sessions, it keeps drawing them.
+ */
+export async function retireBook(ownerId: string, id: string): Promise<void> {
+  if (!UUID_PATTERN.test(id)) throw new CurriculumValidationError(NOT_YOURS);
+
+  await transaction(async (tx) => {
+    const book = await tx.query<{ id: string; title: string }>(
+      "SELECT id, title FROM books WHERE id = $1 AND owner_id = $2 AND retired_at IS NULL FOR UPDATE",
+      [id, ownerId],
+    );
+    if (book.length === 0) throw new CurriculumValidationError(NOT_YOURS);
+
+    const holding = await tx.query<{ name: string }>(
+      `SELECT name FROM groups
+        WHERE owner_id = $2 AND current_book_id = $1 AND archived_at IS NULL
+        ORDER BY lower(name) ASC`,
+      [id, ownerId],
+    );
+    if (holding.length > 0) {
+      const names = nameList(holding.map((group) => group.name));
+      const whose = holding.length === 1 ? "that group's" : "those groups'";
+      throw new CurriculumValidationError(
+        `${book[0].title} is still the current book for ${names}. Change ${whose} book first.`,
+      );
+    }
+
+    await tx.query(
+      `UPDATE books SET retired_at = now(), updated_at = now()
+        WHERE id = $1 AND owner_id = $2 AND retired_at IS NULL`,
+      [id, ownerId],
+    );
+  });
+}
+
+/**
+ * Bring a retired custom book back (issue 16 — creation was a one-way door).
+ *
+ * The mirror of `retireBook`, and deliberately smaller: retiring can be refused
+ * because a BGroup might hold the book, un-retiring undoes a mis-tap and asks
+ * nothing. `retired_at IS NOT NULL` matches the guard on the way in, so a live
+ * book is a no-op rather than a fresh `updated_at`. Nothing about history
+ * changes in either direction (#24).
+ */
+export async function unretireBook(ownerId: string, id: string): Promise<void> {
+  if (!UUID_PATTERN.test(id)) throw new CurriculumValidationError(NOT_YOURS);
+
+  await query(
+    `UPDATE books SET retired_at = NULL, updated_at = now()
+      WHERE id = $1 AND owner_id = $2 AND retired_at IS NOT NULL`,
+    [id, ownerId],
+  );
+}
+
+/** "a", "a and b", "a, b and c" — for naming the BGroups that still hold a book. */
+function nameList(names: string[]): string {
+  if (names.length === 1) return names[0];
+  return `${names.slice(0, -1).join(", ")} and ${names[names.length - 1]}`;
 }
 
 async function insertSessions(

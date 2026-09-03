@@ -10,19 +10,27 @@
  * The GLC books are deliberately not listed here. They are CCF's published
  * material, nothing in v1 can change them, and a list that mixed the two would
  * be offering an Edit that eight of its rows refuse.
+ *
+ * A retired book (issue 16) drops out of the main list and reappears in the
+ * "Retired" section at the bottom — the same shape as the "Removed" section on
+ * `/people`.
  */
 import Link from "next/link";
 
 import { BackRow } from "@/components/BackRow";
 import { requireUser } from "@/lib/auth/guard";
-import { type BookSummary, listOwnBooks } from "@/lib/curriculum/books";
+import { type BookSummary, listOwnBooks, listRetiredBooks } from "@/lib/curriculum/books";
+import { formatDayMonth } from "@/lib/dates";
 
 /** Reads the session cookie and the curriculum — never prerendered. */
 export const dynamic = "force-dynamic";
 
 export default async function BooksPage() {
   const user = await requireUser();
-  const books = await listOwnBooks(user.email);
+  const [books, retired] = await Promise.all([
+    listOwnBooks(user.email),
+    listRetiredBooks(user.email),
+  ]);
 
   return (
     <section>
@@ -57,6 +65,32 @@ export default async function BooksPage() {
           </Link>
         </>
       )}
+
+      {retired.length > 0 ? (
+        <>
+          <div className="mt-[26px] mb-[11px] flex items-center gap-[9px]">
+            <h3 className="text-[15px] text-tan">Retired</h3>
+            <div className="h-px grow bg-line" />
+          </div>
+          <div className="flex flex-col gap-[9px]">
+            {retired.map((book) => (
+              <Link
+                key={book.id}
+                href={`/books/${book.id}/edit`}
+                className="flex items-center gap-[11px] rounded-[20px] bg-shell px-4 py-[13px] active:bg-line"
+              >
+                <div className="min-w-0 grow">
+                  <div className="truncate text-[15px] font-bold text-slate">{book.title}</div>
+                  <div className="mt-[2px] text-[13px] text-tan">
+                    {book.retiredAt ? `retired ${formatDayMonth(book.retiredAt)}` : "retired"}
+                  </div>
+                </div>
+                <span className="shrink-0 text-[13px] font-bold text-blue">Put back</span>
+              </Link>
+            ))}
+          </div>
+        </>
+      ) : null}
     </section>
   );
 }
