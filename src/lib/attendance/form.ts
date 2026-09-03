@@ -17,6 +17,12 @@ export type SheetForm = {
   marks: SheetMark[];
   /** The name of a walk-in being saved (#67), or null on an ordinary save. */
   walkIn: string | null;
+  /**
+   * #31 — the personId of an existing person being added as a ride-along (from
+   * a catch-up card or the "Add someone else" search), or null on any other
+   * save. Their button carries the id; the marks ride along in the same post.
+   */
+  rideAlong: string | null;
 };
 
 /** One field per person: `mark:<id>`, empty when they are not ticked. */
@@ -35,11 +41,13 @@ export function parseSheetForm(formData: FormData): SheetForm {
   }
 
   const intent = text(formData, "intent");
+  const rideAlong = text(formData, "rideAlong").trim();
 
   return {
     meetingId: text(formData, "meetingId"),
     marks,
     walkIn: intent === "walk-in" ? text(formData, "walkInName").trim() : null,
+    rideAlong: rideAlong === "" ? null : rideAlong,
   };
 }
 

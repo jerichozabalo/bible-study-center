@@ -1,7 +1,7 @@
 ---
 issue: 17
 title: Record a ride-along on the attendance sheet
-status: open
+status: done
 blocked-by: [7]
 type: afk
 ---

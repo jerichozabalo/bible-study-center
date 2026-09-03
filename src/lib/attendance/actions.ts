@@ -8,18 +8,19 @@
  * and turn a validation error into a sentence the sheet can print. Anything
  * else that throws keeps throwing.
  *
- * One form, two submits (#25/#67): "Save attendance" confirms the sheet and is
- * what marks the meeting held (#47); "Save to the roster" adds a walk-in and
- * comes straight back, because the leader is mid-room and has not finished
- * ticking. Both carry every mark on the sheet, so the round trip for a walk-in
- * cannot cost the ticks already made.
+ * One form, several submits (#25/#67/#31): "Save attendance" confirms the sheet
+ * and is what marks the meeting held (#47); "Save to the roster" adds a walk-in
+ * and "Add to tonight" adds a ride-along (#31) — both come straight back,
+ * because the leader is mid-room and has not finished ticking. Every submit
+ * carries every mark on the sheet, so the round trip cannot cost the ticks
+ * already made.
  */
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "../auth/guard";
 import { RosterValidationError } from "../roster/groups";
-import { AttendanceValidationError, addWalkIn, recordSheet } from "./completions";
+import { AttendanceValidationError, addRideAlong, addWalkIn, recordSheet } from "./completions";
 import { parseSheetForm } from "./form";
 
 export type SheetFormState = { error?: string };
@@ -32,6 +33,21 @@ export async function saveSheetAction(
   const form = parseSheetForm(formData);
 
   try {
+    if (form.rideAlong !== null) {
+      // The ticks first, so they survive the round trip, and the ride-along
+      // second — `addRideAlong` marks them attended itself (#31).
+      await recordSheet(user.email, {
+        meetingId: form.meetingId,
+        marks: form.marks,
+        hold: false,
+      });
+      await addRideAlong(user.email, form.meetingId, form.rideAlong);
+
+      revalidatePath(`/meetings/${form.meetingId}`);
+      // No redirect: the sheet re-renders with them on it, still open.
+      return {};
+    }
+
     if (form.walkIn !== null) {
       // The ticks first, so they survive the round trip, and the new person
       // second — `addWalkIn` marks them attended itself.

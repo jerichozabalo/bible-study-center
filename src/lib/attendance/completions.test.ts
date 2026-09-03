@@ -14,6 +14,7 @@ import {
   sessionIdByNumber,
 } from "../../../tests/meeting-fixtures";
 import { resetCustomBooks } from "../../../tests/curriculum-fixtures";
+import { query } from "../db";
 import { createBook, updateBook } from "../curriculum/custom";
 import { getBook } from "../curriculum/books";
 import { seedCurriculum } from "../curriculum/seed";
@@ -22,12 +23,14 @@ import { createGroup } from "../roster/groups";
 import { getPerson, updatePerson } from "../roster/people";
 import {
   AttendanceValidationError,
+  addRideAlong,
   addWalkIn,
   listCompletionCorrections,
   listCompletions,
   listCoveredSessions,
   recordSheet,
 } from "./completions";
+import { getSheet } from "./sheet";
 
 /**
  * The tick model at the module boundary the attendance sheet posts to (#25/#65).
@@ -232,6 +235,81 @@ describe.skipIf(!dbConfigured)("attendance completions", () => {
     await expect(addWalkIn(TEST_OWNER, meeting, "   ")).rejects.toThrow();
   });
 
+  /**
+   * #31 — the missing half of issue 7: an existing person from another BGroup
+   * actually turns up, and is put onto the sheet as a ride-along. No new person
+   * is created, and the visit is an ordinary completion the guest marker is
+   * derived from.
+   */
+  describe("addRideAlong — an existing person from another BGroup on the sheet (#31)", () => {
+    let linggo: string;
+    let ana: string;
+
+    beforeEach(async () => {
+      linggo = await createGroup(TEST_OWNER, {
+        name: "BGroup Linggo",
+        weekday: 0,
+        startTime: "16:00",
+        durationMinutes: 90,
+        currentBookId: bookOne,
+      });
+      ana = await addPerson("Ana Reyes", linggo);
+    });
+
+    it("credits the person and shows the visit on the host meeting, with no duplicate row", async () => {
+      const before = await peopleCount();
+
+      await addRideAlong(TEST_OWNER, meeting, ana);
+
+      expect(await peopleCount()).toBe(before);
+      expect(await listCompletions(TEST_OWNER, meeting)).toMatchObject([
+        { personId: ana, personName: "Ana Reyes", mark: "attended", sessionId: sessionFour },
+      ]);
+      expect(await listCoveredSessions(TEST_OWNER, ana)).toMatchObject([
+        { sessionNumber: 4, meetingId: meeting },
+      ]);
+      // Her home BGroup was never touched: nobody from Linggo is credited here
+      // beyond her own visit, and she still belongs to Linggo.
+      expect((await getPerson(TEST_OWNER, ana))?.homeGroupId).toBe(linggo);
+      // The sheet now shows her, derived as a guest (#31) — no stored flag.
+      expect((await getSheet(TEST_OWNER, meeting))?.people).toEqual(
+        expect.arrayContaining([
+          expect.objectContaining({ personId: ana, guest: true, homeGroupName: "BGroup Linggo" }),
+        ]),
+      );
+    });
+
+    it("does not mark the meeting held — adding a ride-along is not the save (#47)", async () => {
+      await addRideAlong(TEST_OWNER, meeting, ana);
+
+      expect((await getMeeting(TEST_OWNER, meeting))?.status).toBe("proposed");
+    });
+
+    it("is idempotent — adding the same person again neither errors nor duplicates", async () => {
+      await addRideAlong(TEST_OWNER, meeting, ana);
+      await addRideAlong(TEST_OWNER, meeting, ana);
+
+      expect(await listCompletions(TEST_OWNER, meeting)).toHaveLength(1);
+    });
+
+    it("is a harmless no-op for someone already on the sheet via the roster", async () => {
+      await addRideAlong(TEST_OWNER, meeting, maria);
+
+      expect(await listCompletions(TEST_OWNER, meeting)).toMatchObject([
+        { personId: maria, mark: "attended" },
+      ]);
+    });
+
+    it("refuses a person who is not the leader's, or an id that is not a person (#32)", async () => {
+      await expect(
+        addRideAlong("someone.else@example.com", meeting, ana),
+      ).rejects.toBeInstanceOf(AttendanceValidationError);
+      await expect(addRideAlong(TEST_OWNER, meeting, "not-a-person")).rejects.toBeInstanceOf(
+        AttendanceValidationError,
+      );
+    });
+  });
+
   it("tombstones a correction to a sheet that was already held (#24)", async () => {
     await recordSheet(TEST_OWNER, {
       meetingId: meeting,
@@ -326,6 +404,11 @@ describe.skipIf(!dbConfigured)("attendance completions", () => {
     ]).toEqual(rows);
     expect(await listCoveredSessions(TEST_OWNER, maria)).toEqual(before);
   });
+
+  async function peopleCount(): Promise<number> {
+    const rows = await query<{ count: string }>("SELECT count(*)::text AS count FROM people");
+    return Number(rows[0].count);
+  }
 
   function lesson(overrides: Partial<Parameters<typeof createMeeting>[1]> = {}) {
     return {

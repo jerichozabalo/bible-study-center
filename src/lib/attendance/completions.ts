@@ -197,6 +197,48 @@ export async function addWalkIn(
   return personId;
 }
 
+/**
+ * #31 — the ride-along: an existing person from another BGroup who actually
+ * turned up, put onto the sheet so the tick can be recorded.
+ *
+ * The mirror image of `addWalkIn` with `createPerson` taken out. A ride-along is
+ * already on the roster — a walk-in is not — so there is no person to make and
+ * no guest row to invent (#31): the visit IS the completion, and "guest" is
+ * derived where the sheet is drawn from `home_group_id` and the meeting's group.
+ *
+ * `hold: false` — adding someone mid-room is not the deliberate save that marks
+ * the night held (#47). Idempotent: `recordSheet`'s upsert leaves an unchanged
+ * row alone, so adding the same person twice writes nothing the second time.
+ * Someone whose home BGroup already is the meeting's is on the sheet via the
+ * roster union; adding them is a harmless attended tick, not an error.
+ */
+export async function addRideAlong(
+  ownerId: string,
+  meetingId: string,
+  personId: string,
+): Promise<void> {
+  if (!UUID_PATTERN.test(personId)) {
+    throw new AttendanceValidationError("That person is not on your roster.");
+  }
+
+  // Removed people included (#24), exactly as `assertOnRoster` accepts them: a
+  // ride-along the leader can pick is anyone on their roster.
+  const rows = await query<{ id: string }>(
+    "SELECT id FROM people WHERE owner_id = $1 AND id = $2",
+    [ownerId, personId],
+  );
+  if (rows.length === 0) {
+    throw new AttendanceValidationError("That person is not on your roster.");
+  }
+
+  // They are in the room — that is the only reason to add them from the sheet.
+  await recordSheet(ownerId, {
+    meetingId,
+    marks: [{ personId, mark: "attended" }],
+    hold: false,
+  });
+}
+
 /** Every mark recorded for one meeting, in the sheet's own order. */
 export async function listCompletions(ownerId: string, meetingId: string): Promise<Completion[]> {
   if (!UUID_PATTERN.test(meetingId)) return [];

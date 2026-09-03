@@ -21,7 +21,28 @@ describe("parseSheetForm", () => {
         { personId: "person-c", mark: null },
       ],
       walkIn: null,
+      rideAlong: null,
     });
+  });
+
+  it("reads the ride-along's personId when that button was the submitter (#31)", () => {
+    const form = new FormData();
+    form.set("meetingId", "meeting-1");
+    form.set("mark:person-a", "attended");
+    form.set("rideAlong", "  person-z  ");
+
+    const parsed = parseSheetForm(form);
+    expect(parsed.rideAlong).toBe("person-z");
+    // The ticks already made ride along too, so the round trip cannot cost them.
+    expect(parsed.marks).toEqual([{ personId: "person-a", mark: "attended" }]);
+  });
+
+  it("has no ride-along on an ordinary save", () => {
+    const form = new FormData();
+    form.set("meetingId", "meeting-1");
+    form.set("intent", "save");
+
+    expect(parseSheetForm(form).rideAlong).toBeNull();
   });
 
   it("reads the walk-in's name only when that is what was submitted (#67)", () => {

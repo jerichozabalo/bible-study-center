@@ -30,26 +30,37 @@
  */
 import { useActionState, useState } from "react";
 
+import { CatchUpList } from "@/components/attendance/CatchUpList";
 import { useOutbox } from "@/components/outbox/OutboxProvider";
 import type { SheetFormState } from "@/lib/attendance/actions";
+import type { CatchUpCandidate } from "@/lib/attendance/catchup";
 import type { Mark } from "@/lib/attendance/completions";
 import { guestLabel, markChipLabel, parseSheetForm } from "@/lib/attendance/form";
 import type { SheetPerson } from "@/lib/attendance/sheet";
 import { SHEET_WRITE } from "@/lib/outbox/transport";
 import { initialsOf } from "@/lib/roster/display";
+import type { PersonSummary } from "@/lib/roster/people";
 
 export function AttendanceSheet({
   action,
   meetingId,
   people,
+  roster,
+  catchUpCandidates,
   sessionNumber,
+  sessionTitle,
   held,
 }: {
   action: (state: SheetFormState, formData: FormData) => Promise<SheetFormState>;
   meetingId: string;
   people: SheetPerson[];
+  /** The whole roster, for the "Add someone else" search (#31 ride-along). */
+  roster: PersonSummary[];
+  /** #31 — people from other BGroups missing tonight's session. */
+  catchUpCandidates: CatchUpCandidate[];
   /** NULL on a fellowship night (#26) — every tick then credits nothing. */
   sessionNumber: number | null;
+  sessionTitle: string | null;
   /** #47 — already held, so this visit is a correction (#24). */
   held: boolean;
 }) {
@@ -65,6 +76,9 @@ export function AttendanceSheet({
     // The walk-in path creates a person, which needs the server (issue 18).
     // Offline it fails like anything else that needs a connection — no queue.
     if (submitter?.name === "intent" && submitter.value === "walk-in") return;
+    // Adding a ride-along (#31) is a server read + write, online-only — it is
+    // not the sheet save the outbox carries.
+    if (submitter?.name === "rideAlong") return;
     if (typeof navigator === "undefined" || navigator.onLine) return;
 
     event.preventDefault();
@@ -82,15 +96,36 @@ export function AttendanceSheet({
   const [changed, setChanged] = useState<Record<string, Mark | null>>({});
   const [adding, setAdding] = useState(false);
   const [walkInName, setWalkInName] = useState("");
+  const [rideAlongSearch, setRideAlongSearch] = useState("");
 
-  // A walk-in comes back as a longer roster. Closing the field on that rather
-  // than on the submit is what keeps it open if the save was refused.
+  // A walk-in or a ride-along comes back as a longer sheet. Closing the card on
+  // that rather than on the submit is what keeps it open if the save was
+  // refused.
   const [rosterSize, setRosterSize] = useState(people.length);
   if (people.length !== rosterSize) {
     setRosterSize(people.length);
     setAdding(false);
     setWalkInName("");
+    setRideAlongSearch("");
   }
+
+  // #31 — the leader's own people not already on tonight's sheet, matched on
+  // name or the digits of a number, the same way the People search does.
+  const onSheet = new Set(people.map((person) => person.personId));
+  const term = rideAlongSearch.trim().toLowerCase();
+  const termDigits = term.replace(/\D/g, "");
+  const rideAlongMatches =
+    term === ""
+      ? []
+      : roster
+          .filter((person) => !onSheet.has(person.id))
+          .filter(
+            (person) =>
+              person.name.toLowerCase().includes(term) ||
+              (termDigits !== "" &&
+                (person.phone ?? "").replace(/\D/g, "").includes(termDigits)),
+          )
+          .slice(0, 6);
 
   const markOf = (person: SheetPerson): Mark | null =>
     person.personId in changed ? changed[person.personId] : person.mark;
@@ -147,14 +182,76 @@ export function AttendanceSheet({
 
         {adding ? (
           <div className="rounded-[20px] border-[1.5px] border-line bg-card p-[14px]">
+            {/* #31 — a ride-along is already on the roster, from another BGroup.
+                Adding them writes no new person: the visit is the completion. */}
+            <label
+              className="text-[11px] font-bold tracking-[0.13em] text-tan"
+              htmlFor="ride-along-search"
+            >
+              ALREADY ON YOUR ROSTER
+            </label>
+            <input
+              id="ride-along-search"
+              type="search"
+              value={rideAlongSearch}
+              autoFocus
+              onChange={(event) => setRideAlongSearch(event.target.value)}
+              onKeyDown={(event) => {
+                // Enter in here would fire the form's first submit; the add
+                // buttons below are the only way onto the sheet.
+                if (event.key === "Enter") event.preventDefault();
+              }}
+              placeholder="Search name or number"
+              className="mt-[8px] h-[54px] w-full rounded-[16px] border-[1.5px] border-line bg-card px-[13px] text-[15.5px] font-semibold text-ink placeholder:font-normal placeholder:text-[#968871b0]"
+            />
+            {term === "" ? null : rideAlongMatches.length === 0 ? (
+              <p className="mt-[8px] text-[12.5px] leading-[1.45] text-tan">
+                Nobody on your roster matches — add them as someone new below.
+              </p>
+            ) : (
+              <div className="mt-[8px] flex flex-col gap-[7px]">
+                {rideAlongMatches.map((person) => (
+                  <div
+                    key={person.id}
+                    className="flex items-center gap-3 rounded-[16px] border-[1.5px] border-line bg-[#FBF9F5] px-3 py-[9px]"
+                  >
+                    <span className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-[14px] bg-blue-tint text-[13px] font-bold text-blue">
+                      {initialsOf(person.name)}
+                    </span>
+                    <span className="min-w-0 grow">
+                      <span className="block text-[14.5px] leading-[1.2] font-bold">
+                        {person.name}
+                      </span>
+                      {person.homeGroupName === null ? null : (
+                        <span className="mt-[2px] block text-[12.5px] text-slate">
+                          {person.homeGroupName}
+                        </span>
+                      )}
+                    </span>
+                    <button
+                      type="submit"
+                      name="rideAlong"
+                      value={person.id}
+                      disabled={pending}
+                      className="shrink-0 rounded-[13px] bg-blue px-[13px] py-[8px] text-[13px] font-bold text-white active:bg-blue-deep disabled:opacity-60"
+                    >
+                      Add
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="my-[13px] h-px bg-line" />
+
+            {/* #67 — a genuinely new person, saved on a name alone. */}
             <label className="text-[11px] font-bold tracking-[0.13em] text-tan" htmlFor="walk-in">
-              WHO IS HERE
+              SOMEONE NEW
             </label>
             <input
               id="walk-in"
               name="walkInName"
               value={walkInName}
-              autoFocus
               onChange={(event) => setWalkInName(event.target.value)}
               placeholder="Their name"
               className="mt-[8px] h-[54px] w-full rounded-[16px] border-[1.5px] border-line bg-card px-[13px] text-[15.5px] font-semibold text-ink placeholder:font-normal placeholder:text-[#968871b0]"
@@ -178,6 +275,7 @@ export function AttendanceSheet({
                 onClick={() => {
                   setAdding(false);
                   setWalkInName("");
+                  setRideAlongSearch("");
                 }}
                 className="flex h-[50px] shrink-0 items-center justify-center rounded-[16px] border-[1.5px] border-line px-4 text-[15.5px] font-bold text-slate active:bg-shell"
               >
@@ -253,6 +351,17 @@ export function AttendanceSheet({
           ? "This night is already held. What you change here is saved as a correction."
           : "Saves offline. Uploads when you have signal."}
       </p>
+
+      {/* #31 — inside the form on purpose: "Add to tonight" is a submit that
+          carries every tick already made, so a ride-along add cannot wipe the
+          leader's unsaved marks. It sits after the sheet because the room comes
+          first — the ticks are what the leader opened this screen for. */}
+      <CatchUpList
+        candidates={catchUpCandidates}
+        sessionNumber={sessionNumber}
+        sessionTitle={sessionTitle}
+        pending={pending}
+      />
     </form>
   );
 }

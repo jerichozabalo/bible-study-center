@@ -9,20 +9,22 @@
  * meeting is issue 5's screen and does not exist, so the panel states the
  * agenda rather than offering a control that goes nowhere.
  *
- * Under the sheet, and drawn on no board, is #31's catch-up list: who from the
- * other BGroups is missing tonight's session. It sits after the sheet because
- * the room comes first — the ticks are what the leader opened this screen for.
+ * Drawn on no board is #31's catch-up list: who from the other BGroups is
+ * missing tonight's session, each with an "Add to tonight" button. It renders
+ * at the end of `AttendanceSheet`'s form (issue 17) so that button can carry
+ * the ticks already made; the roster is passed straight through for the "Add
+ * someone else" ride-along search.
  */
 import { notFound } from "next/navigation";
 
 import { AttendanceSheet } from "@/components/attendance/AttendanceSheet";
-import { CatchUpList } from "@/components/attendance/CatchUpList";
 import { BackRow } from "@/components/BackRow";
 import { saveSheetAction } from "@/lib/attendance/actions";
 import { getCatchUpCandidates } from "@/lib/attendance/catchup";
 import { getSheet } from "@/lib/attendance/sheet";
 import { requireUser } from "@/lib/auth/guard";
 import { formatWeekdayDate } from "@/lib/dates";
+import { listPeople } from "@/lib/roster/people";
 import { formatTime } from "@/lib/roster/schedule";
 
 /** Reads the session cookie and the roster — never prerendered. */
@@ -36,7 +38,10 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
   if (!sheet) notFound();
 
   const { meeting } = sheet;
-  const candidates = await getCatchUpCandidates(user.email, meeting.id);
+  const [candidates, roster] = await Promise.all([
+    getCatchUpCandidates(user.email, meeting.id),
+    listPeople(user.email),
+  ]);
 
   return (
     <section className="pb-4">
@@ -76,14 +81,11 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         action={saveSheetAction}
         meetingId={meeting.id}
         people={sheet.people}
-        sessionNumber={meeting.sessionNumber}
-        held={meeting.status === "held"}
-      />
-
-      <CatchUpList
-        candidates={candidates}
+        roster={roster}
+        catchUpCandidates={candidates}
         sessionNumber={meeting.sessionNumber}
         sessionTitle={meeting.sessionTitle}
+        held={meeting.status === "held"}
       />
     </section>
   );
