@@ -23,6 +23,7 @@ import {
   type PersonPayload,
   SHEET_WRITE,
   type SheetPayload,
+  unwrapUpload,
 } from "./pending";
 import type { Transport } from "./queue";
 
@@ -47,16 +48,22 @@ export function browserTransport(): Transport {
   return {
     [GROUP_WRITE]: async (ctx) => {
       const payload = ctx.payload as unknown as GroupPayload;
-      const { groupId } = await uploadGroup({ clientId: ctx.id, ...payload });
-      return { serverId: groupId };
+      const serverId = unwrapUpload(
+        await uploadGroup({ clientId: ctx.id, ...payload }),
+        "groupId",
+      );
+      return { serverId };
     },
     [PERSON_WRITE]: async (ctx) => {
       const payload = ctx.payload as unknown as PersonPayload;
       const homeGroupId = payload.homeGroupRef
         ? ctx.resolve(payload.homeGroupRef)
         : (payload.homeGroupId ?? null);
-      const { personId } = await uploadPerson({ clientId: ctx.id, ...payload, homeGroupId });
-      return { serverId: personId };
+      const serverId = unwrapUpload(
+        await uploadPerson({ clientId: ctx.id, ...payload, homeGroupId }),
+        "personId",
+      );
+      return { serverId };
     },
     [MEETING_WRITE]: async (ctx) => {
       const payload = ctx.payload as unknown as MeetingPayload;

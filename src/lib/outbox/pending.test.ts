@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { GROUP_WRITE, PERSON_WRITE, pendingRosterRows } from "./pending";
+import { GROUP_WRITE, PERSON_WRITE, pendingRosterRows, unwrapUpload } from "./pending";
 import type { OutboxItem } from "./store";
 
 /**
@@ -62,5 +62,21 @@ describe("pendingRosterRows", () => {
   it("shows a name-only walk-in with nothing typed as Unnamed, never blank", () => {
     const rows = pendingRosterRows([item({ id: "p1", payload: { name: "  " } })], PERSON_WRITE);
     expect(rows[0].name).toBe("Unnamed");
+  });
+});
+
+describe("unwrapUpload", () => {
+  it("returns the created row's id from a success result", () => {
+    expect(unwrapUpload({ groupId: "g-123" }, "groupId")).toBe("g-123");
+    expect(unwrapUpload({ personId: "p-9" }, "personId")).toBe("p-9");
+  });
+
+  it("throws the server's refusal as a plain, readable Error", () => {
+    // Next redacts a raw server-action throw in production; the action hands
+    // the sentence back as data and this is where it becomes an Error again —
+    // non-transient, so the queue marks the item failed with this message.
+    expect(() =>
+      unwrapUpload({ error: "That BGroup is archived or no longer exists." }, "groupId"),
+    ).toThrow("That BGroup is archived or no longer exists.");
   });
 });

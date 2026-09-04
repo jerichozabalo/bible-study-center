@@ -89,6 +89,25 @@ export function pendingGroups(items: OutboxItem[]): PendingGroup[] {
     }));
 }
 
+/** A queued-write server action's result: the created row's id under a
+ * type-specific key, or the server's refusal handed back as data. */
+export type UploadResult<K extends string> = { [P in K]: string } | { error: string };
+
+/**
+ * Turn that result into the id the transport hands back to the queue, or throw
+ * the server's sentence as a plain `Error`.
+ *
+ * The action returns the refusal instead of throwing it because Next redacts a
+ * raw server-action throw in a production build to "Minified React error #…" —
+ * useless on a failed row. Rethrown here it is a normal, non-transient error,
+ * so the queue marks the item `failed` with a message a leader can read and
+ * act on ("That BGroup is archived — pick one that is running").
+ */
+export function unwrapUpload<K extends string>(result: UploadResult<K>, key: K): string {
+  if ("error" in result) throw new Error(result.error);
+  return result[key];
+}
+
 /** One offline-created person or BGroup, as the People / Groups list draws it:
  * a row that is not on the server yet, either waiting for signal or stuck on a
  * refusal the leader can retry (issue 18). */

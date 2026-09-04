@@ -10,15 +10,20 @@
  * cannot write it twice.
  *
  * Neither redirects: a flush is a loop over several writes, and `redirect`
- * throws. They return the ids the queue needs and nothing else.
+ * throws. They return the ids the queue needs — and, for the roster writes, a
+ * refused-write reason handed back as data rather than thrown, because Next
+ * redacts a raw server-action throw in production to a useless digest (see
+ * `unwrapUpload`). Same catch the online form actions in `roster/actions.ts`
+ * already do.
  */
 import { revalidatePath } from "next/cache";
 
 import { requireUser } from "../auth/guard";
 import { type Mark, recordSheet } from "../attendance/completions";
 import { createMeeting } from "../meetings/meetings";
-import { createGroup } from "../roster/groups";
+import { RosterValidationError, createGroup } from "../roster/groups";
 import { createPerson } from "../roster/people";
+import type { UploadResult } from "./pending";
 
 export type QueuedMeeting = {
   /** The outbox item's id — the idempotency key (#73's intent). */
@@ -90,17 +95,23 @@ export type QueuedGroup = {
   currentBookId: string | null;
 };
 
-export async function uploadGroup(input: QueuedGroup): Promise<{ groupId: string }> {
+export async function uploadGroup(input: QueuedGroup): Promise<UploadResult<"groupId">> {
   const user = await requireUser();
 
-  const groupId = await createGroup(user.email, {
-    name: input.name,
-    weekday: input.weekday,
-    startTime: input.startTime,
-    durationMinutes: input.durationMinutes,
-    currentBookId: input.currentBookId,
-    clientId: input.clientId,
-  });
+  let groupId: string;
+  try {
+    groupId = await createGroup(user.email, {
+      name: input.name,
+      weekday: input.weekday,
+      startTime: input.startTime,
+      durationMinutes: input.durationMinutes,
+      currentBookId: input.currentBookId,
+      clientId: input.clientId,
+    });
+  } catch (thrown) {
+    if (thrown instanceof RosterValidationError) return { error: thrown.message };
+    throw thrown;
+  }
 
   revalidatePath("/people");
   revalidatePath("/people/groups");
@@ -124,25 +135,31 @@ export type QueuedPerson = {
   notes: string | null;
 };
 
-export async function uploadPerson(input: QueuedPerson): Promise<{ personId: string }> {
+export async function uploadPerson(input: QueuedPerson): Promise<UploadResult<"personId">> {
   const user = await requireUser();
 
-  const personId = await createPerson(user.email, {
-    name: input.name,
-    phone: input.phone,
-    email: input.email,
-    homeGroupId: input.homeGroupId,
-    joinedOn: input.joinedOn,
-    birthday: input.birthday,
-    address: input.address,
-    civilStatus: input.civilStatus,
-    spiritualStatus: input.spiritualStatus,
-    baptized: input.baptized,
-    baptizedOn: input.baptizedOn,
-    invitedBy: input.invitedBy,
-    notes: input.notes,
-    clientId: input.clientId,
-  });
+  let personId: string;
+  try {
+    personId = await createPerson(user.email, {
+      name: input.name,
+      phone: input.phone,
+      email: input.email,
+      homeGroupId: input.homeGroupId,
+      joinedOn: input.joinedOn,
+      birthday: input.birthday,
+      address: input.address,
+      civilStatus: input.civilStatus,
+      spiritualStatus: input.spiritualStatus,
+      baptized: input.baptized,
+      baptizedOn: input.baptizedOn,
+      invitedBy: input.invitedBy,
+      notes: input.notes,
+      clientId: input.clientId,
+    });
+  } catch (thrown) {
+    if (thrown instanceof RosterValidationError) return { error: thrown.message };
+    throw thrown;
+  }
 
   revalidatePath("/people");
   revalidatePath("/people/groups");

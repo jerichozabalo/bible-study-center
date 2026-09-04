@@ -16,11 +16,14 @@
  *   2. Navigations go to the network first and fall back to the cached shell.
  *      Server-rendered HTML is the point of a server-first app; a cache-first
  *      navigation would show yesterday's roster as though it were today's.
- *   2b. The calendar (#61 as narrowed by #70) is the one screen kept readable
- *      offline: its last successful render is stashed and served when the
- *      network is gone, so the schedule — materialised weeks and drawn ghosts
- *      alike — is still there in a room with no signal. It is still
- *      network-first, so an online open is always fresh.
+ *   2b. A few read screens (#61 as narrowed by #70; #72 as amended 2026-09-02)
+ *      are kept readable offline: the last successful render of each is stashed
+ *      and served when the network is gone. The calendar so the schedule is
+ *      there in a room with no signal; People and the Groups segment so a
+ *      leader who adds someone in the field can see the queued row waiting to
+ *      upload (issue 18) rather than a "no signal" wall. Still network-first,
+ *      so an online open is always fresh — and the stale copy is a server
+ *      render from the last connection, the same trade the calendar makes.
  *   3. Build assets (/_next/static/*) are cache-first forever, because their
  *      URLs already carry a build hash — a changed file is a changed URL.
  *
@@ -28,9 +31,11 @@
  * invalidation this file has, and it is enough because rule 3 is the only
  * long-lived cache in it.
  */
-const CACHE = "bst-v2";
+const CACHE = "bst-v3";
 const OFFLINE_URL = "/offline";
-const CALENDAR_URL = "/calendar";
+/** Read screens whose last good render is stashed and served when the network
+ * is gone (rule 2b). Everything else offline gets the /offline wall (rule 2). */
+const OFFLINE_READABLE = new Set(["/calendar", "/people", "/people/groups"]);
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -79,21 +84,25 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Rule 2b. The calendar stays readable offline (#61/#70): network-first, but
-  // every good response is stashed and served back when the network is gone.
-  if (request.mode === "navigate" && url.pathname === CALENDAR_URL) {
+  // Rule 2b. The offline-readable screens (#61/#70; #72 amended): network-first,
+  // but every good response is stashed under its own path and served back when
+  // the network is gone. A client-side nav to one of these fails its RSC fetch
+  // offline and Next falls back to a full navigation — which lands here and
+  // gets the stale render instead of the /offline wall.
+  if (request.mode === "navigate" && OFFLINE_READABLE.has(url.pathname)) {
+    const key = url.pathname;
     event.respondWith(
       fetch(request)
         .then((response) => {
           if (response.ok) {
             const copy = response.clone();
-            caches.open(CACHE).then((cache) => cache.put(CALENDAR_URL, copy));
+            caches.open(CACHE).then((cache) => cache.put(key, copy));
           }
           return response;
         })
         .catch(() =>
           caches
-            .match(CALENDAR_URL)
+            .match(key)
             .then(
               (hit) =>
                 hit ?? caches.match(OFFLINE_URL).then((fallback) => fallback ?? Response.error()),
