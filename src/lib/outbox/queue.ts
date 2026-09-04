@@ -25,7 +25,7 @@
  * `actions.ts`; in the tests it is a plain fake, which is how the ordering and
  * dependency rules are proven with no network (PRD "faked transport").
  */
-import { type RetryOptions, withRetry } from "../retry";
+import { type RetryOptions, isTransient, withRetry } from "../retry";
 import type { OutboxItem, OutboxStore } from "./store";
 
 export type EnqueueInput = {
@@ -66,15 +66,26 @@ export type Transport = Record<string, TransportHandler>;
 export type Outbox = {
   enqueue(input: EnqueueInput): Promise<string>;
   flush(): Promise<FlushResult>;
-  /** The pending count, read fresh from the store. */
+  /**
+   * Reset every `failed` item to `pending` and flush. The one way past a failed
+   * write (issue 18) — a leader taps "Try again" on the stuck row after fixing
+   * whatever the server refused, or just to re-attempt one that failed on a bad
+   * connection. A no-op flush when nothing is failed.
+   */
+  retry(): Promise<FlushResult>;
+  /** The pending count, read fresh from the store. Pending-only — a `failed`
+   * item is waiting on `retry()`, not on a connection, so it is not counted
+   * here. */
   pending(): Promise<number>;
   /** The last-known pending count, synchronous — for `useSyncExternalStore`. */
   snapshot(): number;
   /**
-   * The last-known pending items, synchronous and reference-stable until the
-   * queue changes — for `useSyncExternalStore`. A form uses this to learn which
-   * offline-created BGroups are still queued, so a person enqueued into one can
-   * carry a ref to it (issue 18's dependency graph).
+   * The last-known un-uploaded items — `pending` and `failed` both — synchronous
+   * and reference-stable until the queue changes, for `useSyncExternalStore`. A
+   * form reads this to learn which offline-created BGroups are still queued (so
+   * a person enqueued into one can carry a ref to it — issue 18's dependency
+   * graph); the People and Groups lists read it to draw the pending and failed
+   * rows. Consumers branch on `item.status`.
    */
   itemsSnapshot(): OutboxItem[];
   subscribe(listener: () => void): () => void;
@@ -109,10 +120,13 @@ export function createOutbox(opts: {
 
   async function refresh(): Promise<number> {
     const items = await store.all();
+    // The exposed queue holds everything not yet uploaded, failed rows included
+    // — the lists and the forms need to see them. The count, though, is
+    // pending-only: a failed row is not "uploading by itself".
     pendingItems = items
-      .filter((item) => item.status === "pending")
+      .filter((item) => item.status !== "done")
       .sort((a, b) => a.seq - b.seq);
-    count = pendingItems.length;
+    count = pendingItems.filter((item) => item.status === "pending").length;
     notify();
     return count;
   }
@@ -186,6 +200,19 @@ export function createOutbox(opts: {
       } catch (thrown) {
         // #72: stop at the first item that will not send. The queue is intact
         // and in order; the next flush picks up here.
+        //
+        // A transient throw (lost signal, a Neon branch that stayed asleep
+        // longer than `withRetry`'s attempts) leaves the item `pending` — the
+        // flush that fires on reconnect is the retry, and it must resume on its
+        // own. A non-transient throw is the server refusing the write (a
+        // deleted meeting, a name clash); that one becomes `failed` so the list
+        // shows it and only a leader-triggered `retry()` re-attempts it, rather
+        // than every reconnect hammering a write that will never take.
+        if (!isTransient(thrown)) {
+          item.status = "failed";
+          item.error = thrown instanceof Error ? thrown.message : String(thrown);
+          await store.put(item);
+        }
         error = thrown;
         break;
       }
@@ -196,15 +223,29 @@ export function createOutbox(opts: {
     return { uploaded, pending, error };
   }
 
-  /** Drop done items that nothing pending still depends on. */
+  /** Drop done items that nothing un-uploaded still depends on. A `failed` item
+   * counts: `retry()` will replay it, and it still needs its parent's server id
+   * substituted in, so that parent's done record has to outlive it. */
   async function collect(items: OutboxItem[]): Promise<void> {
     const needed = new Set<string>();
     for (const item of items) {
-      if (item.status === "pending") for (const dep of item.deps) needed.add(dep);
+      if (item.status !== "done") for (const dep of item.deps) needed.add(dep);
     }
     for (const item of items) {
       if (item.status === "done" && !needed.has(item.id)) await store.remove(item.id);
     }
+  }
+
+  async function retry(): Promise<FlushResult> {
+    const items = await store.all();
+    for (const item of items) {
+      if (item.status !== "failed") continue;
+      item.status = "pending";
+      delete item.error;
+      await store.put(item);
+    }
+    await refresh();
+    return flush();
   }
 
   function flush(): Promise<FlushResult> {
@@ -219,6 +260,7 @@ export function createOutbox(opts: {
   return {
     enqueue,
     flush,
+    retry,
     pending: refresh,
     snapshot: () => count,
     itemsSnapshot: () => pendingItems,

@@ -37,7 +37,7 @@ import type { CatchUpCandidate } from "@/lib/attendance/catchup";
 import type { Mark } from "@/lib/attendance/completions";
 import { guestLabel, markChipLabel, parseSheetForm } from "@/lib/attendance/form";
 import type { SheetPerson } from "@/lib/attendance/sheet";
-import { SHEET_WRITE } from "@/lib/outbox/transport";
+import { SHEET_WRITE } from "@/lib/outbox/pending";
 import { initialsOf } from "@/lib/roster/display";
 import type { PersonSummary } from "@/lib/roster/people";
 

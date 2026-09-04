@@ -16,6 +16,7 @@
  */
 import Link from "next/link";
 
+import { PendingRosterRows } from "@/components/outbox/PendingRosterRows";
 import { PersonRow } from "@/components/people/PersonRow";
 import { PEOPLE_SEGMENTS, SegmentedControl } from "@/components/SegmentedControl";
 import { requireUser } from "@/lib/auth/guard";
@@ -96,6 +97,11 @@ export default async function PeoplePage({
           className="min-w-0 grow bg-transparent text-[15.5px] text-ink outline-none"
         />
       </form>
+
+      {/* People added with no signal (#72 as amended, issue 18). Hidden while
+          searching — a queued row would never match a server-side search
+          anyway, and it reads as noise over the results. */}
+      {search ? null : <PendingRosterRows kind="person" />}
 
       {people.length > 0 ? (
         <div className="mt-[11px] flex items-baseline justify-between">

@@ -29,7 +29,7 @@ import { useOutbox } from "@/components/outbox/OutboxProvider";
 import type { MeetingFormState } from "@/lib/meetings/actions";
 import { parseMeetingForm } from "@/lib/meetings/form";
 import type { PickerGroup } from "@/lib/meetings/prefill";
-import { GROUP_WRITE, MEETING_WRITE, type GroupPayload } from "@/lib/outbox/transport";
+import { GROUP_WRITE, MEETING_WRITE, type GroupPayload } from "@/lib/outbox/pending";
 import {
   moreLabel,
   pickerMetaLine,

@@ -35,7 +35,19 @@ export type OutboxItem = {
   /** Ids of earlier items that must upload first (#72 — the dependency graph:
    * an offline-created meeting before its attendance sheet). */
   deps: string[];
-  status: "pending" | "done";
+  /**
+   * `pending` — waiting to upload, replayed in `seq` order.
+   * `failed` — an upload attempt threw something `retry.ts` will not retry (the
+   *   server refused it: a deleted meeting, a name clash). It stays in the
+   *   queue, blocks everything behind it, and only a leader-triggered `retry()`
+   *   moves it back to `pending`. A plain flush skips it.
+   * `done` — uploaded; kept only until nothing pending still names it as a dep.
+   */
+  status: "pending" | "failed" | "done";
+  /** Why the last attempt failed — the message a failed row shows the leader.
+   * Set only while `status` is `"failed"`; cleared when it returns to
+   * `"pending"`. */
+  error?: string;
   /** The server id once uploaded. Kept until no pending item still needs it,
    * then garbage-collected. */
   serverId: string | null;

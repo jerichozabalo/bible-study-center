@@ -19,7 +19,7 @@ import Link from "next/link";
 import { useActionState, useState } from "react";
 
 import { useOutbox } from "@/components/outbox/OutboxProvider";
-import { GROUP_WRITE } from "@/lib/outbox/transport";
+import { GROUP_WRITE } from "@/lib/outbox/pending";
 import type { GroupFormState } from "@/lib/roster/actions";
 import { type GroupFormValues, parseGroupForm } from "@/lib/roster/form";
 import { WEEKDAY_NAMES, formatDuration } from "@/lib/roster/schedule";

@@ -1,7 +1,7 @@
 ---
 issue: 18
 title: Person and group creation work offline (outbox extension)
-status: in-progress
+status: done
 blocked-by: [11]
 type: afk
 ---
@@ -22,7 +22,39 @@ group setup happens at home with signal. Jericho does that setup in the field on
 the same phone, so "add them now, Upload later" is the same need. This issue is
 the amendment; issue 11 built the outbox foundation this extends.
 
-## Status — Tier 1 shipped 2026-09-03 (`5396841`), Tier 2 remains
+## Status — DONE. Tier 1 `5396841` (2026-09-03), Tier 2 2026-09-04.
+
+### Tier 2 — shipped 2026-09-04
+1. **`"failed"` status + `retry()`.** `OutboxItem.status` is now
+   `"pending" | "failed" | "done"` with an `error?` note. A *non-transient*
+   throw from a handler (the server refusing the write — a deleted parent, a
+   name clash) marks the item `failed`, records the message, and stops the
+   flush; a *transient* throw (`isTransient`) still leaves it `pending` so the
+   reconnect flush resumes on its own — that distinction is the whole design.
+   `Outbox.retry()` resets every `failed → pending`, clears the note, and
+   flushes; `OutboxProvider` exposes it as `retry()`. `refresh()` now keeps
+   failed rows in `itemsSnapshot()` (the lists/forms need them) but *out* of the
+   pending count (`snapshot()` / `pending()` stay pending-only — a failed row is
+   waiting on a tap, not a connection).
+2. **Pending / failed rows on People and the Groups segment.**
+   `src/lib/outbox/pending.ts` (new — split from `transport.ts` so it has no
+   `server-only` in its import graph and a node test can reach it) holds the
+   write-type constants, the payload types, `pendingGroups`, and the new
+   `pendingRosterRows(items, type)`. `PendingRosterRows` (client) renders those
+   above the server list on `/people` (hidden while searching) and
+   `/people/groups`: a dashed "Uploads when you have signal" row for pending, an
+   amber row with the server's reason + a "Try again" button (→ `retry()`) for
+   failed. `pending.test.ts` covers the derivation.
+3. **Settings + Reports online-only note.** `OnlineOnlyNote` (client) —
+   `navigator.onLine`, renders nothing when online, a plain line under the `<h1>`
+   when offline. No pending state, per #72 as amended.
+
+**Known cosmetic gap (for phone QA):** on `/people` with an empty server roster
+and a queued offline person, the "Nobody on the roster yet" card still renders
+below the pending row. Honest (nobody is on the *server* roster yet) but reads
+oddly — left for Jericho to judge on the phone.
+
+### Tier 1 — shipped 2026-09-03 (`5396841`)
 **Done and tested:** the offline write path and its dependency graph, end to end.
 `createPerson` / `createGroup` take an optional `clientId` used as the row PK
 (`COALESCE($n::uuid, gen_random_uuid())` + `ON CONFLICT (id) DO NOTHING`, replay
@@ -36,23 +68,10 @@ forms. Integration test covers `group → person → meeting → sheet` replayin
 one flush in dependency order, once each, resuming after a mid-flush failure
 with no duplicate rows. 504 tests green.
 
-**What is LEFT (the rest of this issue):**
-1. **`"failed"` `OutboxItem` status + retry.** Today `status` is
-   `"pending" | "done"` and a handler that still throws after `withRetry` just
-   stops the flush (issue 11's behaviour), leaving the item `pending`. Add
-   `"failed"` + an error note to `store.ts` / `queue.ts`; mark the item `failed`
-   on a terminal throw and stop; add `retry()` on `Outbox` that resets
-   `failed → pending` and flushes; expose it through `OutboxProvider`.
-2. **Pending / failed row states on `/people` (People segment) and the Groups
-   segment.** `src/app/(shell)/people/page.tsx` and the Groups list are
-   unchanged — an offline-created person/group is invisible there until it
-   uploads. Add a client component reading `outbox.pendingWrites`
-   (`PERSON_WRITE` / `GROUP_WRITE` items) that renders "Uploads when you have
-   signal" rows, and failed rows with a retry affordance (needs #1), merged into
-   the server-rendered lists. Follow issue 11's copy idiom.
-3. **Settings + Reports say "online-only" when offline.** A small client
-   banner / disabled state on `/settings` and `/reports` (#72 amended: they stay
-   online-only, no pending states). Check what issue 11 already did.
+**What was LEFT (now done — see "Tier 2" above):**
+1. ~~`"failed"` `OutboxItem` status + retry.~~
+2. ~~Pending / failed row states on `/people` and the Groups segment.~~
+3. ~~Settings + Reports say "online-only" when offline.~~
 
 ## Scope
 - **In:** create a person (name-only path included, #9/#67); create a group

@@ -12,6 +12,7 @@
  */
 import Link from "next/link";
 
+import { PendingRosterRows } from "@/components/outbox/PendingRosterRows";
 import { PEOPLE_SEGMENTS, SegmentedControl } from "@/components/SegmentedControl";
 import { bookLabel } from "@/lib/curriculum/books";
 import { requireUser } from "@/lib/auth/guard";
@@ -54,6 +55,9 @@ export default async function GroupsPage() {
       </div>
 
       <SegmentedControl segments={PEOPLE_SEGMENTS} current="/people/groups" />
+
+      {/* BGroups added with no signal (#72 as amended, issue 18). */}
+      <PendingRosterRows kind="group" />
 
       {groups.length === 0 ? (
         <EmptyGroups />

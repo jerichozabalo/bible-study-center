@@ -21,6 +21,7 @@
  * English everywhere (#29).
  */
 import { SessionDots } from "@/components/insights/BookProgressCard";
+import { OnlineOnlyNote } from "@/components/outbox/OnlineOnlyNote";
 import { SegmentedControl } from "@/components/SegmentedControl";
 import { requireUser } from "@/lib/auth/guard";
 import { formatCalendarDayMonth, formatLongDate } from "@/lib/dates";
@@ -56,6 +57,8 @@ export default async function ReportsPage({
   return (
     <section className="pb-8">
       <h1 className="mt-[2px] text-[26px]">Reports</h1>
+
+      <OnlineOnlyNote what="Reports" />
 
       <SegmentedControl
         current={`/reports?view=${view}`}

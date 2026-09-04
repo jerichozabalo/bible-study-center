@@ -28,13 +28,19 @@ import type { OutboxItem } from "@/lib/outbox/store";
 const NO_ITEMS: OutboxItem[] = [];
 
 type OutboxHandle = {
-  /** Pending local writes waiting to leave the phone. */
+  /** Pending local writes waiting to leave the phone. Pending-only — a failed
+   * write is waiting on `retry`, not on a connection. */
   pending: number;
-  /** The pending items themselves — a form reads this to learn which
-   * offline-created BGroups are still queued (issue 18). */
+  /** The un-uploaded items — pending and failed both. A form reads this to
+   * learn which offline-created BGroups are still queued; the People and Groups
+   * lists read it to draw the pending and failed rows (issue 18). Branch on
+   * `item.status`. */
   pendingWrites: OutboxItem[];
   enqueue: (input: EnqueueInput) => Promise<string>;
   flush: () => void;
+  /** Reset every failed write to pending and flush — what a "Try again" tap on
+   * a failed row calls. */
+  retry: () => void;
 };
 
 const OutboxContext = createContext<OutboxHandle | null>(null);
@@ -56,6 +62,10 @@ export function OutboxProvider({ children }: { children: React.ReactNode }) {
 
   const flush = useCallback(() => {
     void outbox.flush();
+  }, [outbox]);
+
+  const retry = useCallback(() => {
+    void outbox.retry();
   }, [outbox]);
 
   const enqueue = useCallback(
@@ -81,8 +91,8 @@ export function OutboxProvider({ children }: { children: React.ReactNode }) {
   }, [outbox, flush]);
 
   const value = useMemo<OutboxHandle>(
-    () => ({ pending, pendingWrites, enqueue, flush }),
-    [pending, pendingWrites, enqueue, flush],
+    () => ({ pending, pendingWrites, enqueue, flush, retry }),
+    [pending, pendingWrites, enqueue, flush, retry],
   );
 
   return <OutboxContext.Provider value={value}>{children}</OutboxContext.Provider>;

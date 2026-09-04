@@ -94,7 +94,9 @@ describe("createOutbox", () => {
         return { serverId: `srv-${ctx.id}` };
       },
       sheet: async (ctx) => {
-        if (failSheet) throw new Error("boom");
+        // A transient drop: the flush that fires on reconnect must resume it
+        // in order, with no manual retry.
+        if (failSheet) throw new TypeError("fetch failed");
         sent.push({ type: "sheet", id: ctx.id, payload: { ...ctx.payload } });
       },
     };
@@ -125,7 +127,7 @@ describe("createOutbox", () => {
     const transport: Transport = {
       sheet: async (ctx) => {
         calls.push(ctx.payload.tag as string);
-        if (ctx.payload.tag === "second" && failSecond) throw new Error("lost signal");
+        if (ctx.payload.tag === "second" && failSecond) throw new TypeError("Failed to fetch");
       },
     };
     const outbox = createOutbox({ store, transport, retry: { ...noSleep, attempts: 1 } });
@@ -212,6 +214,114 @@ describe("createOutbox", () => {
 
     await outbox.enqueue({ type: "sheet", payload: {} });
     expect(listener).toHaveBeenCalled();
+  });
+
+  it("marks a write failed after its retries are spent, records why, and stops there", async () => {
+    const store = memoryStore();
+    const transport: Transport = {
+      sheet: async () => {
+        throw new Error("meeting was deleted on the server");
+      },
+    };
+    const outbox = createOutbox({ store, transport, retry: { ...noSleep, attempts: 1 } });
+
+    await outbox.enqueue({ type: "sheet", payload: { tag: "a" } });
+    await outbox.enqueue({ type: "sheet", payload: { tag: "b" } });
+
+    const result = await outbox.flush();
+    expect(result).toMatchObject({ uploaded: 0, pending: 1 });
+    expect(result.error).toBeInstanceOf(Error);
+
+    const items = outbox.itemsSnapshot();
+    expect(items.map((i) => i.status)).toEqual(["failed", "pending"]);
+    expect(items[0].error).toBe("meeting was deleted on the server");
+
+    // A plain flush does not re-attempt a failed write — it is stuck behind the
+    // failed one, in order (#72), until the leader retries.
+    const again = await outbox.flush();
+    expect(again.uploaded).toBe(0);
+  });
+
+  it("retry() moves failed writes back to pending and flushes them", async () => {
+    const store = memoryStore();
+    let broken = true;
+    const sent: string[] = [];
+    const transport: Transport = {
+      sheet: async (ctx) => {
+        if (broken) throw new Error("no route to host");
+        sent.push(ctx.payload.tag as string);
+      },
+    };
+    const outbox = createOutbox({ store, transport, retry: { ...noSleep, attempts: 1 } });
+
+    await outbox.enqueue({ type: "sheet", payload: { tag: "a" } });
+    await outbox.enqueue({ type: "sheet", payload: { tag: "b" } });
+    await outbox.flush();
+    expect(outbox.itemsSnapshot()[0].status).toBe("failed");
+
+    broken = false;
+    const result = await outbox.retry();
+
+    expect(result).toMatchObject({ uploaded: 2, pending: 0, error: null });
+    expect(sent).toEqual(["a", "b"]);
+    expect(outbox.itemsSnapshot()).toEqual([]);
+  });
+
+  it("keeps a done parent's server id while a failed child still needs it", async () => {
+    const store = memoryStore();
+    let childBroken = true;
+    const sent: string[] = [];
+    const transport: Transport = {
+      group: async (ctx) => {
+        sent.push("group");
+        return { serverId: `srv-${ctx.id}` };
+      },
+      person: async (ctx) => {
+        if (childBroken) throw new Error("home BGroup rejected");
+        sent.push(`person→${ctx.resolve(ctx.payload.homeGroupRef as string)}`);
+      },
+    };
+    const outbox = createOutbox({ store, transport, retry: { ...noSleep, attempts: 1 } });
+
+    const groupId = await outbox.enqueue({ type: "group", payload: { name: "BGroup Bukas" } });
+    await outbox.enqueue({
+      type: "person",
+      payload: { name: "Nena", homeGroupRef: groupId },
+      deps: [groupId],
+    });
+
+    await outbox.flush(); // group uploads, person fails
+    expect(outbox.itemsSnapshot().map((i) => i.status)).toEqual(["failed"]);
+
+    // The group is done and no *pending* item needs it — but the failed person
+    // still does. Its server id must survive to the retry.
+    childBroken = false;
+    const result = await outbox.retry();
+
+    expect(result).toMatchObject({ uploaded: 1, pending: 0, error: null });
+    expect(sent).toEqual(["group", `person→srv-${groupId}`]);
+    expect(outbox.itemsSnapshot()).toEqual([]);
+  });
+
+  it("keeps a failed write in the exposed queue but out of the pending count", async () => {
+    const store = memoryStore();
+    const transport: Transport = {
+      group: async () => {
+        throw new Error("name already taken");
+      },
+    };
+    const outbox = createOutbox({ store, transport, retry: { ...noSleep, attempts: 1 } });
+
+    await outbox.enqueue({ type: "group", payload: { name: "BGroup Bukas" } });
+    await outbox.flush();
+
+    // The count the Home card and the badge read is pending-only — a failed
+    // write is not "uploading by itself", it is waiting on a retry.
+    expect(outbox.snapshot()).toBe(0);
+    expect(await outbox.pending()).toBe(0);
+    // ...but a form still sees it, so a person enqueued into that BGroup can
+    // carry a ref to it and replay once the retry clears it.
+    expect(outbox.itemsSnapshot().map((i) => i.status)).toEqual(["failed"]);
   });
 
   it("survives a corrupt queue entry from an older build without blocking the rest", async () => {

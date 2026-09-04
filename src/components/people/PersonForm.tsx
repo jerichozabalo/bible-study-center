@@ -19,7 +19,7 @@
 import { useActionState, useEffect, useState } from "react";
 
 import { useOutbox } from "@/components/outbox/OutboxProvider";
-import { PERSON_WRITE, pendingGroups } from "@/lib/outbox/transport";
+import { PERSON_WRITE, pendingGroups } from "@/lib/outbox/pending";
 import type { PersonFormState } from "@/lib/roster/actions";
 import { type PersonFormValues, parsePersonForm } from "@/lib/roster/form";
 import { CIVIL_STATUSES, SPIRITUAL_STATUSES } from "@/lib/roster/display";

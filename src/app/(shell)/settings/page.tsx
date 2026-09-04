@@ -19,6 +19,7 @@
  */
 import { Emblem } from "@/components/Emblem";
 import { LockSettings } from "@/components/LockSettings";
+import { OnlineOnlyNote } from "@/components/outbox/OnlineOnlyNote";
 import { UploadRow } from "@/components/outbox/UploadRow";
 import { QuietThresholdSettings } from "@/components/insights/QuietThresholdSettings";
 import { SignOutButton } from "@/components/SignOutButton";
@@ -35,6 +36,8 @@ export default async function SettingsPage() {
   return (
     <section className="pb-7">
       <h1 className="mt-[2px] mb-[22px] ml-1 text-[30px]">Settings</h1>
+
+      <OnlineOnlyNote what="Settings" />
 
       <Section label="ACCOUNT">
         <div className="overflow-hidden rounded-[20px] border border-line bg-card">
