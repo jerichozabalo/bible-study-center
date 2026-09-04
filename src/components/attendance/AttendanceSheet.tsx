@@ -28,7 +28,7 @@
  * board's counter and its Save button describe — and the shape issue 11's
  * outbox wants: one payload per sheet, not a request per tap.
  */
-import { useActionState, useState } from "react";
+import { useActionState, useEffect, useState } from "react";
 
 import { CatchUpList } from "@/components/attendance/CatchUpList";
 import { useOutbox } from "@/components/outbox/OutboxProvider";
@@ -71,14 +71,46 @@ export function AttendanceSheet({
   // server never saw it; the outbox uploads it on reconnect.
   const [queued, setQueued] = useState(false);
 
+  // Whether the phone has a connection. The sheet save queues offline (#72),
+  // but adding a ride-along or a walk-in is a server read + write with no queue
+  // — offline those buttons are held, and this drives that.
+  const [online, setOnline] = useState(true);
+  // Set when an online-only add is attempted with no signal — an inline note,
+  // not a full-page crash to the framework error boundary (QA, 2026-09-04).
+  const [addBlocked, setAddBlocked] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      setOnline(navigator.onLine);
+      if (navigator.onLine) setAddBlocked(false);
+    };
+    update();
+    window.addEventListener("online", update);
+    window.addEventListener("offline", update);
+    return () => {
+      window.removeEventListener("online", update);
+      window.removeEventListener("offline", update);
+    };
+  }, []);
+
   function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     const submitter = (event.nativeEvent as SubmitEvent).submitter as HTMLButtonElement | null;
-    // The walk-in path creates a person, which needs the server (issue 18).
-    // Offline it fails like anything else that needs a connection — no queue.
-    if (submitter?.name === "intent" && submitter.value === "walk-in") return;
-    // Adding a ride-along (#31) is a server read + write, online-only — it is
-    // not the sheet save the outbox carries.
-    if (submitter?.name === "rideAlong") return;
+    // The walk-in path creates a person and the ride-along is a server read +
+    // write (issue 18/#31) — both need a connection and neither is queued. When
+    // there is one, let the native submit run the server action. When there is
+    // not, block it: an unguarded submit here posts anyway, the action throws
+    // `Failed to fetch`, and the whole sheet — every unsaved tick — is replaced
+    // by the framework error page (QA, 2026-09-04).
+    const onlineOnlyAdd =
+      submitter?.name === "rideAlong" ||
+      (submitter?.name === "intent" && submitter.value === "walk-in");
+    if (onlineOnlyAdd) {
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        event.preventDefault();
+        setAddBlocked(true);
+      }
+      return;
+    }
     if (typeof navigator === "undefined" || navigator.onLine) return;
 
     event.preventDefault();
@@ -107,6 +139,7 @@ export function AttendanceSheet({
     setAdding(false);
     setWalkInName("");
     setRideAlongSearch("");
+    setAddBlocked(false);
   }
 
   // #31 — the leader's own people not already on tonight's sheet, matched on
@@ -182,6 +215,14 @@ export function AttendanceSheet({
 
         {adding ? (
           <div className="rounded-[20px] border-[1.5px] border-line bg-card p-[14px]">
+            {/* Adding someone is a server read + write with no offline queue
+                (issue 18/#31). Say so up front and hold the buttons, rather
+                than letting a submit crash the sheet (QA, 2026-09-04). */}
+            {online && !addBlocked ? null : (
+              <p className="mb-[11px] rounded-[14px] bg-shell px-3 py-[9px] text-[12.5px] leading-[1.45] text-slate">
+                Adding someone needs a connection. The ticks above still save on this phone.
+              </p>
+            )}
             {/* #31 — a ride-along is already on the roster, from another BGroup.
                 Adding them writes no new person: the visit is the completion. */}
             <label
@@ -232,7 +273,7 @@ export function AttendanceSheet({
                       type="submit"
                       name="rideAlong"
                       value={person.id}
-                      disabled={pending}
+                      disabled={pending || !online}
                       className="shrink-0 rounded-[13px] bg-blue px-[13px] py-[8px] text-[13px] font-bold text-white active:bg-blue-deep disabled:opacity-60"
                     >
                       Add
@@ -265,7 +306,7 @@ export function AttendanceSheet({
                 type="submit"
                 name="intent"
                 value="walk-in"
-                disabled={pending || walkInName.trim() === ""}
+                disabled={pending || walkInName.trim() === "" || !online}
                 className="flex h-[50px] grow items-center justify-center rounded-[16px] bg-blue text-[15.5px] font-bold text-white active:bg-blue-deep disabled:opacity-60"
               >
                 {pending ? "Saving…" : "Save to the roster"}
@@ -361,6 +402,7 @@ export function AttendanceSheet({
         sessionNumber={sessionNumber}
         sessionTitle={sessionTitle}
         pending={pending}
+        online={online}
       />
     </form>
   );

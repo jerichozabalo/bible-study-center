@@ -28,6 +28,7 @@ export function CatchUpList({
   sessionNumber,
   sessionTitle,
   pending,
+  online,
 }: {
   candidates: CatchUpCandidate[];
   /** The session they are all missing — never null, or there is no list. */
@@ -35,6 +36,9 @@ export function CatchUpList({
   sessionTitle: string | null;
   /** The sheet's action is running — hold the add buttons. */
   pending: boolean;
+  /** The phone has a connection. Adding a ride-along is a server write with no
+   * offline queue (issue 18/#31), so offline the buttons are held. */
+  online: boolean;
 }) {
   // Nothing to say is said with nothing: a fellowship night (#26), a BGroup
   // that is the only one on this book, or an evening where everyone is caught
@@ -51,6 +55,12 @@ export function CatchUpList({
         {sessionNumber === null ? "this session" : `Session ${sessionNumber}`}
         {sessionTitle === null ? "" : ` — ${sessionTitle}`}. Add whoever came along tonight.
       </p>
+
+      {online ? null : (
+        <p className="mb-[11px] rounded-[14px] bg-shell px-3 py-[9px] text-[12.5px] leading-[1.45] text-slate">
+          Adding someone needs a connection. The ticks above still save on this phone.
+        </p>
+      )}
 
       <div className="flex flex-col gap-[9px]">
         {candidates.map((candidate) => {
@@ -83,7 +93,7 @@ export function CatchUpList({
                 type="submit"
                 name="rideAlong"
                 value={candidate.personId}
-                disabled={pending}
+                disabled={pending || !online}
                 className="shrink-0 rounded-[14px] bg-blue px-[14px] py-[10px] text-[13.5px] font-bold text-white active:bg-blue-deep disabled:opacity-60"
               >
                 Add to tonight

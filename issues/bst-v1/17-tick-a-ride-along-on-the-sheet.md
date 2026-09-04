@@ -13,6 +13,20 @@ When someone from another BGroup actually shows up to a meeting, the leader can
 tick them on that meeting's sheet as a guest — without creating a duplicate
 roster record for a person who already exists.
 
+## QA follow-up (2026-09-04)
+Browser QA of the sheet passed the online paths (catch-up section inside the
+form, "Add to tonight", the ride-along search / "SOMEONE NEW" split, ticks
+surviving an add) but found one defect: **offline, the ride-along "Add" and
+walk-in "Save to the roster" buttons were unguarded submits** — `handleSubmit`
+`return`ed for them without `preventDefault`, so offline they POSTed anyway, the
+server action threw `Failed to fetch` uncaught, and the whole sheet (every
+unsaved tick) was replaced by the framework error page. Fixed: `AttendanceSheet`
+now tracks `navigator.onLine`, those buttons are `disabled` offline, the add
+card and the catch-up list show "Adding someone needs a connection. The ticks
+above still save on this phone.", and `handleSubmit` `preventDefault`s the
+online-only submits as a backstop. Still code-`done`; the fix wants Jericho's
+phone pass alongside the rest of 17.
+
 ## Scope
 - "As the leader, on a meeting's attendance screen I can add a person who is
   already on my roster (from another BGroup) to tonight's sheet and mark them,

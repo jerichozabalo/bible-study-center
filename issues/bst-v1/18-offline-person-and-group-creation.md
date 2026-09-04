@@ -49,10 +49,37 @@ the amendment; issue 11 built the outbox foundation this extends.
    `navigator.onLine`, renders nothing when online, a plain line under the `<h1>`
    when offline. No pending state, per #72 as amended.
 
+### Tier 2 QA follow-up — two defects fixed 2026-09-04 (`86fb650`)
+Browser QA (offline flows, real Chromium) found:
+1. **The pending/failed rows were unreachable offline.** `/people` and
+   `/people/groups` are `force-dynamic`; a client nav to them with no signal
+   fails its RSC fetch and the service worker served `/offline`. Only the OS
+   hardware back button worked — absent in an installed iOS PWA, the target.
+   **Fix:** `public/sw.js` rule 2b (the calendar's offline-readable stash) now
+   also covers `/people` and `/people/groups` — the last good server render is
+   served offline with the client pending rows hydrated on top. `CACHE` →
+   `bst-v3`. ⚠️ this widens the offline-readable set past the calendar (#70/#72
+   had narrowed it) — done because this issue's own text says these screens
+   "show a per-row pending state"; flag for Jericho to confirm/veto.
+2. **A failed row showed "Minified React error #441", not the reason.** Next
+   redacts a raw server-action throw in a production build. **Fix:**
+   `uploadGroup` / `uploadPerson` catch `RosterValidationError` and return
+   `{ error }` as data (same as the online form actions); the transport unwraps
+   it via `unwrapUpload` (in `pending.ts`, tested) and rethrows a plain
+   non-transient `Error`, so the queue stores a readable message.
+
+Re-QA (`86fb650`) confirmed both fixed. Also flagged and fixed a defect in
+**issue 17's** territory, not this one — offline the ride-along / walk-in
+buttons crashed the sheet (see `17-tick-a-ride-along-on-the-sheet.md`).
+
 **Known cosmetic gap (for phone QA):** on `/people` with an empty server roster
 and a queued offline person, the "Nobody on the roster yet" card still renders
 below the pending row. Honest (nobody is on the *server* roster yet) but reads
-oddly — left for Jericho to judge on the phone.
+oddly — left for Jericho to judge on the phone. QA's read: "mildly
+self-contradictory, not alarming." Small fix ready if he wants it.
+
+**Pre-existing (not this issue):** the SW-served stale `/people` renders a
+broken `<img>` where the emblem should be — same bug as the `/offline` page.
 
 ### Tier 1 — shipped 2026-09-03 (`5396841`)
 **Done and tested:** the offline write path and its dependency graph, end to end.

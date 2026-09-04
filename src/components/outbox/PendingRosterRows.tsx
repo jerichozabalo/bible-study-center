@@ -63,15 +63,20 @@ export function PendingRosterRows({ kind }: { kind: "person" | "group" }) {
 
             <div className="min-w-0 grow">
               <div className="truncate text-[16px] font-bold">{row.name}</div>
-              <div
-                className={`mt-[3px] text-[13px] ${
-                  row.status === "failed" ? "text-amber-ink" : "text-tan"
-                }`}
-              >
-                {row.status === "failed"
-                  ? `Couldn't upload this ${noun}${row.error ? ` — ${row.error}` : ""}`
-                  : "Uploads when you have signal"}
-              </div>
+              {row.status === "failed" ? (
+                <>
+                  <div className="mt-[3px] text-[13px] text-amber-ink">
+                    Couldn&rsquo;t upload this {noun}.
+                  </div>
+                  {row.error ? (
+                    <div className="mt-[1px] text-[12.5px] leading-[1.4] text-amber-ink/80">
+                      {row.error}
+                    </div>
+                  ) : null}
+                </>
+              ) : (
+                <div className="mt-[3px] text-[13px] text-tan">Uploads when you have signal</div>
+              )}
             </div>
           </div>
 
