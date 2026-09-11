@@ -82,8 +82,8 @@ The rename is user-facing; the route slug stays `/calendar`.
 
 ## Status 2026-09-11
 
-**Built and browser-QA'd — landed in the commit carrying this file; awaiting
-Jericho's pass and the deploy.**
+**Built, browser-QA'd, committed and DEPLOYED — the last gate is Jericho's
+phone pass.**
 
 - The log read (`listMeetingLog` + 6 tests, red observed first), the shared
   card (`components/meetings/MeetingCard`, extracted so the List and the
@@ -104,8 +104,10 @@ Jericho's pass and the deploy.**
   the allowlisted owner — the placeholder address is refused by the local
   allowlist; v1.1's note). Stale placeholder-owner rows remain on the test
   branch; owner-scoped reads ignore them.
-- Still owed: Jericho's pass, the deploy (his go), then the DESIGN-CONCEPT
-  v1.2 entry + the memory-file update.
+- **Deployed 2026-09-11** — `dpl_6WCJCqrNx9VBPK7ReMavmYYoevDv`, alias verified
+  307 → `/signin` → 200; the live `sw.js` carries `bst-v4`; commit `9d33112`
+  pushed. Still owed: Jericho's phone pass; the DESIGN-CONCEPT v1.2 entry and
+  the memory update land with this record.
 
 ## Looks like
 - No board draws the list view. Gate: (1) the cards are
