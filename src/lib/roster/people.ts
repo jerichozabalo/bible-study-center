@@ -63,6 +63,12 @@ export type PersonInput = {
   spiritualStatus?: string | null;
   baptized?: boolean;
   baptizedOn?: string | null;
+  /**
+   * bst-v1.1 issue 2 — whether they have prayed the salvation prayer, and the
+   * day they did. The date is the stronger claim, exactly as with baptism.
+   */
+  prayedSalvation?: boolean;
+  prayedSalvationOn?: string | null;
   invitedBy?: string | null;
   notes?: string | null;
   /**
@@ -109,6 +115,8 @@ export type PersonDetail = PersonSummary & {
   spiritualStatus: SpiritualStatus | null;
   baptized: boolean;
   baptizedOn: string | null;
+  prayedSalvation: boolean;
+  prayedSalvationOn: string | null;
   invitedBy: string | null;
   notes: string | null;
   /** Newest first. */
@@ -145,6 +153,8 @@ const SELECT_PERSON = `
          p.spiritual_status,
          p.baptized,
          p.baptized_on::text AS baptized_on,
+         p.prayed_salvation,
+         p.prayed_salvation_on::text AS prayed_salvation_on,
          p.invited_by,
          p.notes,
          p.stepped_away_on::text AS stepped_away_on,
@@ -230,9 +240,9 @@ export async function createPerson(ownerId: string, input: PersonInput): Promise
     const rows = await tx.query<{ id: string }>(
       `INSERT INTO people (id, owner_id, name, phone, email, home_group_id, joined_on, birthday,
                            address, civil_status, spiritual_status, baptized, baptized_on,
-                           invited_by, notes, nickname)
-       VALUES (COALESCE($16::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-               $12, $13, $14, $15)
+                           invited_by, notes, nickname, prayed_salvation, prayed_salvation_on)
+       VALUES (COALESCE($18::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+               $12, $13, $14, $15, $16, $17)
        ON CONFLICT (id) DO NOTHING
        RETURNING id`,
       [
@@ -251,6 +261,8 @@ export async function createPerson(ownerId: string, input: PersonInput): Promise
         clean.invitedBy,
         clean.notes,
         clean.nickname,
+        clean.prayedSalvation,
+        clean.prayedSalvationOn,
         clean.clientId,
       ],
     );
@@ -314,6 +326,8 @@ export async function updatePerson(
               invited_by = $14,
               notes = $15,
               nickname = $16,
+              prayed_salvation = $17,
+              prayed_salvation_on = $18,
               updated_at = now()
         WHERE owner_id = $1 AND id = $2`,
       [
@@ -333,6 +347,8 @@ export async function updatePerson(
         clean.invitedBy,
         clean.notes,
         clean.nickname,
+        clean.prayedSalvation,
+        clean.prayedSalvationOn,
       ],
     );
 
@@ -454,6 +470,8 @@ type PersonRow = {
   spiritual_status: SpiritualStatus | null;
   baptized: boolean;
   baptized_on: string | null;
+  prayed_salvation: boolean;
+  prayed_salvation_on: string | null;
   invited_by: string | null;
   notes: string | null;
   stepped_away_on: string | null;
@@ -491,6 +509,8 @@ function toDetail(row: PersonRow): Omit<PersonDetail, "memberships"> {
     spiritualStatus: row.spiritual_status,
     baptized: row.baptized,
     baptizedOn: row.baptized_on,
+    prayedSalvation: row.prayed_salvation,
+    prayedSalvationOn: row.prayed_salvation_on,
     invitedBy: row.invited_by,
     notes: row.notes,
   };
@@ -509,6 +529,8 @@ type CleanPerson = {
   spiritualStatus: SpiritualStatus | null;
   baptized: boolean;
   baptizedOn: string | null;
+  prayedSalvation: boolean;
+  prayedSalvationOn: string | null;
   invitedBy: string | null;
   notes: string | null;
   clientId: string | null;
@@ -560,6 +582,17 @@ async function validate(
   // the box is baptized. Un-ticking AND clearing the date is how it is undone.
   const baptized = (input.baptized ?? false) || baptizedOn !== null;
 
+  const prayedSalvationOn = day(
+    input.prayedSalvationOn,
+    "Check the salvation prayer date — pick it from the calendar.",
+  );
+  if (prayedSalvationOn !== null && prayedSalvationOn > today) {
+    throw new RosterValidationError("A salvation prayer date cannot be in the future.");
+  }
+  // Same rule as baptism: a date is the stronger statement, and un-ticking AND
+  // clearing the date is how it is undone.
+  const prayedSalvation = (input.prayedSalvation ?? false) || prayedSalvationOn !== null;
+
   const civilStatus = oneOf(
     input.civilStatus,
     CIVIL_STATUSES,
@@ -605,6 +638,8 @@ async function validate(
     spiritualStatus,
     baptized,
     baptizedOn: baptized ? baptizedOn : null,
+    prayedSalvation,
+    prayedSalvationOn: prayedSalvation ? prayedSalvationOn : null,
     invitedBy: trimmed(input.invitedBy),
     notes: trimmed(input.notes),
     clientId: input.clientId ?? null,

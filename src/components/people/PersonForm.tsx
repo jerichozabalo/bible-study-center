@@ -99,6 +99,8 @@ export function PersonForm({
         spiritualStatus: input.spiritualStatus,
         baptized: input.baptized,
         baptizedOn: input.baptizedOn,
+        prayedSalvation: input.prayedSalvation,
+        prayedSalvationOn: input.prayedSalvationOn,
         invitedBy: input.invitedBy,
         notes: input.notes,
         // A home BGroup that is itself still queued travels as a ref + a dep, so
@@ -298,6 +300,27 @@ export function PersonForm({
         type="date"
         aria-label="Baptized on"
         defaultValue={shown.baptizedOn}
+        className={`${FIELD} mt-[8px]`}
+      />
+
+      <div className={`${EYEBROW} mt-[22px]`}>SALVATION PRAYER</div>
+      {/* Same shape as baptism above, and the same rule: the checkbox says
+          "yes, at some point" and a date with the box unticked still means
+          prayed — the module treats the date as the stronger statement. */}
+      <label className="mt-[9px] flex h-[54px] w-full items-center gap-[11px] rounded-[18px] border-[1.5px] border-line bg-card px-[13px] text-[15.5px] font-semibold text-ink">
+        <input
+          name="prayedSalvation"
+          type="checkbox"
+          defaultChecked={shown.prayedSalvation}
+          className="h-[20px] w-[20px] accent-blue"
+        />
+        Prayed the salvation prayer
+      </label>
+      <input
+        name="prayedSalvationOn"
+        type="date"
+        aria-label="Prayed the salvation prayer on"
+        defaultValue={shown.prayedSalvationOn}
         className={`${FIELD} mt-[8px]`}
       />
 

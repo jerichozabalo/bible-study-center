@@ -8,3 +8,6 @@ issue in this folder instead.
   now matches nickname or name. It is display logic in a client component, and
   this repo has no component-test harness — it rides the issue's Looks-like
   gate rather than a unit test.**
+- **2026-09-11 — issue 2: the salvation prayer shows on the person's page and in
+  the form only — the Reports person sheet still carries Baptized and not this.
+  Say the word if you want it in the export.**

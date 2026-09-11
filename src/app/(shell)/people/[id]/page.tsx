@@ -30,7 +30,7 @@ import {
   restorePersonAction,
   setSteppedAwayAction,
 } from "@/lib/roster/actions";
-import { baptizedLabel, displayName, initialsOf } from "@/lib/roster/display";
+import { baptizedLabel, displayName, initialsOf, salvationLabel } from "@/lib/roster/display";
 import { type Membership, getPerson } from "@/lib/roster/people";
 import { formatTime } from "@/lib/roster/schedule";
 
@@ -179,6 +179,9 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
         {person.spiritualStatus ? <Chip tone="blue">{person.spiritualStatus}</Chip> : null}
         <Chip tone={person.baptized ? "blue" : "plain"}>
           {baptizedLabel(person.baptized, person.baptizedOn)}
+        </Chip>
+        <Chip tone={person.prayedSalvation ? "blue" : "plain"}>
+          {salvationLabel(person.prayedSalvation, person.prayedSalvationOn)}
         </Chip>
         {person.steppedAwayOn ? (
           <Chip tone="plain">Stepped away {formatLongDate(person.steppedAwayOn)}</Chip>

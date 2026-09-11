@@ -83,6 +83,9 @@ export type PersonFormValues = {
   spiritualStatus: string;
   baptized: boolean;
   baptizedOn: string;
+  /** bst-v1.1 issue 2 — the salvation prayer, with the date it happened. */
+  prayedSalvation: boolean;
+  prayedSalvationOn: string;
   invitedBy: string;
   notes: string;
 };
@@ -106,6 +109,8 @@ export function personFormDefaults(): PersonFormValues {
     spiritualStatus: "",
     baptized: false,
     baptizedOn: "",
+    prayedSalvation: false,
+    prayedSalvationOn: "",
     invitedBy: "",
     notes: "",
   };
@@ -130,6 +135,8 @@ export function personFormValuesFrom(formData: FormData): PersonFormValues {
     spiritualStatus: text(formData, "spiritualStatus"),
     baptized: checked(formData, "baptized"),
     baptizedOn: text(formData, "baptizedOn"),
+    prayedSalvation: checked(formData, "prayedSalvation"),
+    prayedSalvationOn: text(formData, "prayedSalvationOn"),
     invitedBy: text(formData, "invitedBy"),
     notes: text(formData, "notes"),
   };
@@ -155,6 +162,8 @@ export function parsePersonForm(formData: FormData): PersonInput {
     spiritualStatus: optional(formData, "spiritualStatus"),
     baptized: checked(formData, "baptized"),
     baptizedOn: optional(formData, "baptizedOn"),
+    prayedSalvation: checked(formData, "prayedSalvation"),
+    prayedSalvationOn: optional(formData, "prayedSalvationOn"),
     invitedBy: optional(formData, "invitedBy"),
     notes: optional(formData, "notes"),
   };

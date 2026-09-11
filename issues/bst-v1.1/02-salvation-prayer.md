@@ -1,7 +1,7 @@
 ---
 issue: 2
 title: Salvation prayer — a toggle (with date) on the person record
-status: open
+status: done
 blocked-by: []
 type: afk
 ---

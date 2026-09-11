@@ -239,6 +239,8 @@ describe.skipIf(!dbConfigured)("outbox replay of offline roster writes (#72 amen
           // bst-v1.1 issue 1 — the real transport spreads the payload the same
           // way; dropping this field here is what the assertion above catches.
           nickname: (ctx.payload.nickname as string | null) ?? null,
+          prayedSalvation: (ctx.payload.prayedSalvation as boolean) ?? false,
+          prayedSalvationOn: (ctx.payload.prayedSalvationOn as string | null) ?? null,
           homeGroupId,
           clientId: ctx.id,
         });
@@ -324,7 +326,14 @@ describe.skipIf(!dbConfigured)("outbox replay of offline roster writes (#72 amen
       type: "person",
       // bst-v1.1 issue 1 — a nickname saved offline must survive the replay,
       // not just the row the leader saw while queued.
-      payload: { name: "Nena Villamor", nickname: "Nena", homeGroupRef: groupRef },
+      payload: {
+        name: "Nena Villamor",
+        nickname: "Nena",
+        // bst-v1.1 issue 2 — the salvation prayer toggled offline replays too.
+        prayedSalvation: true,
+        prayedSalvationOn: "2024-04-14",
+        homeGroupRef: groupRef,
+      },
       deps: [groupRef],
     });
     const meetingRef = await outbox.enqueue({
@@ -351,6 +360,9 @@ describe.skipIf(!dbConfigured)("outbox replay of offline roster writes (#72 amen
     expect((await getPerson(TEST_OWNER, personRef))?.homeGroupId).toBe(serverGroupId);
     // The nickname the leader typed offline came through the replay (#bst-v1.1 #1).
     expect((await getPerson(TEST_OWNER, personRef))?.nickname).toBe("Nena");
+    // And the salvation prayer toggled offline, with its date (#bst-v1.1 #2).
+    expect((await getPerson(TEST_OWNER, personRef))?.prayedSalvation).toBe(true);
+    expect((await getPerson(TEST_OWNER, personRef))?.prayedSalvationOn).toBe("2024-04-14");
 
     const members = await listGroupMembers(TEST_OWNER, serverGroupId);
     expect(members.map((m) => m.name)).toEqual(["Nena Villamor"]);

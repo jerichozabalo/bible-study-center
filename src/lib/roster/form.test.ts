@@ -141,6 +141,8 @@ describe("parsePersonForm", () => {
         spiritualStatus: "Edify",
         baptized: "on",
         baptizedOn: "2024-05-03",
+        prayedSalvation: "on",
+        prayedSalvationOn: "2024-04-14",
         invitedBy: "Maria Santos",
         notes: "Works nights on Thursdays.",
       }),
@@ -159,6 +161,8 @@ describe("parsePersonForm", () => {
       spiritualStatus: "Edify",
       baptized: true,
       baptizedOn: "2024-05-03",
+      prayedSalvation: true,
+      prayedSalvationOn: "2024-04-14",
       invitedBy: "Maria Santos",
       notes: "Works nights on Thursdays.",
     });
@@ -179,6 +183,8 @@ describe("parsePersonForm", () => {
       // An unticked checkbox posts nothing at all.
       baptized: false,
       baptizedOn: null,
+      prayedSalvation: false,
+      prayedSalvationOn: null,
     });
   });
 });
@@ -192,7 +198,14 @@ describe("personFormValuesFrom", () => {
 
   it("hands the form back what was typed, so a refusal costs nothing", () => {
     const values = personFormValuesFrom(
-      formOf({ name: "", nickname: "Nena", phone: "0917", spiritualStatus: "Equip", baptized: "on" }),
+      formOf({
+        name: "",
+        nickname: "Nena",
+        phone: "0917",
+        spiritualStatus: "Equip",
+        baptized: "on",
+        prayedSalvation: "on",
+      }),
     );
 
     expect(values).toMatchObject({
@@ -201,6 +214,7 @@ describe("personFormValuesFrom", () => {
       phone: "0917",
       spiritualStatus: "Equip",
       baptized: true,
+      prayedSalvation: true,
     });
   });
 
@@ -211,6 +225,7 @@ describe("personFormValuesFrom", () => {
     expect(values.homeGroupId).toBe("");
     expect(values.birthday).toBe("");
     expect(values.nickname).toBe("");
+    expect(values.prayedSalvationOn).toBe("");
   });
 });
 
@@ -219,5 +234,7 @@ describe("personFormDefaults", () => {
     expect(personFormDefaults().joinedOn).toBe(manilaToday());
     expect(personFormDefaults().name).toBe("");
     expect(personFormDefaults().nickname).toBe("");
+    expect(personFormDefaults().prayedSalvation).toBe(false);
+    expect(personFormDefaults().prayedSalvationOn).toBe("");
   });
 });

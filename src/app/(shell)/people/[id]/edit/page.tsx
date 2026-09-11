@@ -51,6 +51,8 @@ export default async function EditPersonPage({ params }: { params: Promise<{ id:
           spiritualStatus: person.spiritualStatus ?? "",
           baptized: person.baptized,
           baptizedOn: person.baptizedOn ?? "",
+          prayedSalvation: person.prayedSalvation,
+          prayedSalvationOn: person.prayedSalvationOn ?? "",
           invitedBy: person.invitedBy ?? "",
           notes: person.notes ?? "",
         }}

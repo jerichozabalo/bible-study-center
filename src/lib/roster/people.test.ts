@@ -64,6 +64,8 @@ describe.skipIf(!dbConfigured)("people", () => {
       baptizedOn: "2024-05-03",
       invitedBy: "Maria Santos",
       notes: "Works nights on Thursdays.",
+      prayedSalvation: true,
+      prayedSalvationOn: "2024-04-14",
       ...overrides,
     };
   }
@@ -86,6 +88,8 @@ describe.skipIf(!dbConfigured)("people", () => {
       baptizedOn: "2024-05-03",
       invitedBy: "Maria Santos",
       notes: "Works nights on Thursdays.",
+      prayedSalvation: true,
+      prayedSalvationOn: "2024-04-14",
       contactIncomplete: false,
       steppedAwayOn: null,
       removedAt: null,
@@ -204,12 +208,39 @@ describe.skipIf(!dbConfigured)("people", () => {
     const neither = await createPerson(
       TEST_OWNER,
       nena({ name: "Grace Bautista", baptized: false, baptizedOn: null }),
-    );
-    expect(await getPerson(TEST_OWNER, neither)).toMatchObject({
-      baptized: false,
-      baptizedOn: null,
-    });
-  });
+ );
+ expect(await getPerson(TEST_OWNER, neither)).toMatchObject({
+ baptized: false,
+ baptizedOn: null,
+ });
+ });
+
+ /** The salvation prayer is its own milestone, and the date is the stronger claim. */
+ it("takes a salvation prayer date as saying they prayed, and drops the date when they did not", async () => {
+ const dated = await createPerson(
+ TEST_OWNER,
+ nena({ prayedSalvation: false, prayedSalvationOn: "2024-04-14" }),
+ );
+ expect(await getPerson(TEST_OWNER, dated)).toMatchObject({
+ prayedSalvation: true,
+ prayedSalvationOn: "2024-04-14",
+ });
+
+ const neither = await createPerson(
+ TEST_OWNER,
+ nena({ name: "Grace Bautista", prayedSalvation: false, prayedSalvationOn: null }),
+ );
+ expect(await getPerson(TEST_OWNER, neither)).toMatchObject({
+ prayedSalvation: false,
+ prayedSalvationOn: null,
+ });
+ });
+
+ it("refuses a salvation prayer date in the future", async () => {
+ await expect(
+ createPerson(TEST_OWNER, nena({ prayedSalvation: true, prayedSalvationOn: "2999-01-01" })),
+ ).rejects.toBeInstanceOf(RosterValidationError);
+ });
 
   it("derives the age from the birthday rather than storing one (#9b)", async () => {
     const id = await createPerson(TEST_OWNER, nena({ birthday: "1988-03-14" }));

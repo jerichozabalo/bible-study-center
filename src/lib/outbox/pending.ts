@@ -70,6 +70,9 @@ export type PersonPayload = {
   spiritualStatus: string | null;
   baptized: boolean;
   baptizedOn: string | null;
+  /** bst-v1.1 issue 2 — the salvation prayer, with its date. */
+  prayedSalvation: boolean;
+  prayedSalvationOn: string | null;
   invitedBy: string | null;
   notes: string | null;
 };

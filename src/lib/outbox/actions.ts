@@ -134,6 +134,10 @@ export type QueuedPerson = {
   spiritualStatus: string | null;
   baptized: boolean;
   baptizedOn: string | null;
+  /** bst-v1.1 issue 2 — required, so a transport that drops it fails the
+   * typecheck rather than silently replaying without it. */
+  prayedSalvation: boolean;
+  prayedSalvationOn: string | null;
   invitedBy: string | null;
   notes: string | null;
 };
@@ -156,6 +160,8 @@ export async function uploadPerson(input: QueuedPerson): Promise<UploadResult<"p
       spiritualStatus: input.spiritualStatus,
       baptized: input.baptized,
       baptizedOn: input.baptizedOn,
+      prayedSalvation: input.prayedSalvation,
+      prayedSalvationOn: input.prayedSalvationOn,
       invitedBy: input.invitedBy,
       notes: input.notes,
       clientId: input.clientId,

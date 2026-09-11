@@ -66,3 +66,15 @@ export function baptizedLabel(baptized: boolean, baptizedOn: string | null): str
   if (!baptized) return "Not yet baptized";
   return baptizedOn === null ? "Baptized" : `Baptized ${formatLongDate(baptizedOn)}`;
 }
+
+/**
+ * The salvation prayer chip (bst-v1.1 issue 2), in the baptism chip's own tone:
+ * where someone is on the road, never a grade. The date is the stronger claim,
+ * exactly as with baptism.
+ */
+export function salvationLabel(prayed: boolean, prayedOn: string | null): string {
+  if (!prayed) return "Not yet prayed the salvation prayer";
+  return prayedOn === null
+    ? "Prayed the salvation prayer"
+    : `Prayed the salvation prayer · ${formatLongDate(prayedOn)}`;
+}
