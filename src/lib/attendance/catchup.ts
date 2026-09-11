@@ -32,6 +32,11 @@ import { query } from "../db";
 export type CatchUpCandidate = {
   personId: string;
   name: string;
+  /**
+   * bst-v1.1 issue 1 — shown in place of `name` on the catch-up card
+   * (`displayName`). NULL = not set.
+   */
+  nickname: string | null;
   /** Always their own BGroup, and never the meeting's — that is the point. */
   homeGroupId: string;
   homeGroupName: string;
@@ -83,6 +88,7 @@ export async function getCatchUpCandidates(
   const rows = await query<{
     person_id: string;
     name: string;
+    nickname: string | null;
     home_group_id: string;
     home_group_name: string;
     joined_on: string | null;
@@ -100,6 +106,7 @@ export async function getCatchUpCandidates(
      )
      SELECT p.id AS person_id,
             p.name,
+            p.nickname,
             p.home_group_id,
             g.name AS home_group_name,
             gm.joined_on::text AS joined_on,
@@ -139,6 +146,7 @@ export async function getCatchUpCandidates(
   return rows.map((row) => ({
     personId: row.person_id,
     name: row.name,
+    nickname: row.nickname,
     homeGroupId: row.home_group_id,
     homeGroupName: row.home_group_name,
     joinedOn: row.joined_on,

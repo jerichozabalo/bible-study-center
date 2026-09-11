@@ -30,7 +30,7 @@ import {
   restorePersonAction,
   setSteppedAwayAction,
 } from "@/lib/roster/actions";
-import { baptizedLabel, initialsOf } from "@/lib/roster/display";
+import { baptizedLabel, displayName, initialsOf } from "@/lib/roster/display";
 import { type Membership, getPerson } from "@/lib/roster/people";
 import { formatTime } from "@/lib/roster/schedule";
 
@@ -83,10 +83,15 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
 
       <div className="flex items-center gap-[14px]">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-blue-tint text-[21px] font-bold text-blue">
-          {initialsOf(person.name)}
+          {initialsOf(displayName(person))}
         </div>
         <div className="min-w-0">
-          <h2 className="text-[24px]">{person.name}</h2>
+          <h2 className="text-[24px]">{displayName(person)}</h2>
+          {/* bst-v1.1 issue 1 — the full name stays visible under the name
+              they are called by; the record does not disappear. */}
+          {person.nickname === null ? null : (
+            <div className="mt-[3px] text-[14px] text-tan">{person.name}</div>
+          )}
           <div className="mt-[3px] text-[14px] text-slate">
             Joined {formatLongDate(person.joinedOn)}
             {person.invitedBy ? ` · invited by ${person.invitedBy}` : ""}

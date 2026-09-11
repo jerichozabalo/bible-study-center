@@ -130,6 +130,7 @@ describe("parsePersonForm", () => {
     const input = parsePersonForm(
       formOf({
         name: "Nena Villamor",
+        nickname: "Nena",
         phone: "0917 555 0184",
         email: "nena.villamor@gmail.com",
         homeGroupId: "5c0f0b3e-0000-4000-8000-000000000001",
@@ -147,6 +148,7 @@ describe("parsePersonForm", () => {
 
     expect(input).toEqual({
       name: "Nena Villamor",
+      nickname: "Nena",
       phone: "0917 555 0184",
       email: "nena.villamor@gmail.com",
       homeGroupId: "5c0f0b3e-0000-4000-8000-000000000001",
@@ -168,6 +170,8 @@ describe("parsePersonForm", () => {
 
     expect(input).toMatchObject({
       name: "Nico",
+      // bst-v1.1 issue 1 — no nickname is none at all, not an empty string.
+      nickname: null,
       phone: null,
       email: null,
       homeGroupId: null,
@@ -188,11 +192,12 @@ describe("personFormValuesFrom", () => {
 
   it("hands the form back what was typed, so a refusal costs nothing", () => {
     const values = personFormValuesFrom(
-      formOf({ name: "", phone: "0917", spiritualStatus: "Equip", baptized: "on" }),
+      formOf({ name: "", nickname: "Nena", phone: "0917", spiritualStatus: "Equip", baptized: "on" }),
     );
 
     expect(values).toMatchObject({
       name: "",
+      nickname: "Nena",
       phone: "0917",
       spiritualStatus: "Equip",
       baptized: true,
@@ -205,6 +210,7 @@ describe("personFormValuesFrom", () => {
     expect(values.email).toBe("");
     expect(values.homeGroupId).toBe("");
     expect(values.birthday).toBe("");
+    expect(values.nickname).toBe("");
   });
 });
 
@@ -212,5 +218,6 @@ describe("personFormDefaults", () => {
   it("starts a new person on today's date in Manila", () => {
     expect(personFormDefaults().joinedOn).toBe(manilaToday());
     expect(personFormDefaults().name).toBe("");
+    expect(personFormDefaults().nickname).toBe("");
   });
 });

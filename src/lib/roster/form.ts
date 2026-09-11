@@ -70,6 +70,8 @@ export function parseGroupForm(formData: FormData): GroupInput {
 /** What the person form renders from — on a first paint and on a refusal alike. */
 export type PersonFormValues = {
   name: string;
+  /** bst-v1.1 issue 1 — optional; when set it is the name the app shows. */
+  nickname: string;
   phone: string;
   email: string;
   /** "" = no BGroup yet. Never null: a `<select>` cannot render one. */
@@ -93,6 +95,7 @@ export type PersonFormValues = {
 export function personFormDefaults(): PersonFormValues {
   return {
     name: "",
+    nickname: "",
     phone: "",
     email: "",
     homeGroupId: "",
@@ -116,6 +119,7 @@ export function personFormDefaults(): PersonFormValues {
 export function personFormValuesFrom(formData: FormData): PersonFormValues {
   return {
     name: text(formData, "name"),
+    nickname: text(formData, "nickname"),
     phone: text(formData, "phone"),
     email: text(formData, "email"),
     homeGroupId: text(formData, "homeGroupId"),
@@ -140,6 +144,7 @@ export function personFormValuesFrom(formData: FormData): PersonFormValues {
 export function parsePersonForm(formData: FormData): PersonInput {
   return {
     name: text(formData, "name"),
+    nickname: optional(formData, "nickname"),
     phone: optional(formData, "phone"),
     email: optional(formData, "email"),
     homeGroupId: optional(formData, "homeGroupId"),

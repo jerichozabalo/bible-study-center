@@ -1,6 +1,26 @@
 import { describe, expect, it } from "vitest";
 
-import { baptizedLabel, initialsOf } from "./display";
+import { baptizedLabel, displayName, initialsOf } from "./display";
+
+/**
+ * bst-v1.1 issue 1 — one rule, one helper: when a nickname is set it is the
+ * name shown everywhere, and the full name stays the stored record.
+ */
+describe("displayName", () => {
+  it("shows the nickname when one is set", () => {
+    expect(displayName({ name: "Nena Villamor", nickname: "Nena" })).toBe("Nena");
+  });
+
+  it("falls back to the full name when there is none", () => {
+    expect(displayName({ name: "Nena Villamor", nickname: null })).toBe("Nena Villamor");
+  });
+
+  it("treats a blank nickname as none at all", () => {
+    // Storage turns an empty one into NULL (`people.ts`); a queued payload or a
+    // half-typed form must read the same way rather than showing nothing.
+    expect(displayName({ name: "Nena Villamor", nickname: "   " })).toBe("Nena Villamor");
+  });
+});
 
 /** The avatar square on the People and Person boards. */
 describe("initialsOf", () => {

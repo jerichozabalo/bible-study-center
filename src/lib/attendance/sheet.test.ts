@@ -84,6 +84,27 @@ describe.skipIf(!dbConfigured)("attendance sheet", () => {
     ]);
   });
 
+  /**
+   * bst-v1.1 issue 1 — the sheet shows the nickname when one is set, so the
+   * reader carries it; absent is NULL and the row keeps the full name.
+   */
+  it("carries the nickname the sheet shows in place of the full name", async () => {
+    const nico = await createPerson(TEST_OWNER, {
+      name: "Nico Bautista",
+      nickname: "Nic",
+      homeGroupId: group,
+    });
+
+    const sheet = await getSheet(TEST_OWNER, meeting);
+
+    expect(sheet?.people.find((person) => person.personId === nico)).toMatchObject({
+      name: "Nico Bautista",
+      nickname: "Nic",
+    });
+    // Nobody without one gains one — the fallback is the full name itself.
+    expect(sheet?.people.find((person) => person.personId === ben)?.nickname).toBeNull();
+  });
+
   it("carries the marks back when a held sheet is reopened (#24)", async () => {
     await recordSheet(TEST_OWNER, {
       meetingId: meeting,

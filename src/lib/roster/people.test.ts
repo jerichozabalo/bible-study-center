@@ -136,6 +136,33 @@ describe.skipIf(!dbConfigured)("people", () => {
     );
   });
 
+  /**
+   * bst-v1.1 issue 1 — the nickname is the name shown everywhere it is set;
+   * the full name stays the stored record. Optional, and absent is NULL.
+   */
+  it("saves an optional nickname, with the full name kept as the record", async () => {
+    const withNickname = await createPerson(TEST_OWNER, nena({ nickname: "Nena" }));
+    const without = await createPerson(TEST_OWNER, nena({ name: "Ben Cruz", nickname: null }));
+
+    expect(await getPerson(TEST_OWNER, withNickname)).toMatchObject({
+      name: "Nena Villamor",
+      nickname: "Nena",
+    });
+    expect(await getPerson(TEST_OWNER, without)).toMatchObject({ nickname: null });
+  });
+
+  it("trims the nickname, edits it, and clears it when emptied", async () => {
+    const id = await createPerson(TEST_OWNER, nena({ nickname: "  Nena  " }));
+    expect(await getPerson(TEST_OWNER, id)).toMatchObject({ nickname: "Nena" });
+
+    await updatePerson(TEST_OWNER, id, nena({ nickname: "Yayet" }));
+    expect(await getPerson(TEST_OWNER, id)).toMatchObject({ nickname: "Yayet" });
+
+    // Like every other optional field on this form: emptied is cleared.
+    await updatePerson(TEST_OWNER, id, nena({ nickname: "   " }));
+    expect(await getPerson(TEST_OWNER, id)).toMatchObject({ nickname: null });
+  });
+
   it("refuses contact details that cannot be a phone or an address", async () => {
     await expect(createPerson(TEST_OWNER, nena({ email: "nena at gmail" }))).rejects.toBeInstanceOf(
       RosterValidationError,
@@ -420,6 +447,23 @@ describe.skipIf(!dbConfigured)("people", () => {
       "Nena Villamor",
     ]);
     expect(await listPeople(TEST_OWNER, { search: "zzz" })).toEqual([]);
+  });
+
+  /** bst-v1.1 issue 1 — the roster's search finds the name the app shows. */
+  it("searches nicknames as well as full names", async () => {
+    await createPerson(TEST_OWNER, nena());
+    await createPerson(
+      TEST_OWNER,
+      nena({ name: "Maria Santos", nickname: "Yayet", phone: "0908 111 2233", email: null }),
+    );
+
+    expect((await listPeople(TEST_OWNER, { search: "yayet" })).map((p) => p.name)).toEqual([
+      "Maria Santos",
+    ]);
+    // The full name still finds them — the record did not move.
+    expect((await listPeople(TEST_OWNER, { search: "santos" })).map((p) => p.name)).toEqual([
+      "Maria Santos",
+    ]);
   });
 
   // #72 as amended 2026-09-02: a person added with no signal carries the outbox

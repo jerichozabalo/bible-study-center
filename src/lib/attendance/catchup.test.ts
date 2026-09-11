@@ -68,6 +68,7 @@ describe.skipIf(!dbConfigured)("catch-up matching", () => {
     ana = await createPerson(TEST_OWNER, { name: "Ana Reyes", homeGroupId: linggo });
     nico = await createPerson(TEST_OWNER, {
       name: "Nico Bautista",
+      nickname: "Nic",
       homeGroupId: linggo,
       joinedOn: "2026-07-05",
     });
@@ -86,9 +87,22 @@ describe.skipIf(!dbConfigured)("catch-up matching", () => {
 
   describe("getCatchUpCandidates — who could ride along tonight", () => {
     it("lists people from OTHER BGroups missing that exact session (#31)", async () => {
+      // nico carries a nickname (bst-v1.1 issue 1): the candidate hands it to
+      // the catch-up card, which shows it in place of the full name.
       expect(await getCatchUpCandidates(TEST_OWNER, meeting)).toMatchObject([
-        { personId: ana, name: "Ana Reyes", homeGroupId: linggo, homeGroupName: "BGroup Linggo" },
-        { personId: nico, name: "Nico Bautista", homeGroupName: "BGroup Linggo" },
+        {
+          personId: ana,
+          name: "Ana Reyes",
+          nickname: null,
+          homeGroupId: linggo,
+          homeGroupName: "BGroup Linggo",
+        },
+        {
+          personId: nico,
+          name: "Nico Bautista",
+          nickname: "Nic",
+          homeGroupName: "BGroup Linggo",
+        },
       ]);
     });
 

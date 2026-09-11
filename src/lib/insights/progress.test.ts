@@ -251,6 +251,9 @@ describe.skipIf(!dbConfigured)("book progress", () => {
     beforeEach(async () => {
       ben = await createPerson(TEST_OWNER, {
         name: "Ben Cruz",
+        // bst-v1.1 issue 1 — travels with the member so the checkpoint and the
+        // reports' member lists show the name the app calls them.
+        nickname: "Benjo",
         homeGroupId: martes,
         joinedOn: "2026-06-01",
       });

@@ -40,6 +40,7 @@ export default async function EditPersonPage({ params }: { params: Promise<{ id:
         groups={options}
         values={{
           name: person.name,
+          nickname: person.nickname ?? "",
           phone: person.phone ?? "",
           email: person.email ?? "",
           homeGroupId: person.homeGroupId ?? "",

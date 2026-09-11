@@ -25,6 +25,11 @@ import type { Mark } from "./completions";
 export type SheetPerson = {
   personId: string;
   name: string;
+  /**
+   * bst-v1.1 issue 1 — shown in place of `name` on the sheet (`display.ts`'s
+   * `displayName`). NULL = not set.
+   */
+  nickname: string | null;
   /** Their own BGroup, which is not always the meeting's (#31). */
   homeGroupId: string | null;
   homeGroupName: string | null;
@@ -54,6 +59,7 @@ export async function getSheet(ownerId: string, meetingId: string): Promise<Shee
   const rows = await query<{
     person_id: string;
     name: string;
+    nickname: string | null;
     home_group_id: string | null;
     home_group_name: string | null;
     phone: string | null;
@@ -63,6 +69,7 @@ export async function getSheet(ownerId: string, meetingId: string): Promise<Shee
   }>(
     `SELECT p.id AS person_id,
             p.name,
+            p.nickname,
             p.home_group_id,
             g.name AS home_group_name,
             p.phone,
@@ -83,6 +90,7 @@ export async function getSheet(ownerId: string, meetingId: string): Promise<Shee
     people: rows.map((row) => ({
       personId: row.person_id,
       name: row.name,
+      nickname: row.nickname,
       homeGroupId: row.home_group_id,
       homeGroupName: row.home_group_name,
       // #31, at render time and from the two facts already on the row.

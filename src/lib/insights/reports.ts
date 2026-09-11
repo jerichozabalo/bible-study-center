@@ -57,6 +57,8 @@ export type PersonReport = {
   person: {
     id: string;
     name: string;
+    /** bst-v1.1 issue 1 — shown in place of `name` (`displayName`). */
+    nickname: string | null;
     phone: string | null;
     email: string | null;
     homeGroupName: string | null;
@@ -140,6 +142,7 @@ export async function getPersonReport(
     person: {
       id: person.id,
       name: person.name,
+      nickname: person.nickname,
       phone: person.phone,
       email: person.email,
       homeGroupName: person.homeGroupName,
@@ -171,7 +174,7 @@ export type GroupReportMeeting = {
   /** People still on the roster who have a completion for the night. */
   attendeeCount: number;
   /** #31 — attendees whose home BGroup is not this one, alphabetical. */
-  guests: { name: string; homeGroupName: string | null }[];
+  guests: { name: string; nickname: string | null; homeGroupName: string | null }[];
 };
 
 export type GroupReport = {
@@ -237,10 +240,12 @@ export async function getGroupReport(
   const guestRows = await query<{
     meeting_id: string;
     name: string;
+    nickname: string | null;
     home_group_name: string | null;
   }>(
     `SELECT c.meeting_id,
             p.name,
+            p.nickname,
             hg.name AS home_group_name
        FROM completions c
        JOIN meetings m ON m.id = c.meeting_id
@@ -256,10 +261,13 @@ export async function getGroupReport(
     [ownerId, groupId],
   );
 
-  const guestsByMeeting = new Map<string, { name: string; homeGroupName: string | null }[]>();
+  const guestsByMeeting = new Map<
+    string,
+    { name: string; nickname: string | null; homeGroupName: string | null }[]
+  >();
   for (const row of guestRows) {
     const list = guestsByMeeting.get(row.meeting_id) ?? [];
-    list.push({ name: row.name, homeGroupName: row.home_group_name });
+    list.push({ name: row.name, nickname: row.nickname, homeGroupName: row.home_group_name });
     guestsByMeeting.set(row.meeting_id, list);
   }
 
@@ -429,6 +437,7 @@ export function personReportToCsv(report: PersonReport): string {
   const p = report.person;
   return toCsv([
     ["Person sheet", p.name],
+    ["Nickname", p.nickname ?? ""],
     ["Home BGroup", p.homeGroupName ?? ""],
     ["Spiritual status", p.spiritualStatus ?? ""],
     ["Baptized", p.baptized ? (p.baptizedOn ?? "Yes") : "No"],
@@ -484,9 +493,10 @@ export function groupReportToCsv(report: GroupReport): string {
     ]),
     [],
     ["Book progress"],
-    ["Member", "Sessions covered", "Complete"],
+    ["Member", "Nickname", "Sessions covered", "Complete"],
     ...(report.bookProgress?.members ?? []).map((member) => [
       member.name,
+      member.nickname ?? "",
       coveredOf(member.coveredCount, member.sessionCount),
       yesNo(member.complete),
     ]),

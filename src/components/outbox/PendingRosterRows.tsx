@@ -16,7 +16,7 @@
  */
 import { useOutbox } from "./OutboxProvider";
 import { GROUP_WRITE, PERSON_WRITE, pendingRosterRows } from "@/lib/outbox/pending";
-import { initialsOf } from "@/lib/roster/display";
+import { displayName, initialsOf } from "@/lib/roster/display";
 
 export function PendingRosterRows({ kind }: { kind: "person" | "group" }) {
   const { pendingWrites, retry } = useOutbox();
@@ -43,7 +43,7 @@ export function PendingRosterRows({ kind }: { kind: "person" | "group" }) {
               }`}
             >
               {kind === "person" ? (
-                initialsOf(row.name)
+                initialsOf(displayName(row))
               ) : (
                 <svg
                   width="20"
@@ -62,7 +62,7 @@ export function PendingRosterRows({ kind }: { kind: "person" | "group" }) {
             </div>
 
             <div className="min-w-0 grow">
-              <div className="truncate text-[16px] font-bold">{row.name}</div>
+              <div className="truncate text-[16px] font-bold">{displayName(row)}</div>
               {row.status === "failed" ? (
                 <>
                   <div className="mt-[3px] text-[13px] text-amber-ink">

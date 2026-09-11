@@ -57,6 +57,8 @@ export type GroupPayload = {
  * set — a name-only walk-in (#9/#67) sets neither. */
 export type PersonPayload = {
   name: string;
+  /** bst-v1.1 issue 1 — carried through the replay; NULL = not set. */
+  nickname: string | null;
   phone: string | null;
   email: string | null;
   homeGroupId?: string | null;
@@ -114,6 +116,9 @@ export function unwrapUpload<K extends string>(result: UploadResult<K>, key: K):
 export type PendingRosterRow = {
   queueId: string;
   name: string;
+  /** bst-v1.1 issue 1 — the queued person's nickname, so the row shows the
+   * name the leader saved; NULL for BGroups and for people without one. */
+  nickname: string | null;
   status: "pending" | "failed";
   /** The server's reason, on a failed row — shown so "Try again" is an informed
    * choice, not a shot in the dark. */
@@ -134,6 +139,7 @@ export function pendingRosterRows(
     .map((item) => ({
       queueId: item.id,
       name: String((item.payload as { name?: unknown }).name ?? "").trim() || "Unnamed",
+      nickname: String((item.payload as { nickname?: unknown }).nickname ?? "").trim() || null,
       status: item.status === "failed" ? "failed" : "pending",
       error: item.error ?? null,
     }));

@@ -57,6 +57,7 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
     });
     maria = await createPerson(TEST_OWNER, {
       name: "Maria Santos",
+      nickname: "Ya",
       homeGroupId: tuesdayGroup,
       joinedOn: "2026-05-01",
     });
@@ -93,6 +94,8 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
     expect(quiet[0]).toMatchObject({
       personId: maria,
       name: "Maria Santos",
+      // bst-v1.1 issue 1 — Home's card shows the nickname when one is set.
+      nickname: "Ya",
       homeGroupId: tuesdayGroup,
       homeGroupName: "Tuesday BGroup",
       consecutiveMissed: 3,

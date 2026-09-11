@@ -89,6 +89,7 @@ export function PersonForm({
       type: PERSON_WRITE,
       payload: {
         name: input.name,
+        nickname: input.nickname,
         phone: input.phone,
         email: input.email,
         joinedOn: input.joinedOn,
@@ -159,6 +160,27 @@ export function PersonForm({
         aria-describedby={state.error ? "person-form-error" : undefined}
         className={`${FIELD} mt-[9px] ${state.error ? "border-amber-ink" : ""}`}
       />
+
+      {/* bst-v1.1 issue 1 — optional, and when set it is the name the app
+          shows everywhere. It sits with the name because that is the question
+          it answers; the hint says where it turns up so nothing surprises the
+          leader later. */}
+      <label className={`${EYEBROW} mt-[22px] block`} htmlFor="person-nickname">
+        NICKNAME
+      </label>
+      <input
+        id="person-nickname"
+        name="nickname"
+        type="text"
+        defaultValue={shown.nickname}
+        placeholder="Nena"
+        autoComplete="off"
+        className={`${FIELD} mt-[9px]`}
+      />
+      <p className={HINT}>
+        What you call them. When it is set, this is the name shown across the app — the full name
+        stays on their record.
+      </p>
 
       <div className={`${EYEBROW} mt-[22px]`}>HOW TO REACH THEM</div>
       <input

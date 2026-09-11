@@ -235,7 +235,9 @@ describe.skipIf(!dbConfigured)("reports", () => {
         coverage: "Session 2 — One Way — The Savior",
         attendeeCount: 2,
       });
-      expect(jun9.guests).toEqual([{ name: "Nico Dela Cruz", homeGroupName: "Saturday BGroup" }]);
+      expect(jun9.guests).toEqual([
+        { name: "Nico Dela Cruz", nickname: null, homeGroupName: "Saturday BGroup" },
+      ]);
 
       const jun16 = report!.meetings.find((m) => m.date === "2026-06-16")!;
       expect(jun16).toMatchObject({
@@ -354,6 +356,7 @@ describe.skipIf(!dbConfigured)("reports", () => {
         address: "12 Rizal St",
         civilStatus: "Single",
         invitedBy: "Ana",
+        nickname: "Yayet",
       });
 
       const m1 = await addHeldMeeting(TEST_OWNER, tuesday, "2026-06-02", {
@@ -372,6 +375,7 @@ describe.skipIf(!dbConfigured)("reports", () => {
       expect(personReportToCsv(report!)).toBe(
         [
           "Person sheet,Maria Santos",
+          "Nickname,Yayet",
           "Home BGroup,Tuesday BGroup",
           "Spiritual status,Edify",
           "Baptized,2026-05-04",
@@ -465,9 +469,9 @@ describe.skipIf(!dbConfigured)("reports", () => {
           "2026-06-02,Held,Session 1 — One Truth — The Gospel,2,,",
           "",
           "Book progress",
-          "Member,Sessions covered,Complete",
-          "Ben Cruz,1 of 6,No",
-          "Maria Santos,2 of 6,No",
+          "Member,Nickname,Sessions covered,Complete",
+          "Ben Cruz,,1 of 6,No",
+          "Maria Santos,,2 of 6,No",
         ].join("\r\n"),
       );
     });

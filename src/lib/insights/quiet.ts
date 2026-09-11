@@ -42,6 +42,11 @@ import { query } from "../db";
 export type QuietMember = {
   personId: string;
   name: string;
+  /**
+   * bst-v1.1 issue 1 — shown in place of `name` on Home's "Needs you" list
+   * (`displayName`). NULL = not set.
+   */
+  nickname: string | null;
   homeGroupId: string;
   homeGroupName: string;
   /** Missed held meetings in a row, counting back from the most recent. */
@@ -60,6 +65,7 @@ export async function getQuietMembers(ownerId: string): Promise<QuietMember[]> {
   const rows = await query<{
     person_id: string;
     name: string;
+    nickname: string | null;
     home_group_id: string;
     home_group_name: string;
     consecutive_missed: number;
@@ -80,6 +86,7 @@ export async function getQuietMembers(ownerId: string): Promise<QuietMember[]> {
      attendance AS (
        SELECT p.id AS person_id,
               p.name,
+              p.nickname,
               g.id AS group_id,
               g.name AS group_name,
               g.quiet_threshold,
@@ -106,16 +113,18 @@ export async function getQuietMembers(ownerId: string): Promise<QuietMember[]> {
      streaks AS (
        SELECT person_id,
               name,
+              nickname,
               group_id,
               group_name,
               quiet_threshold,
               (COALESCE(min(recency) FILTER (WHERE attended), max(recency) + 1) - 1)::int
                 AS consecutive_missed
          FROM attendance
-        GROUP BY person_id, name, group_id, group_name, quiet_threshold
+        GROUP BY person_id, name, nickname, group_id, group_name, quiet_threshold
      )
      SELECT s.person_id,
             s.name,
+            s.nickname,
             s.group_id AS home_group_id,
             s.group_name AS home_group_name,
             s.consecutive_missed,
@@ -137,6 +146,7 @@ export async function getQuietMembers(ownerId: string): Promise<QuietMember[]> {
   return rows.map((row) => ({
     personId: row.person_id,
     name: row.name,
+    nickname: row.nickname,
     homeGroupId: row.home_group_id,
     homeGroupName: row.home_group_name,
     consecutiveMissed: row.consecutive_missed,

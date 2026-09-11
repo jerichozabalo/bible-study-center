@@ -236,6 +236,9 @@ describe.skipIf(!dbConfigured)("outbox replay of offline roster writes (#72 amen
           : ((ctx.payload.homeGroupId as string | null) ?? null);
         const id = await createPerson(TEST_OWNER, {
           name: ctx.payload.name as string,
+          // bst-v1.1 issue 1 — the real transport spreads the payload the same
+          // way; dropping this field here is what the assertion above catches.
+          nickname: (ctx.payload.nickname as string | null) ?? null,
           homeGroupId,
           clientId: ctx.id,
         });
@@ -319,7 +322,9 @@ describe.skipIf(!dbConfigured)("outbox replay of offline roster writes (#72 amen
     });
     const personRef = await outbox.enqueue({
       type: "person",
-      payload: { name: "Nena", homeGroupRef: groupRef },
+      // bst-v1.1 issue 1 — a nickname saved offline must survive the replay,
+      // not just the row the leader saw while queued.
+      payload: { name: "Nena Villamor", nickname: "Nena", homeGroupRef: groupRef },
       deps: [groupRef],
     });
     const meetingRef = await outbox.enqueue({
@@ -344,9 +349,11 @@ describe.skipIf(!dbConfigured)("outbox replay of offline roster writes (#72 amen
     const serverGroupId = groups[0].id;
     expect(serverGroupId).toBe(groupRef);
     expect((await getPerson(TEST_OWNER, personRef))?.homeGroupId).toBe(serverGroupId);
+    // The nickname the leader typed offline came through the replay (#bst-v1.1 #1).
+    expect((await getPerson(TEST_OWNER, personRef))?.nickname).toBe("Nena");
 
     const members = await listGroupMembers(TEST_OWNER, serverGroupId);
-    expect(members.map((m) => m.name)).toEqual(["Nena"]);
+    expect(members.map((m) => m.name)).toEqual(["Nena Villamor"]);
 
     const meetings = await listUpcomingMeetings(TEST_OWNER, { from: "2026-01-01" });
     expect(meetings).toHaveLength(1);

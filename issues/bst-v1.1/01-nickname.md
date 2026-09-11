@@ -1,7 +1,7 @@
 ---
 issue: 1
 title: Nickname — a person is called by it everywhere, full name stays the record
-status: open
+status: done
 blocked-by: []
 type: afk
 ---

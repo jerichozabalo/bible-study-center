@@ -51,6 +51,7 @@ function member(overrides: Partial<MemberProgress> = {}): MemberProgress {
   return {
     personId: "00000000-0000-0000-0000-0000000000p1",
     name: "Ben Cruz",
+    nickname: null,
     coveredCount: 4,
     sessionCount: 6,
     complete: false,
@@ -287,6 +288,7 @@ describe("quietLine", () => {
     return {
       personId: "00000000-0000-0000-0000-0000000000q1",
       name: "Nena Villamor",
+      nickname: null,
       homeGroupId: "00000000-0000-0000-0000-0000000000g1",
       homeGroupName: "BGroup Martes",
       consecutiveMissed: 3,

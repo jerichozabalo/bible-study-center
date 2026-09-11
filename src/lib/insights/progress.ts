@@ -59,6 +59,11 @@ export type BookProgress = {
 export type MemberProgress = {
   personId: string;
   name: string;
+  /**
+   * bst-v1.1 issue 1 — shown in place of `name` wherever a member list is
+   * drawn (`displayName`). NULL = not set.
+   */
+  nickname: string | null;
   coveredCount: number;
   sessionCount: number;
   /** #5, for this member, of this book. */
@@ -250,12 +255,14 @@ export async function getGroupBookProgress(
   const memberRows = await query<{
     person_id: string;
     name: string;
+    nickname: string | null;
     session_number: number;
     covered: boolean;
     before_joining: boolean;
   }>(
     `SELECT p.id AS person_id,
             p.name,
+            p.nickname,
             s.number AS session_number,
             EXISTS (
               SELECT 1
@@ -307,6 +314,7 @@ export async function getGroupBookProgress(
       member = {
         personId: row.person_id,
         name: row.name,
+        nickname: row.nickname,
         coveredCount: 0,
         sessionCount: sessions.length,
         complete: false,

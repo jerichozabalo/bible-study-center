@@ -25,6 +25,20 @@ export const SPIRITUAL_STATUSES = ["Engage", "Edify", "Equip", "Empower"] as con
 export type SpiritualStatus = (typeof SPIRITUAL_STATUSES)[number];
 
 /**
+ * What we call them (bst-v1.1 issue 1): the nickname when it is set, the full
+ * name otherwise. One helper, because "shown everywhere" is one rule — the
+ * roster, the sheet, the reports and the person's own screen must not each
+ * grow their own version of it.
+ *
+ * The full name stays the stored record; a blank nickname is not a name, so it
+ * reads as none at all (storage already turns an empty one into NULL).
+ */
+export function displayName(person: { name: string; nickname: string | null }): string {
+  const nickname = (person.nickname ?? "").trim();
+  return nickname === "" ? person.name : nickname;
+}
+
+/**
  * The avatar square's letters: first name and last name.
  *
  * Honorifics are dropped — the People board draws "Ptr. Ariel Mendoza" as AM,

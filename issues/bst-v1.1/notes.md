@@ -3,3 +3,8 @@
 Discovered-but-under-the-bar findings go here, one line each: what was
 observed, where, the date. Anything that clears the bar becomes a numbered
 issue in this folder instead.
+
+- **2026-09-11 — issue 1: the attendance sheet's client-side ride-along filter
+  now matches nickname or name. It is display logic in a client component, and
+  this repo has no component-test harness — it rides the issue's Looks-like
+  gate rather than a unit test.**

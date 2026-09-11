@@ -44,6 +44,12 @@ export type { CivilStatus, Membership, SpiritualStatus };
  */
 export type PersonInput = {
   name: string;
+  /**
+   * bst-v1.1 issue 1 — the name they are actually called by. Optional; when
+   * set it is what the app shows everywhere, with `name` kept as the record.
+   * Same rule as the name itself: trimmed, and empty is the same as absent.
+   */
+  nickname?: string | null;
   phone?: string | null;
   email?: string | null;
   homeGroupId?: string | null;
@@ -72,6 +78,11 @@ export type PersonInput = {
 export type PersonSummary = {
   id: string;
   name: string;
+  /**
+   * bst-v1.1 issue 1 — shown in place of `name` wherever a person's name
+   * appears; see `display.ts`'s `displayName`. NULL = not set.
+   */
+  nickname: string | null;
   phone: string | null;
   email: string | null;
   homeGroupId: string | null;
@@ -120,6 +131,7 @@ const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 const SELECT_PERSON = `
   SELECT p.id,
          p.name,
+         p.nickname,
          p.phone,
          p.email,
          p.home_group_id,
@@ -146,8 +158,9 @@ const SELECT_PERSON = `
 /**
  * The roster, alphabetically, ignoring case — "ben cruz" sits with the Bs.
  *
- * `search` matches part of a name or the digits of a number, which is what the
- * People board's field promises ("Search name or number"). Punctuation is
+ * `search` matches part of a full name, part of a nickname (bst-v1.1 issue 1 —
+ * the name the app actually shows), or the digits of a number, which is what
+ * the People board's field promises ("Search name or number"). Punctuation is
  * stripped from both sides, so 555-0184 finds 0917 555 0184.
  */
 export async function listPeople(
@@ -163,6 +176,7 @@ export async function listPeople(
         AND p.removed_at IS NULL
         AND ($2 = ''
              OR p.name ILIKE '%' || $2 || '%'
+             OR p.nickname ILIKE '%' || $2 || '%'
              OR ($3 <> '' AND regexp_replace(coalesce(p.phone, ''), '[^0-9]', '', 'g')
                               LIKE '%' || $3 || '%'))
       ORDER BY lower(p.name) ASC`,
@@ -216,9 +230,9 @@ export async function createPerson(ownerId: string, input: PersonInput): Promise
     const rows = await tx.query<{ id: string }>(
       `INSERT INTO people (id, owner_id, name, phone, email, home_group_id, joined_on, birthday,
                            address, civil_status, spiritual_status, baptized, baptized_on,
-                           invited_by, notes)
-       VALUES (COALESCE($15::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
-               $12, $13, $14)
+                           invited_by, notes, nickname)
+       VALUES (COALESCE($16::uuid, gen_random_uuid()), $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11,
+               $12, $13, $14, $15)
        ON CONFLICT (id) DO NOTHING
        RETURNING id`,
       [
@@ -236,6 +250,7 @@ export async function createPerson(ownerId: string, input: PersonInput): Promise
         clean.baptizedOn,
         clean.invitedBy,
         clean.notes,
+        clean.nickname,
         clean.clientId,
       ],
     );
@@ -298,6 +313,7 @@ export async function updatePerson(
               baptized_on = $13,
               invited_by = $14,
               notes = $15,
+              nickname = $16,
               updated_at = now()
         WHERE owner_id = $1 AND id = $2`,
       [
@@ -316,6 +332,7 @@ export async function updatePerson(
         clean.baptizedOn,
         clean.invitedBy,
         clean.notes,
+        clean.nickname,
       ],
     );
 
@@ -423,6 +440,7 @@ async function tombstone(
 type PersonRow = {
   id: string;
   name: string;
+  nickname: string | null;
   phone: string | null;
   email: string | null;
   home_group_id: string | null;
@@ -447,6 +465,7 @@ function toSummary(row: PersonRow): PersonSummary {
   return {
     id: row.id,
     name: row.name,
+    nickname: row.nickname,
     phone: row.phone,
     email: row.email,
     homeGroupId: row.home_group_id,
@@ -479,6 +498,7 @@ function toDetail(row: PersonRow): Omit<PersonDetail, "memberships"> {
 
 type CleanPerson = {
   name: string;
+  nickname: string | null;
   phone: string | null;
   email: string | null;
   homeGroupId: string | null;
@@ -501,6 +521,10 @@ async function validate(
 ): Promise<CleanPerson> {
   const name = (input.name ?? "").trim();
   if (name.length === 0) throw new RosterValidationError("A person needs a name.");
+
+  // bst-v1.1 issue 1 — held to the name's own rule: trimmed, and an empty one
+  // is the same as none at all. No length ceiling, because `name` has none.
+  const nickname = trimmed(input.nickname);
 
   if (input.clientId != null && !UUID_PATTERN.test(input.clientId)) {
     throw new RosterValidationError("That person could not be created.");
@@ -570,6 +594,7 @@ async function validate(
 
   return {
     name,
+    nickname,
     phone,
     email,
     homeGroupId,

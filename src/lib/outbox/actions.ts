@@ -121,6 +121,9 @@ export async function uploadGroup(input: QueuedGroup): Promise<UploadResult<"gro
 export type QueuedPerson = {
   clientId: string;
   name: string;
+  /** bst-v1.1 issue 1 — required, so a transport that drops it fails the
+   * typecheck rather than silently replaying the person without it. */
+  nickname: string | null;
   phone: string | null;
   email: string | null;
   homeGroupId: string | null;
@@ -142,6 +145,7 @@ export async function uploadPerson(input: QueuedPerson): Promise<UploadResult<"p
   try {
     personId = await createPerson(user.email, {
       name: input.name,
+      nickname: input.nickname,
       phone: input.phone,
       email: input.email,
       homeGroupId: input.homeGroupId,

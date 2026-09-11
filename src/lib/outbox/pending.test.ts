@@ -55,13 +55,38 @@ describe("pendingRosterRows", () => {
     );
 
     expect(rows).toEqual([
-      { queueId: "p1", name: "Nena", status: "failed", error: "name already taken" },
+      { queueId: "p1", name: "Nena", nickname: null, status: "failed", error: "name already taken" },
     ]);
   });
 
   it("shows a name-only walk-in with nothing typed as Unnamed, never blank", () => {
     const rows = pendingRosterRows([item({ id: "p1", payload: { name: "  " } })], PERSON_WRITE);
     expect(rows[0].name).toBe("Unnamed");
+  });
+
+  /**
+   * bst-v1.1 issue 1 — a person created with no signal keeps its nickname
+   * through the outbox: the queued row shows what the leader typed, and the
+   * payload keeps it for the replay. A dropped field here fails silently.
+   */
+  it("carries the nickname a queued person was saved with", () => {
+    const rows = pendingRosterRows(
+      [item({ id: "p1", payload: { name: "Nena Villamor", nickname: "Nena" } })],
+      PERSON_WRITE,
+    );
+
+    expect(rows).toEqual([
+      { queueId: "p1", name: "Nena Villamor", nickname: "Nena", status: "pending", error: null },
+    ]);
+  });
+
+  it("reads a blank nickname in a queued payload as none at all", () => {
+    const rows = pendingRosterRows(
+      [item({ id: "p1", payload: { name: "Nena Villamor", nickname: "   " } })],
+      PERSON_WRITE,
+    );
+
+    expect(rows[0].nickname).toBeNull();
   });
 });
 
