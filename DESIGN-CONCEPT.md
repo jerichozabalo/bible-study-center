@@ -146,7 +146,7 @@ Captured 2026-08-20. Not designed yet — each line still needs its own decision
 - **Photos** on contact records.
 - **Catch-up invites — CLOSED 2026-08-20 by the reminder decision.** Same rule: the app DRAFTS the Taglish invite line (date + place + which session it fills) and the leader sends it. The app never sends it. Consistent with the quiet follow-up — routing someone to another BGroup is pastoral, not transactional.
 
-**Built 2026-09-11 — bst-v1.1 issues 1–3 (Jericho's asks, shipped the same day; `issues/bst-v1.1/`):**
+**Built and DEPLOYED 2026-09-11 — bst-v1.1 issues 1–4 (Jericho's asks, shipped the same day; `issues/bst-v1.1/`; commit `7df05a9`, prod schema through `011`):**
 - **Nickname** — optional on every person; when set it is the name shown everywhere a person's name appears (roster, attendance sheet and its search, catch-up cards, guest labels, reports, Home, and the person's own page, which keeps the full name as secondary text). `people.name` stays the stored record; the offline person-create replay carries the nickname.
 - **Salvation prayer** — `prayed_salvation` + `prayed_salvation_on`, mirroring `baptized` / `baptized_on` exactly, date-is-the-stronger-claim included. A chip on the person page, editable on the form; deliberately NOT in Reports' person sheet.
 - **Birthdays this week** — a Home card; "this week" = the current calendar week Sunday→Saturday in Manila (#46's convention), derived from `people.birthday` (#9b). Feb 29 is celebrated on Feb 28 in a common year; the row shows the age they turn. Removed people out (#24), stepped-away people in; the card draws nothing when nobody is celebrating.
