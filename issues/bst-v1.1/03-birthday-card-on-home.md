@@ -1,7 +1,7 @@
 ---
 issue: 3
 title: Birthday card on Home — this week's celebrants (Sunday → Saturday)
-status: open
+status: done
 blocked-by: []
 type: afk
 ---

@@ -2,7 +2,9 @@
  * Home — `design/Main.dc.html` (#20): the blue "next meeting" hero, then the
  * "Needs you" attention list, then the rest of the upcoming meetings so a night
  * created from the [+] tab is always visible (the calendar, issue 5, is where
- * it properly belongs). The roster stays in its own tab (#62).
+ * it properly belongs). The roster stays in its own tab (#62). The birthday
+ * card (bst-v1.1 issue 3) sits above the attention list and draws nothing when
+ * nobody is celebrating this week.
  *
  * The attention list is the quiet list (#10/#64) — members who have missed
  * their home group's last N held meetings in a row. It surfaces them and
@@ -11,11 +13,13 @@
 import Link from "next/link";
 
 import { AttentionList } from "@/components/insights/AttentionList";
+import { BirthdayCard } from "@/components/insights/BirthdayCard";
 import { NextMeetingHero } from "@/components/insights/NextMeetingHero";
 import { HomeUploadCard } from "@/components/outbox/HomeUploadCard";
 import { SignOutButton } from "@/components/SignOutButton";
 import { requireUser } from "@/lib/auth/guard";
 import { formatWeekdayDate, manilaToday } from "@/lib/dates";
+import { getBirthdayCelebrants } from "@/lib/insights/birthdays";
 import { getQuietMembers } from "@/lib/insights/quiet";
 import { type MeetingSummary, listUpcomingMeetings } from "@/lib/meetings/meetings";
 import { formatTime } from "@/lib/roster/schedule";
@@ -26,9 +30,10 @@ export default async function HomePage() {
   const user = await requireUser();
   const firstName = user.name?.split(" ")[0];
   const today = manilaToday();
-  const [upcoming, quiet] = await Promise.all([
+  const [upcoming, quiet, birthdays] = await Promise.all([
     listUpcomingMeetings(user.email, { from: today, limit: 6 }),
     getQuietMembers(user.email),
+    getBirthdayCelebrants(user.email, today),
   ]);
 
   const [next, ...rest] = upcoming;
@@ -51,6 +56,8 @@ export default async function HomePage() {
       )}
 
       <HomeUploadCard />
+
+      <BirthdayCard celebrants={birthdays} />
 
       <AttentionList quiet={quiet} />
 
