@@ -17,6 +17,10 @@
  * The thumbnails come in as short-lived signed URLs, so a plain <img> is right
  * here: next/image would need a remotePatterns entry for a URL that changes
  * every visit (the `Emblem.tsx` reasoning, one level up).
+ *
+ * The file input opens the phone's own picker — camera AND gallery (no
+ * `capture` attribute; with it, Android offers the camera only, which Jericho
+ * hit on 2026-09-11).
  */
 import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
@@ -284,7 +288,6 @@ export function SessionPhotos({
                 ref={fileInput}
                 type="file"
                 accept="image/*"
-                capture="environment"
                 multiple
                 onChange={(event) => void onFiles(event.target.files)}
                 disabled={preparing || busy}
@@ -318,6 +321,12 @@ export function SessionPhotos({
                             )
                           }
                           placeholder="Caption (optional)"
+                          onKeyDown={(event) => {
+                            // The card lives inside the sheet's form now; Enter in
+                            // here would submit the SHEET. The ride-along search
+                            // uses the same guard.
+                            if (event.key === "Enter") event.preventDefault();
+                          }}
                           disabled={item.status === "uploading"}
                           className={INPUT}
                         />
@@ -332,6 +341,9 @@ export function SessionPhotos({
                             )
                           }
                           aria-label="The day the photo was taken"
+                          onKeyDown={(event) => {
+                            if (event.key === "Enter") event.preventDefault();
+                          }}
                           disabled={item.status === "uploading"}
                           className={`${INPUT} mt-[6px]`}
                         />

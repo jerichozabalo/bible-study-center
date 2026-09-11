@@ -1,27 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import { baptizedLabel, initialsOf, personLabel, salvationLabel } from "./display";
-
-/**
- * bst-v1.1 issue 1, amended 2026-09-11 (Jericho, on seeing it live): the FULL
- * name leads everywhere; the nickname is the annotation after it. The record
- * first, the name-you-call-them second.
- */
-describe("personLabel", () => {
-  it("leads with the full name and appends the nickname", () => {
-    expect(personLabel({ name: "Nena Villamor", nickname: "Nena" })).toBe("Nena Villamor (Nena)");
-  });
-
-  it("is the full name alone when there is no nickname", () => {
-    expect(personLabel({ name: "Nena Villamor", nickname: null })).toBe("Nena Villamor");
-  });
-
-  it("treats a blank nickname as none at all", () => {
-    // Storage turns an empty one into NULL (`people.ts`); a queued payload or a
-    // half-typed form must read the same way rather than showing nothing.
-    expect(personLabel({ name: "Nena Villamor", nickname: "   " })).toBe("Nena Villamor");
-  });
-});
+import { baptizedLabel, initialsOf, salvationLabel } from "./display";
 
 /** The avatar square on the People and Person boards. */
 describe("initialsOf", () => {

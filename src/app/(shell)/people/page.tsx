@@ -21,7 +21,7 @@ import { PersonRow } from "@/components/people/PersonRow";
 import { PEOPLE_SEGMENTS, SegmentedControl } from "@/components/SegmentedControl";
 import { requireUser } from "@/lib/auth/guard";
 import { formatDayMonth } from "@/lib/dates";
-import { initialsOf, personLabel } from "@/lib/roster/display";
+import { initialsOf } from "@/lib/roster/display";
 import { listPeople, listRemovedPeople } from "@/lib/roster/people";
 
 /** Reads the session cookie and the roster — never prerendered. */
@@ -147,7 +147,7 @@ export default async function PeoplePage({
                   {initialsOf(person.name)}
                 </div>
                 <div className="min-w-0 grow">
-                  <div className="truncate text-[15px] font-bold text-slate">{personLabel(person)}</div>
+                  <div className="truncate text-[15px] font-bold text-slate">{person.name}</div>
                   <div className="mt-[2px] text-[13px] text-tan">
                     {person.removedAt ? `removed ${formatDayMonth(person.removedAt)}` : "removed"}
                   </div>

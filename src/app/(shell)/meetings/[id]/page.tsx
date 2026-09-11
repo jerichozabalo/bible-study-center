@@ -23,7 +23,6 @@ import { notFound } from "next/navigation";
 
 import { AttendanceSheet } from "@/components/attendance/AttendanceSheet";
 import { BackRow } from "@/components/BackRow";
-import { SessionPhotos } from "@/components/photos/SessionPhotos";
 import { saveSheetAction } from "@/lib/attendance/actions";
 import { getCatchUpCandidates } from "@/lib/attendance/catchup";
 import { getSheet } from "@/lib/attendance/sheet";
@@ -96,12 +95,6 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         sessionNumber={meeting.sessionNumber}
         sessionTitle={meeting.sessionTitle}
         held={meeting.status === "held"}
-      />
-
-      {/* bst-v1.1 issue 4 — the photos card. Upload and delete need R2 to be
-          configured; until then the card says so plainly rather than hiding. */}
-      <SessionPhotos
-        meetingId={meeting.id}
         meetingDate={meeting.date}
         photos={signedPhotos}
         storageReady={storageReady}

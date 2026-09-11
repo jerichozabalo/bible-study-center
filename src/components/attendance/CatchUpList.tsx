@@ -16,12 +16,20 @@
  *
  * #28 travels with each name: someone who joined halfway through the book is
  * behind, and the marker is what keeps the list readable instead of accusing.
+ *
+ * Long lists collapse (Jericho's call, 2026-09-11): three cards show, and the
+ * rest wait behind one tap — a night with six other BGroups should not bury
+ * the sheet under a roster.
  */
 import Link from "next/link";
+import { useState } from "react";
 
 import type { CatchUpCandidate } from "@/lib/attendance/catchup";
 import { catchUpJoinedNote, guestLabel } from "@/lib/attendance/form";
 import { initialsOf } from "@/lib/roster/display";
+
+/** How many catch-up cards show before the rest collapse. */
+const VISIBLE = 3;
 
 export function CatchUpList({
   candidates,
@@ -40,10 +48,16 @@ export function CatchUpList({
    * offline queue (issue 18/#31), so offline the buttons are held. */
   online: boolean;
 }) {
+  // Hooks run before the empty return — a condition must never gate them.
+  const [expanded, setExpanded] = useState(false);
+
   // Nothing to say is said with nothing: a fellowship night (#26), a BGroup
   // that is the only one on this book, or an evening where everyone is caught
   // up all arrive here.
   if (candidates.length === 0) return null;
+
+  const shown = expanded ? candidates : candidates.slice(0, VISIBLE);
+  const hiddenCount = candidates.length - shown.length;
 
   return (
     <section className="mt-[22px]">
@@ -63,7 +77,7 @@ export function CatchUpList({
       )}
 
       <div className="flex flex-col gap-[9px]">
-        {candidates.map((candidate) => {
+        {shown.map((candidate) => {
           const joined = catchUpJoinedNote(candidate);
 
           return (
@@ -102,6 +116,26 @@ export function CatchUpList({
           );
         })}
       </div>
+
+      {/* type="button": this lives inside the sheet's form, and a bare button
+          here would submit it. */}
+      {hiddenCount > 0 ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-[9px] flex h-[46px] w-full items-center justify-center rounded-[16px] border-[1.5px] border-line text-[14px] font-bold text-blue active:bg-shell"
+        >
+          Show all {candidates.length}
+        </button>
+      ) : expanded ? (
+        <button
+          type="button"
+          onClick={() => setExpanded(false)}
+          className="mt-[9px] flex h-[46px] w-full items-center justify-center rounded-[16px] border-[1.5px] border-line text-[14px] font-bold text-slate active:bg-shell"
+        >
+          Show fewer
+        </button>
+      ) : null}
     </section>
   );
 }

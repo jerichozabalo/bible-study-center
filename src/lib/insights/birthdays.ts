@@ -30,7 +30,7 @@ import { query } from "../db";
 export type BirthdayCelebrant = {
   personId: string;
   name: string;
-  /** Shown after `name` (`display.ts`'s `personLabel`). NULL = not set. */
+  /** The nickname — the card shows `name`. NULL = not set. */
   nickname: string | null;
   /** Their birthday as stored — a full `YYYY-MM-DD` date. */
   birthday: string;

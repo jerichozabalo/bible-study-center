@@ -60,8 +60,8 @@ export type MemberProgress = {
   personId: string;
   name: string;
   /**
-   * bst-v1.1 issue 1 — shown in place of `name` wherever a member list is
-   * drawn (`personLabel`). NULL = not set.
+   * bst-v1.1 issue 1 — the nickname. Member lists show `name`; this appears on
+   * the person's own page beneath the heading. NULL = not set.
    */
   nickname: string | null;
   coveredCount: number;

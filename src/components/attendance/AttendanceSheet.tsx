@@ -32,14 +32,16 @@ import { useActionState, useEffect, useState } from "react";
 
 import { CatchUpList } from "@/components/attendance/CatchUpList";
 import { useOutbox } from "@/components/outbox/OutboxProvider";
+import { SessionPhotos } from "@/components/photos/SessionPhotos";
 import type { SheetFormState } from "@/lib/attendance/actions";
 import type { CatchUpCandidate } from "@/lib/attendance/catchup";
 import type { Mark } from "@/lib/attendance/completions";
 import { guestLabel, markChipLabel, parseSheetForm } from "@/lib/attendance/form";
 import type { SheetPerson } from "@/lib/attendance/sheet";
 import { SHEET_WRITE } from "@/lib/outbox/pending";
-import { initialsOf, personLabel } from "@/lib/roster/display";
+import { initialsOf } from "@/lib/roster/display";
 import type { PersonSummary } from "@/lib/roster/people";
+import type { SignedPhoto } from "@/lib/session-photos/photos";
 
 export function AttendanceSheet({
   action,
@@ -50,9 +52,14 @@ export function AttendanceSheet({
   sessionNumber,
   sessionTitle,
   held,
+  meetingDate,
+  photos,
+  storageReady,
 }: {
   action: (state: SheetFormState, formData: FormData) => Promise<SheetFormState>;
   meetingId: string;
+  /** `YYYY-MM-DD` — what a photo taken tonight defaults to. */
+  meetingDate: string;
   people: SheetPerson[];
   /** The whole roster, for the "Add someone else" search (#31 ride-along). */
   roster: PersonSummary[];
@@ -63,6 +70,9 @@ export function AttendanceSheet({
   sessionTitle: string | null;
   /** #47 — already held, so this visit is a correction (#24). */
   held: boolean;
+  /** bst-v1.1 issue 4 — the night's photos (signed) and whether R2 is set up. */
+  photos: SignedPhoto[];
+  storageReady: boolean;
 }) {
   const [state, formAction, pending] = useActionState(action, {});
   const outbox = useOutbox();
@@ -262,7 +272,7 @@ export function AttendanceSheet({
                     </span>
                     <span className="min-w-0 grow">
                       <span className="block text-[14.5px] leading-[1.2] font-bold">
-                        {personLabel(person)}
+                        {person.name}
                       </span>
                       {person.homeGroupName === null ? null : (
                         <span className="mt-[2px] block text-[12.5px] text-slate">
@@ -394,6 +404,18 @@ export function AttendanceSheet({
           : "Saves offline. Uploads when you have signal."}
       </p>
 
+      {/* bst-v1.1 issue 4 — the photos card sits between the sheet and catch-up
+          (Jericho's call, 2026-09-11: photos promote before the catch-up
+          section). It lives INSIDE this form because the catch-up add below is
+          a submit that must carry every unsaved tick; every control in the card
+          is type="button", and its inputs guard Enter. */}
+      <SessionPhotos
+        meetingId={meetingId}
+        meetingDate={meetingDate}
+        photos={photos}
+        storageReady={storageReady}
+      />
+
       {/* #31 — inside the form on purpose: "Add to tonight" is a submit that
           carries every tick already made, so a ride-along add cannot wipe the
           leader's unsaved marks. It sits after the sheet because the room comes
@@ -463,7 +485,7 @@ function PersonCard({
         <button
           type="button"
           onClick={onToggle}
-          aria-label={`Mark ${personLabel(person)}`}
+          aria-label={`Mark ${person.name}`}
           className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[18px] border-2 ${
             attended
               ? "border-blue bg-blue"

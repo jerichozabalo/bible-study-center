@@ -34,7 +34,7 @@ import {
   getPersonReport,
   getRollup,
 } from "@/lib/insights/reports";
-import { initialsOf, personLabel } from "@/lib/roster/display";
+import { initialsOf } from "@/lib/roster/display";
 import { listArchivedGroups, listGroups } from "@/lib/roster/groups";
 import { listPeople } from "@/lib/roster/people";
 
@@ -100,7 +100,7 @@ async function PersonSection({ ownerId, personId }: { ownerId: string; personId:
           <option value="">Pick a person…</option>
           {people.map((entry) => (
             <option key={entry.id} value={entry.id}>
-              {personLabel(entry)}
+              {entry.name}
             </option>
           ))}
         </select>
@@ -142,7 +142,7 @@ function PersonSheet({ report }: { report: PersonReport }) {
           {initialsOf(p.name)}
         </div>
         <div className="min-w-0 grow">
-          <div className="text-[16px] font-bold">{personLabel(p)}</div>
+          <div className="text-[16px] font-bold">{p.name}</div>
           <div className="mt-[2px] text-[13px] text-slate">{sub}</div>
         </div>
       </div>
@@ -284,7 +284,7 @@ function GroupHistory({ report }: { report: GroupReport }) {
           <div className="mt-[10px] flex flex-col gap-[9px]">
             {report.bookProgress.members.map((member) => (
               <div key={member.personId} className="flex items-baseline justify-between gap-[10px]">
-                <span className="min-w-0 text-[14px] font-semibold">{personLabel(member)}</span>
+                <span className="min-w-0 text-[14px] font-semibold">{member.name}</span>
                 <span className="shrink-0 text-[13px] font-bold text-blue">
                   {member.coveredCount} of {member.sessionCount}
                   {member.complete ? " · complete" : ""}

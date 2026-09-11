@@ -15,7 +15,7 @@ import Link from "next/link";
 
 import { quietLine } from "@/lib/insights/display";
 import type { QuietMember } from "@/lib/insights/quiet";
-import { initialsOf, personLabel } from "@/lib/roster/display";
+import { initialsOf } from "@/lib/roster/display";
 
 export function AttentionList({ quiet }: { quiet: QuietMember[] }) {
   if (quiet.length === 0) return null;
@@ -39,7 +39,7 @@ export function AttentionList({ quiet }: { quiet: QuietMember[] }) {
                 {initialsOf(member.name)}
               </span>
               <div className="min-w-0 grow">
-                <div className="text-[15.5px] font-bold">{personLabel(member)}</div>
+                <div className="text-[15.5px] font-bold">{member.name}</div>
                 <div className="mt-[2px] text-[14px] leading-[1.4] text-slate">
                   {quietLine(member)}
                 </div>

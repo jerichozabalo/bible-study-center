@@ -57,7 +57,7 @@ export type PersonReport = {
   person: {
     id: string;
     name: string;
-    /** bst-v1.1 issue 1 — shown after `name` (`personLabel`). */
+    /** bst-v1.1 issue 1 — the nickname; the report header shows `name`. */
     nickname: string | null;
     phone: string | null;
     email: string | null;

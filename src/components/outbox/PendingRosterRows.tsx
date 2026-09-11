@@ -16,7 +16,7 @@
  */
 import { useOutbox } from "./OutboxProvider";
 import { GROUP_WRITE, PERSON_WRITE, pendingRosterRows } from "@/lib/outbox/pending";
-import { initialsOf, personLabel } from "@/lib/roster/display";
+import { initialsOf } from "@/lib/roster/display";
 
 export function PendingRosterRows({ kind }: { kind: "person" | "group" }) {
   const { pendingWrites, retry } = useOutbox();
@@ -62,7 +62,7 @@ export function PendingRosterRows({ kind }: { kind: "person" | "group" }) {
             </div>
 
             <div className="min-w-0 grow">
-              <div className="truncate text-[16px] font-bold">{personLabel(row)}</div>
+              <div className="truncate text-[16px] font-bold">{row.name}</div>
               {row.status === "failed" ? (
                 <>
                   <div className="mt-[3px] text-[13px] text-amber-ink">

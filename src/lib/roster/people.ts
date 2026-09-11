@@ -85,8 +85,8 @@ export type PersonSummary = {
   id: string;
   name: string;
   /**
-   * bst-v1.1 issue 1 — shown in place of `name` wherever a person's name
-   * appears; see `display.ts`'s `personLabel`. NULL = not set.
+   * bst-v1.1 issue 1 — the nickname. Lists show `name`; this appears on the
+   * person's own page beneath the heading and in the edit form. NULL = not set.
    */
   nickname: string | null;
   phone: string | null;

@@ -43,8 +43,8 @@ export type QuietMember = {
   personId: string;
   name: string;
   /**
-   * bst-v1.1 issue 1 — shown in place of `name` on Home's "Needs you" list
-   * (`personLabel`). NULL = not set.
+   * bst-v1.1 issue 1 — the nickname. Home's "Needs you" list shows `name`; this
+   * appears on the person's own page beneath the heading. NULL = not set.
    */
   nickname: string | null;
   homeGroupId: string;

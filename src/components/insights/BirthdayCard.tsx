@@ -13,7 +13,6 @@ import Link from "next/link";
 
 import type { BirthdayCelebrant } from "@/lib/insights/birthdays";
 import { formatCalendarDayMonth } from "@/lib/dates";
-import { personLabel } from "@/lib/roster/display";
 
 export function BirthdayCard({ celebrants }: { celebrants: BirthdayCelebrant[] }) {
   if (celebrants.length === 0) return null;
@@ -33,7 +32,7 @@ export function BirthdayCard({ celebrants }: { celebrants: BirthdayCelebrant[] }
           >
             <div className="flex items-baseline justify-between gap-[10px]">
               <span className="min-w-0 truncate text-[15.5px] font-bold">
-                {personLabel(person)}
+                {person.name}
               </span>
               <span className="shrink-0 text-[13.5px] font-semibold text-blue">
                 {formatCalendarDayMonth(person.celebratingOn)}
