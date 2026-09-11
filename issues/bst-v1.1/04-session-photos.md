@@ -1,7 +1,7 @@
 ---
 issue: 4
 title: Session photos — upload/take, batch consent confirm, delete
-status: in-progress
+status: done
 blocked-by: []
 type: hitl
 ---
@@ -83,11 +83,10 @@ app was redeployed. **The real path is proven** — a PUT into the bucket
 404. Verified by the supervisor with a throwaway script against the TEST branch
 (the script was not kept).
 
-**What still stands between this and `done` (hitl):**
-1. Jericho's first real upload from his phone — a camera photo through the
-   card, which also exercises EXIF orientation and the browser downscale, and
-   proves the deployed app (not just a script) reaches the bucket.
-2. The Looks-like pass against `Attendance.dc.html` — the built card is new UI.
+**CLOSED 2026-09-11 — the phone pass cleared both at once:** a real upload
+through the deployed card, from his phone, and he signed off ("already qa'd,
+I'm satisfied"). Nothing further is owed on this issue — and with it, the
+bst-v1.1 backlog (01–04) is empty.
 
 **Build decisions, recorded (per the Notes above):** the archive copy is a
 client-side DOWNSCALE (long edge 2048px, q0.88) rather than the camera's true

@@ -30,3 +30,6 @@ issue in this folder instead.
   and its inputs guard Enter, because the form's submit is the sheet; and the
   photo file input no longer carries `capture`, so Android offers the gallery
   as well as the camera.
+- **2026-09-11 (last) — the phone pass landed:** Jericho ran a real upload from
+  his phone and signed off ("already qa'd, I'm satisfied"). Issue 4 closed; the
+  bst-v1.1 backlog is empty.
