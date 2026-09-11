@@ -18,6 +18,8 @@ issue in this folder instead.
   with `QA_OWNER`.**
 - **2026-09-11 — issue 4, two more:** (a) an iPhone photo library
   pick usually arrives as JPEG; a HEIC that slips through is skipped by
-  `preparePhoto` and the card says so — worth a real-phone look. (b) The upload
-  and delete paths have never met a real bucket: the module is mock-tested and
-  the first live PUT/signed GET happens when the R2 keys land.
+  `preparePhoto` and the card says so — worth a real-phone look. (b) ~~the
+  upload and delete paths have never met a real bucket~~ **RESOLVED same day:**
+  with the R2 keys in place, a real PUT → signed GET (200, byte-exact) → delete
+  (object 404) was run against the bucket; what remains unproven is only the
+  browser downscale + camera path on a real phone.**

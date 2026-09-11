@@ -75,13 +75,19 @@ placeholders. 540 tests green (mock R2 client), typecheck / lint / build clean;
 the card's unconfigured and configured states both smoke-tested against the
 test branch.
 
-**What still stands between this and `done` (both hitl):**
-1. Jericho creates the R2 bucket + an Object Read & Write API token, fills the
-   four `R2_*` vars locally and on Vercel — until then the card says "not set
-   up yet".
-2. The first REAL upload on his phone (the module's mock only proves the rules;
-   a real PUT, a real signed GET, and EXIF orientation need a device).
-3. The Looks-like pass against `Attendance.dc.html` — the built card is new UI.
+**Resolved same day (2026-09-11, later):** the R2 bucket + scoped token exist;
+local `.env.local` and Vercel production both carry the four `R2_*` vars; the
+app was redeployed. **The real path is proven** — a PUT into the bucket
+(`sessions/<group>/2026-09-10/<uuid>.jpg`, 160 bytes), a signed GET returning
+200 with a byte-exact body, and a delete leaving the row gone and the object
+404. Verified by the supervisor with a throwaway script against the TEST branch
+(the script was not kept).
+
+**What still stands between this and `done` (hitl):**
+1. Jericho's first real upload from his phone — a camera photo through the
+   card, which also exercises EXIF orientation and the browser downscale, and
+   proves the deployed app (not just a script) reaches the bucket.
+2. The Looks-like pass against `Attendance.dc.html` — the built card is new UI.
 
 **Build decisions, recorded (per the Notes above):** the archive copy is a
 client-side DOWNSCALE (long edge 2048px, q0.88) rather than the camera's true
