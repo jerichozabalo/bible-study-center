@@ -24,6 +24,8 @@ import { addDays, manilaToday } from "@/lib/dates";
 import { getCalendar, getGroupSchedules, materializeSchedule } from "@/lib/meetings/calendar";
 import { computeGhosts } from "@/lib/meetings/ghosts";
 import { listMeetingLog } from "@/lib/meetings/meetings";
+import { listCoverThumbnails } from "@/lib/session-photos/photos";
+import { isStorageConfigured } from "@/lib/session-photos/storage";
 
 import { CalendarView } from "./CalendarView";
 import { MeetingLogView } from "./MeetingLogView";
@@ -65,10 +67,16 @@ export default async function MeetingPage({
   );
 }
 
-/** The List: the log read, then the cards. */
+/** The List: the log read, each night's cover, then the cards. */
 async function LogSection({ ownerId, today }: { ownerId: string; today: string }) {
   const meetings = await listMeetingLog(ownerId, { to: today });
-  return <MeetingLogView meetings={meetings} today={today} />;
+  // The night's cover thumbnails, signed for plain <img>s — the same trade
+  // the record makes. Unconfigured storage draws no covers rather than
+  // failing the page, the way the record's photo card says so plainly.
+  const covers = isStorageConfigured()
+    ? await listCoverThumbnails(ownerId, meetings.map((meeting) => meeting.id))
+    : new Map<string, string>();
+  return <MeetingLogView meetings={meetings} covers={covers} today={today} />;
 }
 
 /** The Calendar: issue 5's reads, unchanged. */

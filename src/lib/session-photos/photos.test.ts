@@ -7,6 +7,7 @@ import {
   type PhotoUploadFile,
   ConsentRequiredError,
   deletePhoto,
+  listCoverThumbnails,
   listPhotosForSession,
   uploadPhotos,
 } from "./photos";
@@ -148,5 +149,46 @@ describe.skipIf(!dbConfigured)("session photos", () => {
     expect(await deletePhoto(TEST_OWNER, row.id, storage)).toBe(true);
     expect(removed).toEqual([row.r2Key, row.r2ThumbKey]);
     expect(await listPhotosForSession(TEST_OWNER, meeting)).toEqual([]);
+  });
+
+  it("draws one cover thumbnail per meeting — the newest photo on each (bst-v1.2 #1)", async () => {
+    const { storage } = mockStorage();
+    const earlier = await addHeldMeeting(TEST_OWNER, group, "2026-09-01");
+
+    await uploadPhotos(TEST_OWNER, meeting, [file({ caption: "Older", takenOn: "2026-09-07" })], true, storage);
+    const [newer] = await uploadPhotos(TEST_OWNER, meeting, [file({ caption: "Newer", takenOn: "2026-09-08" })], true, storage);
+    await uploadPhotos(TEST_OWNER, earlier, [file({ takenOn: "2026-09-01" })], true, storage);
+
+    const covers = await listCoverThumbnails(TEST_OWNER, [meeting, earlier], storage);
+
+    expect(covers.size).toBe(2);
+    // The newest photo of the night, exactly as the record draws it first.
+    expect(covers.get(meeting)).toBe(`https://r2.test/${newer.r2ThumbKey}`);
+    expect(covers.get(earlier)).toContain("-thumb.jpg");
+  });
+
+  it("leaves photo-less nights out, and keeps other owners' photos out", async () => {
+    const { storage } = mockStorage();
+    const bare = await addHeldMeeting(TEST_OWNER, group, "2026-09-01");
+    await uploadPhotos(TEST_OWNER, meeting, [file()], true, storage);
+
+    const otherGroup = await createGroup("someone.else@example.com", {
+      name: "Other BGroup",
+      weekday: 3,
+      startTime: "19:00",
+      durationMinutes: 60,
+      currentBookId: null,
+    });
+    const otherMeeting = await addHeldMeeting("someone.else@example.com", otherGroup, "2026-09-02");
+    await uploadPhotos("someone.else@example.com", otherMeeting, [file()], true, storage);
+
+    const covers = await listCoverThumbnails(TEST_OWNER, [meeting, bare, otherMeeting], storage);
+
+    expect([...covers.keys()]).toEqual([meeting]);
+  });
+
+  it("returns nothing for no meetings at all", async () => {
+    const { storage } = mockStorage();
+    expect((await listCoverThumbnails(TEST_OWNER, [], storage)).size).toBe(0);
   });
 });

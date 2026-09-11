@@ -178,6 +178,36 @@ export async function listPhotosForSession(
 }
 
 /**
+ * One cover thumbnail per meeting, for the Meeting page's List (bst-v1.2 #1):
+ * the newest photo on each night — the same order the record draws them in —
+ * signed for a plain `<img>`. A night with no photos is simply absent from
+ * the map; its card draws nothing.
+ */
+export async function listCoverThumbnails(
+  ownerId: string,
+  meetingIds: string[],
+  storage: PhotoStorage = r2Storage(),
+): Promise<Map<string, string>> {
+  if (meetingIds.length === 0) return new Map();
+
+  const rows = await query<{ meeting_id: string; r2_thumb_key: string }>(
+    `SELECT DISTINCT ON (meeting_id) meeting_id, r2_thumb_key
+       FROM session_photos
+      WHERE owner_id = $1 AND meeting_id = ANY($2::uuid[])
+      ORDER BY meeting_id, taken_on DESC, created_at DESC`,
+    [ownerId, meetingIds],
+  );
+
+  return new Map(
+    await Promise.all(
+      rows.map(
+        async (row) => [row.meeting_id, await storage.signedUrl(row.r2_thumb_key)] as const,
+      ),
+    ),
+  );
+}
+
+/**
  * Delete a photo: the row first (so the public read path loses it), then both
  * objects. Returns false when the photo is not this owner's — the same
  * not-found and not-yours answer, deliberately.

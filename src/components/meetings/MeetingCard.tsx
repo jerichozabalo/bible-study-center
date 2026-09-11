@@ -30,7 +30,16 @@ export type MeetingCardMeeting = {
   status: "proposed" | "held" | "cancelled";
 };
 
-export function MeetingCard({ meeting, today }: { meeting: MeetingCardMeeting; today: string }) {
+export function MeetingCard({
+  meeting,
+  today,
+  photoUrl,
+}: {
+  meeting: MeetingCardMeeting;
+  today: string;
+  /** The night's cover thumbnail, signed (bst-v1.2 #1) — the List passes it; the agenda passes none. */
+  photoUrl?: string;
+}) {
   const isPastDue = meeting.status === "proposed" && meeting.date < today;
   const isCancelled = meeting.status === "cancelled";
   const isHeld = meeting.status === "held";
@@ -153,6 +162,17 @@ export function MeetingCard({ meeting, today }: { meeting: MeetingCardMeeting; t
             </Link>
           )}
         </div>
+        {photoUrl ? (
+          // The night's cover, right side of the card (bst-v1.2 #1) — the newest
+          // photo's thumbnail, the order the record draws them in. A failed
+          // load (offline stash, expired signature) leaves the soft box.
+          // eslint-disable-next-line @next/next/no-img-element -- signed R2 URL, rotates every visit
+          <img
+            src={photoUrl}
+            alt=""
+            className="h-[56px] w-[56px] shrink-0 self-center rounded-[12px] bg-shell object-cover"
+          />
+        ) : null}
       </div>
     </div>
   );

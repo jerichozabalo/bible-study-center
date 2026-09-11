@@ -21,3 +21,9 @@ issue in this folder instead.
   `QA_OWNER`, defaulting to the allowlisted owner — seeding for the
   placeholder address signs in to an empty app (v1.1's finding, now fixed
   in-repo).
+- **2026-09-11 — his pass call, shipped: the List's cards carry the night's
+  cover photo** — right side, the newest photo's thumbnail, signed
+  (`listCoverThumbnails`; the agenda passes none and is unchanged). QA'd
+  against a real bucket object (PUT → signed GET byte-exact → 112×112 loaded
+  in the browser), then the QA object + row were cleaned up. Covers anywhere
+  else (Home rows, the calendar agenda) are parked, not promised.

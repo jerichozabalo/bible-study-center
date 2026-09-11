@@ -7,8 +7,10 @@
  *
  * The cards are the agenda's own — the shared `MeetingCard` — so a past-due
  * night's one-tap resolve (#52) and a cancelled night's grey strike (#50)
- * read the same here as there. A server component: its interactivity is
- * links and server-action forms.
+ * read the same here as there. The cover thumbnails are the log's own gift:
+ * one signed thumbnail per night that has photos, drawn right side of the
+ * card; the agenda passes none and stays as it was. A server component: its
+ * interactivity is links and server-action forms.
  */
 import { MeetingCard } from "@/components/meetings/MeetingCard";
 import { formatWeekdayDate } from "@/lib/dates";
@@ -16,9 +18,12 @@ import { type MeetingSummary } from "@/lib/meetings/meetings";
 
 export function MeetingLogView({
   meetings,
+  covers,
   today,
 }: {
   meetings: MeetingSummary[];
+  /** meetingId → signed cover-thumbnail URL, for nights that have photos. */
+  covers: Map<string, string>;
   today: string;
 }) {
   if (meetings.length === 0) {
@@ -48,7 +53,12 @@ export function MeetingLogView({
           </div>
           <div className="flex flex-col gap-[10px]">
             {day.meetings.map((meeting) => (
-              <MeetingCard key={meeting.id} meeting={meeting} today={today} />
+              <MeetingCard
+                key={meeting.id}
+                meeting={meeting}
+                today={today}
+                photoUrl={covers.get(meeting.id)}
+              />
             ))}
           </div>
         </div>
