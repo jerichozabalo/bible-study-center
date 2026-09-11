@@ -22,4 +22,11 @@ issue in this folder instead.
   upload and delete paths have never met a real bucket~~ **RESOLVED same day:**
   with the R2 keys in place, a real PUT → signed GET (200, byte-exact) → delete
   (object 404) was run against the bucket; what remains unproven is only the
-  browser downscale + camera path on a real phone.**
+  browser downscale + camera path on a real phone.
+- **2026-09-11 — smaller calls from the same phone pass (his asks):** the
+  catch-up list collapses to three cards with a "Show all N" toggle; the photos
+  card was moved INSIDE the sheet's form, between the save block and catch-up
+  (it promotes before that section) — every control in it is `type="button"`
+  and its inputs guard Enter, because the form's submit is the sheet; and the
+  photo file input no longer carries `capture`, so Android offers the gallery
+  as well as the camera.
