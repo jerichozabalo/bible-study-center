@@ -1,7 +1,7 @@
 ---
 issue: 4
 title: Session photos — upload/take, batch consent confirm, delete
-status: open
+status: in-progress
 blocked-by: []
 type: hitl
 ---
@@ -65,6 +65,30 @@ source; this is the BST-side backlog entry that gets built.
 - Loops before done: test / typecheck / lint / build. One commit referencing
   the issue; **do not push**. Deploy + production migration are separate,
   deliberate steps (CLAUDE.md).
+
+## Status 2026-09-11
+
+**Code side BUILT and committed — not done.** Migration `011`, the module
+(`photos.ts` / `storage.ts` / `actions.ts` / `downscale.ts`), the card on the
+meeting record, the 4mb action body limit, `.env.example` + `.env.local`
+placeholders. 540 tests green (mock R2 client), typecheck / lint / build clean;
+the card's unconfigured and configured states both smoke-tested against the
+test branch.
+
+**What still stands between this and `done` (both hitl):**
+1. Jericho creates the R2 bucket + an Object Read & Write API token, fills the
+   four `R2_*` vars locally and on Vercel — until then the card says "not set
+   up yet".
+2. The first REAL upload on his phone (the module's mock only proves the rules;
+   a real PUT, a real signed GET, and EXIF orientation need a device).
+3. The Looks-like pass against `Attendance.dc.html` — the built card is new UI.
+
+**Build decisions, recorded (per the Notes above):** the archive copy is a
+client-side DOWNSCALE (long edge 2048px, q0.88) rather than the camera's true
+original — a presigned direct-to-R2 upload would be the way to keep true
+originals, and that is a new decision, not a tweak; thumbnails are made in the
+browser (no `sharp` at runtime); one photo per action request, so a batch's
+requests each stay small.
 
 ## Looks like
 - `design/Attendance.dc.html` (and the meeting-record screens) govern the

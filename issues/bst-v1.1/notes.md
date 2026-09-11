@@ -16,3 +16,8 @@ issue in this folder instead.
   every request and redirects to /signin). Mint for the allowlisted owner
   address instead; `qa-seed-birthdays.mts` defaults to that address, override
   with `QA_OWNER`.**
+- **2026-09-11 — issue 4, two more:** (a) an iPhone photo library
+  pick usually arrives as JPEG; a HEIC that slips through is skipped by
+  `preparePhoto` and the card says so — worth a real-phone look. (b) The upload
+  and delete paths have never met a real bucket: the module is mock-tested and
+  the first live PUT/signed GET happens when the R2 keys land.

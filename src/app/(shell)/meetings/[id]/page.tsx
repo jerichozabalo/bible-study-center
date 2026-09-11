@@ -14,11 +14,16 @@
  * at the end of `AttendanceSheet`'s form (issue 17) so that button can carry
  * the ticks already made; the roster is passed straight through for the "Add
  * someone else" ride-along search.
+ *
+ * Below the sheet sits the photos card (bst-v1.1 issue 4): take or upload with
+ * ONE consent tick per batch, delete to retract — and a plain "not set up yet"
+ * state while R2 is unconfigured, so the screen never pretends.
  */
 import { notFound } from "next/navigation";
 
 import { AttendanceSheet } from "@/components/attendance/AttendanceSheet";
 import { BackRow } from "@/components/BackRow";
+import { SessionPhotos } from "@/components/photos/SessionPhotos";
 import { saveSheetAction } from "@/lib/attendance/actions";
 import { getCatchUpCandidates } from "@/lib/attendance/catchup";
 import { getSheet } from "@/lib/attendance/sheet";
@@ -26,6 +31,8 @@ import { requireUser } from "@/lib/auth/guard";
 import { formatWeekdayDate } from "@/lib/dates";
 import { listPeople } from "@/lib/roster/people";
 import { formatTime } from "@/lib/roster/schedule";
+import { listPhotosForSession, signPhotoUrls } from "@/lib/session-photos/photos";
+import { isStorageConfigured } from "@/lib/session-photos/storage";
 
 /** Reads the session cookie and the roster — never prerendered. */
 export const dynamic = "force-dynamic";
@@ -38,10 +45,13 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
   if (!sheet) notFound();
 
   const { meeting } = sheet;
-  const [candidates, roster] = await Promise.all([
+  const storageReady = isStorageConfigured();
+  const [candidates, roster, photos] = await Promise.all([
     getCatchUpCandidates(user.email, meeting.id),
     listPeople(user.email),
+    listPhotosForSession(user.email, meeting.id),
   ]);
+  const signedPhotos = storageReady ? await signPhotoUrls(photos) : [];
 
   return (
     <section className="pb-4">
@@ -86,6 +96,15 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         sessionNumber={meeting.sessionNumber}
         sessionTitle={meeting.sessionTitle}
         held={meeting.status === "held"}
+      />
+
+      {/* bst-v1.1 issue 4 — the photos card. Upload and delete need R2 to be
+          configured; until then the card says so plainly rather than hiding. */}
+      <SessionPhotos
+        meetingId={meeting.id}
+        meetingDate={meeting.date}
+        photos={signedPhotos}
+        storageReady={storageReady}
       />
     </section>
   );
