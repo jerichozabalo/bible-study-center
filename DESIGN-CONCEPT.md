@@ -141,11 +141,20 @@ Captured 2026-08-20. Not designed yet — each line still needs its own decision
   - **Dependencies:** needs v1.1 **member accounts** (attribution requires a signed-in member) and gives BST its first real **server-side surface** — checkout + webhook endpoints. The stack is not chosen and nothing is built, so this is scope, not a detail.
   - **✅ CLOSED 2026-08-21 (Jericho's call): Checkout Sessions DO work on the closed-loop tier** — TimeTrax's self-serve billing and OurChurch's donate page both run this rail on this account today, on QR Ph. Not going back to `support@paymongo.com` for it. ⚠️ Precise basis, so nobody over-reads it later: both are *deployed and live*, but neither has a recorded completed live payment (TimeTrax is at ₱0; OurChurch's first real webhook is still unproven). So this rests on the rail being accepted by PayMongo, not yet on a peso having moved end to end. Fine for a v1.1 decision; re-check before the first real gift.
   - **Standing constraint, unchanged:** **money comes IN and cannot come OUT** until DTI + BIR 2303, so anything collected sits in the wallet unspent. This feature will faithfully record gifts that cannot yet be spent — a deliberate trade (a trapped balance is meant to motivate registration, same bet as 2026-08-06), but a poor reason to build it before the rest of v1.1.
+  - **⛔ CANCELLED 2026-09-10 (Jericho's call):** the in-app giving card, per-member attribution and the fourth Reports tab are all dropped. The separate support site ([[project-biblestudytayo-support]]) is the single giving surface for the whole ministry instead — the design above and the SUPPORT COPY section below are history only. Do not revive without a new decision.
 
 - **Photos** on contact records.
 - **Catch-up invites — CLOSED 2026-08-20 by the reminder decision.** Same rule: the app DRAFTS the Taglish invite line (date + place + which session it fills) and the leader sends it. The app never sends it. Consistent with the quiet follow-up — routing someone to another BGroup is pastoral, not transactional.
 
+**Built 2026-09-11 — bst-v1.1 issues 1–3 (Jericho's asks, shipped the same day; `issues/bst-v1.1/`):**
+- **Nickname** — optional on every person; when set it is the name shown everywhere a person's name appears (roster, attendance sheet and its search, catch-up cards, guest labels, reports, Home, and the person's own page, which keeps the full name as secondary text). `people.name` stays the stored record; the offline person-create replay carries the nickname.
+- **Salvation prayer** — `prayed_salvation` + `prayed_salvation_on`, mirroring `baptized` / `baptized_on` exactly, date-is-the-stronger-claim included. A chip on the person page, editable on the form; deliberately NOT in Reports' person sheet.
+- **Birthdays this week** — a Home card; "this week" = the current calendar week Sunday→Saturday in Manila (#46's convention), derived from `people.birthday` (#9b). Feb 29 is celebrated on Feb 28 in a common year; the row shows the age they turn. Removed people out (#24), stepped-away people in; the card draws nothing when nobody is celebrating.
+- **Session photos** — the v1.1 photos item is now fully spec'd (per-session upload/capture → R2, ONE consent tick per upload batch, delete-to-retract, no per-photo toggle) in `~/biblestudytayo-support/issues/ministry-support-site/10-bst-session-photos.md`; adopted into BST's own backlog as `issues/bst-v1.1/04-session-photos.md` (hitl — needs the R2 bucket). Not built.
+
 ## SUPPORT COPY — the giving card (v1.1, per #69)
+
+⛔ **RETIRED 2026-09-10** — the in-app giving card was cancelled the day the support site replaced it (see the v1.1 backlog above). Kept as history only.
 
 Recipient is settled: **the giver gives to the Bible Study Tayo ministry** (Jericho, 2026-08-21) — never a BGroup fund, never the member's own leader, never another church (#110).
 
