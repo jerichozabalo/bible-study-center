@@ -142,6 +142,34 @@ export async function listUpcomingMeetings(
 }
 
 /**
+ * The meeting log — everything dated today or earlier, newest first
+ * (bst-v1.2 #1). The Meeting page opens on this.
+ *
+ * Days read newest-first; a day's own nights keep evening order, the way the
+ * night happened. It does NOT filter by status: the log is the record — a
+ * cancelled night shows greyed and struck through (#50), and a past-due
+ * proposed night keeps its one-tap resolve reachable (#52). Future nights are
+ * excluded by construction (`to` is today, read in Manila per #56 — a night
+ * dated `to` itself IS included; the boundary is today, not before it).
+ * No LIMIT: single user, weekly cadence — a screenful at a time, hundreds at
+ * the very most.
+ */
+export async function listMeetingLog(
+  ownerId: string,
+  options: { to: string },
+): Promise<MeetingSummary[]> {
+  if (!DATE_PATTERN.test(options.to)) return [];
+
+  const rows = await query<MeetingRow>(
+    `${SELECT_MEETING}
+      WHERE m.owner_id = $1 AND m.date <= $2::date
+      ORDER BY m.date DESC, m.start_time ASC`,
+    [ownerId, options.to],
+  );
+  return rows.map(toSummary);
+}
+
+/**
  * Create the meeting the leader typed. Always PROPOSED (#47), always
  * `origin = 'created'` (#73), always stamped to them (#32).
  */

@@ -8,7 +8,9 @@ import {
   resetRoster,
 } from "../../../tests/fixtures";
 import {
+  addCancelledMeeting,
   addGeneratedMeeting,
+  addHeldMeeting,
   resetMeetings,
   sessionIdByNumber,
 } from "../../../tests/meeting-fixtures";
@@ -18,6 +20,7 @@ import {
   MeetingValidationError,
   createMeeting,
   getMeeting,
+  listMeetingLog,
   listUpcomingMeetings,
   setGroupSchedule,
 } from "./meetings";
@@ -253,6 +256,60 @@ describe.skipIf(!dbConfigured)("meetings", () => {
     expect(await listUpcomingMeetings("someone.else@example.com", { from: "2026-08-01" })).toEqual(
       [],
     );
+  });
+
+  it("logs every meeting up to today, newest first — the future never lands (bst-v1.2 #1)", async () => {
+    // The Meeting page's default view: the log is the record of nights that
+    // are done (today counts). Tomorrow's proposed rows are the calendar's.
+    await addGeneratedMeeting(TEST_OWNER, group, "2026-09-14"); // still ahead
+    await addGeneratedMeeting(TEST_OWNER, group, "2026-09-21"); // still ahead
+    await addHeldMeeting(TEST_OWNER, group, "2026-09-08");
+    await addCancelledMeeting(TEST_OWNER, group, "2026-09-10");
+
+    const log = await listMeetingLog(TEST_OWNER, { to: "2026-09-11" });
+
+    expect(log.map((row) => row.date)).toEqual(["2026-09-10", "2026-09-08"]);
+    expect(log[0]).toMatchObject({ groupName: "BGroup Linggo", status: "cancelled" });
+  });
+
+  it("keeps a day's own nights in evening order (bst-v1.2 #1)", async () => {
+    await addGeneratedMeeting(TEST_OWNER, group, "2026-09-08", "16:00");
+    await createMeeting(TEST_OWNER, meeting({ date: "2026-09-08", startTime: "19:00" }));
+
+    const log = await listMeetingLog(TEST_OWNER, { to: "2026-09-11" });
+
+    expect(log.map((row) => row.date)).toEqual(["2026-09-08", "2026-09-08"]);
+    expect(log.map((row) => row.startTime)).toEqual(["16:00:00", "19:00:00"]);
+  });
+
+  it("includes a night dated today — the boundary is today, not before it (bst-v1.2 #1)", async () => {
+    await addHeldMeeting(TEST_OWNER, group, "2026-09-11"); // tonight
+    await addGeneratedMeeting(TEST_OWNER, group, "2026-09-12"); // tomorrow
+
+    const log = await listMeetingLog(TEST_OWNER, { to: "2026-09-11" });
+
+    expect(log.map((row) => row.date)).toEqual(["2026-09-11"]);
+  });
+
+  it("shows all three statuses — nothing in the log is hidden (#50/#52)", async () => {
+    await addHeldMeeting(TEST_OWNER, group, "2026-09-08");
+    await addCancelledMeeting(TEST_OWNER, group, "2026-09-09");
+    await addGeneratedMeeting(TEST_OWNER, group, "2026-09-10"); // past-due proposed
+
+    const log = await listMeetingLog(TEST_OWNER, { to: "2026-09-11" });
+
+    expect(log.map((row) => row.status).sort()).toEqual(["cancelled", "held", "proposed"]);
+  });
+
+  it("keeps another leader's meetings out of the log (#32)", async () => {
+    await addHeldMeeting(TEST_OWNER, group, "2026-09-08");
+
+    expect(await listMeetingLog("someone.else@example.com", { to: "2026-09-11" })).toEqual([]);
+  });
+
+  it("returns nothing for an unreadable date, and nothing when the log is empty", async () => {
+    expect(await listMeetingLog(TEST_OWNER, { to: "tonight" })).toEqual([]);
+    expect(await listMeetingLog(TEST_OWNER, { to: "2026-09-11" })).toEqual([]);
   });
 
   function meeting(overrides: Partial<Parameters<typeof createMeeting>[1]> = {}) {

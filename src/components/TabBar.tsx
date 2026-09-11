@@ -1,7 +1,9 @@
 "use client";
 
 /**
- * The five slots, fixed by #62: Home · Calendar · [+] · People · Reports.
+ * The five slots, fixed by #62: Home · Meeting · [+] · People · Reports.
+ * (The Calendar slot was renamed Meeting in bst-v1.2 #1; its route keeps
+ * the /calendar slug, as this repo's folder keeps its old name.)
  * `design/Main.dc.html` draws it; this is that drawing, made to navigate.
  *
  * A client component for one reason — it has to know which slot is current, and
@@ -32,7 +34,7 @@ const SLOTS: Slot[] = [
   },
   {
     href: "/calendar",
-    label: "Calendar",
+    label: "Meeting",
     path: (
       <>
         <rect x="3" y="5" width="18" height="16" rx="3" />

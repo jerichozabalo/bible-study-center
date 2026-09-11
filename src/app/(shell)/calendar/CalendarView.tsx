@@ -1,16 +1,15 @@
 "use client";
 
 /**
- * The interactive calendar view — Week or Month (#5).
+ * The Meeting page's Calendar view — Week or Month (#5; bst-v1.2 #1).
  *
  * Server data arrives as props from the page server component; this client
  * component owns the view toggle (Week/Month) and the selected day. Weekday is
  * drawn from each meeting's date, not the group's current weekday (#48b), so a
- * held night keeps its original day after a schedule shift.
- *
- * Past-due proposed meetings (#52) surface a "NEEDS CONFIRMING" pill with
- * Yes / Cancelled buttons that post to `resolveMeetingAction`; cancelled
- * meetings (#50) render greyed and struck through.
+ * held night keeps its original day after a schedule shift. The page above
+ * owns the title and the List/Calendar segments; the agenda's meeting cards —
+ * past-due resolve (#52), held, cancelled (#50) — live in the shared
+ * `MeetingCard` the List view draws too.
  *
  * Ghosts (#49) are slots the group's schedule implies beyond the 8-week
  * materialised edge — no row exists yet. They render hollow (the board's "not
@@ -19,15 +18,11 @@
  *
  * `design/Calendar.dc.html` is the drawing this file implements.
  */
-import Link from "next/link";
-
+import { MeetingCard } from "@/components/meetings/MeetingCard";
 import { type CalendarEntry } from "@/lib/meetings/calendar";
 import { type Ghost } from "@/lib/meetings/ghosts";
 import { addDays, weekdayOf } from "@/lib/dates";
-import {
-  materializeGhostAction,
-  resolveMeetingAction,
-} from "@/lib/meetings/calendar-actions";
+import { materializeGhostAction } from "@/lib/meetings/calendar-actions";
 import { WEEKDAY_NAMES, formatTime } from "@/lib/roster/schedule";
 import { useState } from "react";
 
@@ -62,10 +57,10 @@ export function CalendarView({
   }
 
   return (
-    <section className="flex flex-col">
-      {/* Header: title + Today + Week/Month toggle */}
-      <div className="flex items-center justify-between pb-[6px]">
-        <h1 className="text-[26px]">Calendar</h1>
+    <>
+      {/* Controls: Today + the Week/Month toggle. The page above this view
+          owns the title and the List/Calendar segments. */}
+      <div className="flex items-center justify-end gap-[8px] pt-[12px] pb-[6px]">
         <div className="flex items-center gap-[8px]">
           <button
             type="button"
@@ -126,7 +121,7 @@ export function CalendarView({
         ghosts={ghosts}
         today={today}
       />
-    </section>
+    </>
   );
 }
 
@@ -512,175 +507,6 @@ function GhostCard({ ghost }: { ghost: Ghost }) {
         </div>
       </button>
     </form>
-  );
-}
-
-/**
- * One meeting card in the agenda. Past-due proposed meetings (#52) show the
- * "NEEDS CONFIRMING" pill and the Yes/Cancelled buttons; held meetings show a
- * green check and the attendance count; cancelled meetings are greyed and
- * struck through (#50).
- */
-function MeetingCard({ meeting, today }: { meeting: CalendarEntry; today: string }) {
-  const isPastDue = meeting.status === "proposed" && meeting.date < today;
-  const isCancelled = meeting.status === "cancelled";
-  const isHeld = meeting.status === "held";
-
-  const timeStr = formatTime(meeting.startTime);
-  const sessionStr =
-    meeting.sessionNumber === null
-      ? "No session — fellowship night"
-      : `Book ${meeting.bookNumber} · Session ${meeting.sessionNumber} — ${meeting.sessionTitle}`;
-
-  // Bar colour, text colour, strikethrough, pill — derived from the status.
-  let barColor = "#E7EFF9";
-  let nameColor = "#14202E";
-  let textDec = "none";
-  let pillShow = false;
-  let pillLabel = "";
-  let pillBg = "#E7EFF9";
-  let pillInk = "#1D4E89";
-
-  if (isCancelled) {
-    barColor = "#EDEAE3";
-    nameColor = "#A4998A";
-    textDec = "line-through";
-    pillShow = true;
-    pillLabel = "CANCELLED";
-    pillBg = "#EDEAE3";
-    pillInk = "#8B7B63";
-  } else if (isHeld) {
-    barColor = "#E7EFF9";
-    pillShow = true;
-    pillLabel = "HELD";
-    pillBg = "#E4F1E9";
-    pillInk = "#2E7D52";
-  } else if (isPastDue) {
-    barColor = "#1D4E89"; // #52: a proposed night still owed a decision — a live accent, not a blank bar
-    pillShow = true;
-    pillLabel = "NEEDS CONFIRMING";
-    pillBg = "#FBF0DC";
-    pillInk = "#9A5B0B";
-  }
-
-  // Tapping the card opens the meeting's attendance sheet (issue 6) — the way
-  // in for any meeting, past or upcoming, until issue 8's Home hero exists.
-  // Ticking the sheet is what marks a proposed night held (#47). A cancelled
-  // meeting has nothing to take, so its header is inert.
-  const header = (
-    <>
-      <div className="flex items-center gap-[7px]">
-        <span
-          className="text-[16px] font-bold leading-[1.2]"
-          style={{ color: nameColor, textDecoration: textDec }}
-        >
-          {meeting.groupName}
-        </span>
-        {pillShow && (
-          <span
-            className="shrink-0 rounded-[7px] px-[7px] py-[3px] text-[10px] font-bold uppercase"
-            style={{ backgroundColor: pillBg, color: pillInk }}
-          >
-            {pillLabel}
-          </span>
-        )}
-      </div>
-      <div
-        className="mt-[4px] text-[13.5px] text-slate"
-        style={{ textDecoration: textDec }}
-      >
-        {timeStr} · {sessionStr}
-      </div>
-    </>
-  );
-
-  return (
-    <div
-      className={
-        "rounded-[20px] border-[1.5px] p-[13px] pb-[14px] " +
-        (isPastDue ? "" : "border-line bg-card")
-      }
-      // #52: a past-due night sits in an amber well — the same idiom the
-      // attendance sheet's "did it push through?" prompt uses.
-      style={isPastDue ? { backgroundColor: "#FDF8EE", borderColor: "#F0E3C8" } : undefined}
-    >
-      <div className="flex items-start gap-[11px]">
-        <div className="w-[4px] flex-shrink-0 rounded-[3px]" style={{ backgroundColor: barColor }} />
-        <div className="min-w-0 flex-grow">
-          {isCancelled ? (
-            header
-          ) : (
-            <Link href={`/meetings/${meeting.id}`} className="block">
-              {header}
-            </Link>
-          )}
-
-          {/* Past-due confirmation buttons (#52) — a sibling of the link, never
-              nested in it (a <form> inside an <a> is invalid). */}
-          {isPastDue && <PastDueActions meeting={meeting} />}
-
-          {/* Held meeting: a check and the way back to the sheet. */}
-          {isHeld && (
-            <Link
-              href={`/meetings/${meeting.id}`}
-              className="mt-[11px] flex items-center gap-[7px]"
-            >
-              <svg
-                width="15"
-                height="15"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="#2E7D52"
-                strokeWidth="2.6"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                aria-hidden="true"
-              >
-                <path d="M20 6 9 17l-5-5" />
-              </svg>
-              <span className="text-[13px] font-bold text-[#2E7D52]">
-                Held — open the sheet
-              </span>
-            </Link>
-          )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/** The Yes / Cancelled buttons that appear under a past-due proposed meeting. */
-function PastDueActions({ meeting }: { meeting: CalendarEntry }) {
-  return (
-    <div className="mt-[12px] border-t border-[#F0E3C8] pt-[12px]">
-      <p className="mb-[9px] text-[12.5px] font-semibold text-amber-ink">
-        This date has passed. Did it push through?
-      </p>
-      <div className="flex gap-[8px]">
-        <form action={resolveMeetingAction} className="flex-1">
-          <input type="hidden" name="groupId" value={meeting.groupId} />
-          <input type="hidden" name="date" value={meeting.date} />
-          <input type="hidden" name="status" value="held" />
-          <button
-            type="submit"
-            className="flex h-[42px] w-full items-center justify-center rounded-[14px] bg-blue text-[14px] font-bold text-white"
-          >
-            Yes, mark held
-          </button>
-        </form>
-        <form action={resolveMeetingAction} className="flex-1">
-          <input type="hidden" name="groupId" value={meeting.groupId} />
-          <input type="hidden" name="date" value={meeting.date} />
-          <input type="hidden" name="status" value="cancelled" />
-          <button
-            type="submit"
-            className="flex h-[42px] w-full items-center justify-center rounded-[14px] border border-line bg-card text-[14px] font-bold text-slate"
-          >
-            Cancelled
-          </button>
-        </form>
-      </div>
-    </div>
   );
 }
 

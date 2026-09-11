@@ -16,14 +16,16 @@
  *   2. Navigations go to the network first and fall back to the cached shell.
  *      Server-rendered HTML is the point of a server-first app; a cache-first
  *      navigation would show yesterday's roster as though it were today's.
- *   2b. A few read screens (#61 as narrowed by #70; #72 as amended 2026-09-02)
- *      are kept readable offline: the last successful render of each is stashed
- *      and served when the network is gone. The calendar so the schedule is
- *      there in a room with no signal; People and the Groups segment so a
- *      leader who adds someone in the field can see the queued row waiting to
- *      upload (issue 18) rather than a "no signal" wall. Still network-first,
- *      so an online open is always fresh — and the stale copy is a server
- *      render from the last connection, the same trade the calendar makes.
+ *   2b. A few read screens (#61 as narrowed by #70; #72 as amended 2026-09-02;
+ *      bst-v1.2 #1) are kept readable offline: the last successful render of
+ *      each is stashed and served when the network is gone. The Meeting page —
+ *      its List and its Calendar view each stashing their own render — so the
+ *      schedule is there in a room with no signal; People and the Groups
+ *      segment so a leader who adds someone in the field can see the queued
+ *      row waiting to upload (issue 18) rather than a "no signal" wall. Still
+ *      network-first, so an online open is always fresh — and the stale copy
+ *      is a server render from the last connection, the same trade the
+ *      calendar makes.
  *   3. Build assets (/_next/static/*) are cache-first forever, because their
  *      URLs already carry a build hash — a changed file is a changed URL.
  *
@@ -31,10 +33,12 @@
  * invalidation this file has, and it is enough because rule 3 is the only
  * long-lived cache in it.
  */
-const CACHE = "bst-v3";
+const CACHE = "bst-v4";
 const OFFLINE_URL = "/offline";
 /** Read screens whose last good render is stashed and served when the network
- * is gone (rule 2b). Everything else offline gets the /offline wall (rule 2). */
+ * is gone (rule 2b). Stash keys carry the query string, so the Meeting page's
+ * List and Calendar views each keep their own (bst-v1.2 #1). Everything else
+ * offline gets the /offline wall (rule 2). */
 const OFFLINE_READABLE = new Set(["/calendar", "/people", "/people/groups"]);
 
 self.addEventListener("install", (event) => {
@@ -85,12 +89,14 @@ self.addEventListener("fetch", (event) => {
   }
 
   // Rule 2b. The offline-readable screens (#61/#70; #72 amended): network-first,
-  // but every good response is stashed under its own path and served back when
-  // the network is gone. A client-side nav to one of these fails its RSC fetch
-  // offline and Next falls back to a full navigation — which lands here and
-  // gets the stale render instead of the /offline wall.
+  // but every good response is stashed under its own URL — query string
+  // included, so the Meeting page's List and Calendar views stay separate
+  // (bst-v1.2 #1) — and served back when the network is gone; a miss falls
+  // back to the bare path's stash, then the /offline wall. A client-side nav
+  // to one of these fails its RSC fetch offline and Next falls back to a full
+  // navigation — which lands here and gets the stale render.
   if (request.mode === "navigate" && OFFLINE_READABLE.has(url.pathname)) {
-    const key = url.pathname;
+    const key = url.pathname + url.search;
     event.respondWith(
       fetch(request)
         .then((response) => {
@@ -105,7 +111,13 @@ self.addEventListener("fetch", (event) => {
             .match(key)
             .then(
               (hit) =>
-                hit ?? caches.match(OFFLINE_URL).then((fallback) => fallback ?? Response.error()),
+                hit ??
+                caches
+                  .match(url.pathname)
+                  .then(
+                    (bare) =>
+                      bare ?? caches.match(OFFLINE_URL).then((fallback) => fallback ?? Response.error()),
+                  ),
             ),
         ),
     );

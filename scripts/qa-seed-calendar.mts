@@ -9,6 +9,8 @@
  *   - 8 weeks of generated PROPOSED meetings for each (the materialiser)
  *   - one PAST-DUE proposed meeting (last Tuesday) for Alpha
  *   - one CANCELLED future meeting for Alpha
+ *   - a short past history for the Meeting page's List (bst-v1.2 #1): held
+ *     nights on both groups plus one cancelled past night
  *
  * Ghosts (beyond the 8-week horizon) are not rows — they show on the calendar
  * on their own once you navigate past the materialised edge.
@@ -26,7 +28,11 @@ if (!process.env.TEST_DATABASE_URL) {
 // The db layer reads DATABASE_URL at import time — set it before importing.
 process.env.DATABASE_URL = process.env.TEST_DATABASE_URL;
 
-const OWNER = "leader@example.com";
+/** The owner the local server session belongs to — the allowlisted address
+ * (override with QA_OWNER if your .env.local allows a different one). Not the
+ * placeholder address: the local allowlist refuses that one, so a session for
+ * it can sign in and then see nothing. */
+const OWNER = process.env.QA_OWNER ?? "jerichozabalo0301@gmail.com";
 
 const { migrate } = await import("../src/lib/migrate");
 const { seedCurriculum } = await import("../src/lib/curriculum/seed");
@@ -98,6 +104,34 @@ await createMeeting(OWNER, {
   repeatWeekly: false,
 });
 
+// A short history for the Meeting page's default List view (bst-v1.2 #1):
+// held nights on both groups plus one cancelled past night, so the log has a
+// real record to draw beside the past-due proposed night above. Statuses are
+// written straight to the table — a seeder stands in for the sheets that would
+// have marked them (#47), the same way the test fixtures do.
+let lastThu = addDays(today, -1);
+while (weekdayOf(lastThu) !== 4) lastThu = addDays(lastThu, -1);
+
+async function addPastNight(groupId: string, date: string, status: "held" | "cancelled") {
+  const id = await createMeeting(OWNER, {
+    groupId,
+    date,
+    startTime: null,
+    durationMinutes: null,
+    bookId: bookOne,
+    sessionId: null,
+    notes: null,
+    repeatWeekly: false,
+  });
+  await query("UPDATE meetings SET status = $2, updated_at = now() WHERE id = $1", [id, status]);
+}
+
+await addPastNight(alpha, addDays(lastTue, -7), "held");
+await addPastNight(alpha, addDays(lastTue, -14), "cancelled");
+await addPastNight(alpha, addDays(lastTue, -21), "held");
+await addPastNight(beta, lastThu, "held");
+await addPastNight(beta, addDays(lastThu, -7), "held");
+
 // Cancel Alpha's second upcoming Tuesday so the calendar has a struck-through
 // entry to show.
 const upcoming = await getCalendar(OWNER, { from: today, to: addDays(today, 60) });
@@ -107,7 +141,7 @@ const alphaFuture = upcoming
   .sort();
 if (alphaFuture[1]) await cancelMeeting(OWNER, alpha, alphaFuture[1]);
 
-const all = await getCalendar(OWNER, { from: addDays(today, -14), to: addDays(today, 90) });
+const all = await getCalendar(OWNER, { from: addDays(today, -30), to: addDays(today, 90) });
 console.log(`\nseeded ${all.length} meetings for ${OWNER}`);
 for (const m of all) console.log(`  ${m.date}  ${m.groupName.padEnd(14)} ${m.status.padEnd(9)} ${m.origin}`);
 console.log("\ndone — start the app against TEST_DATABASE_URL and QA /calendar");
