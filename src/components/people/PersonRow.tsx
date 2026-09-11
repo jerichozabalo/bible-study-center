@@ -19,7 +19,7 @@ import Link from "next/link";
 
 import { bookLabel } from "@/lib/curriculum/books";
 import type { MemberProgress } from "@/lib/insights/progress";
-import { displayName, initialsOf } from "@/lib/roster/display";
+import { initialsOf, personLabel } from "@/lib/roster/display";
 import type { PersonSummary } from "@/lib/roster/people";
 
 export function PersonRow({
@@ -55,12 +55,12 @@ export function PersonRow({
           progress?.behind ? "bg-amber-well text-amber-ink" : "bg-blue-tint text-blue"
         }`}
       >
-        {initialsOf(displayName(person))}
+        {initialsOf(person.name)}
       </div>
 
       <div className="min-w-0 grow">
         <div className="flex items-center gap-[7px]">
-          <span className="truncate text-[16px] font-bold">{displayName(person)}</span>
+          <span className="truncate text-[16px] font-bold">{personLabel(person)}</span>
           {person.contactIncomplete ? <ContactChip /> : null}
           {person.steppedAwayOn ? <SteppedAwayChip /> : null}
           {progress?.behind ? <CatchUpChip /> : null}

@@ -15,7 +15,7 @@ import Link from "next/link";
 
 import { quietLine } from "@/lib/insights/display";
 import type { QuietMember } from "@/lib/insights/quiet";
-import { displayName, initialsOf } from "@/lib/roster/display";
+import { initialsOf, personLabel } from "@/lib/roster/display";
 
 export function AttentionList({ quiet }: { quiet: QuietMember[] }) {
   if (quiet.length === 0) return null;
@@ -36,10 +36,10 @@ export function AttentionList({ quiet }: { quiet: QuietMember[] }) {
           >
             <div className="flex items-start gap-3">
               <span className="flex h-[38px] w-[38px] shrink-0 items-center justify-center rounded-[13px] bg-amber-well text-[13px] font-bold text-amber-ink">
-                {initialsOf(displayName(member))}
+                {initialsOf(member.name)}
               </span>
               <div className="min-w-0 grow">
-                <div className="text-[15.5px] font-bold">{displayName(member)}</div>
+                <div className="text-[15.5px] font-bold">{personLabel(member)}</div>
                 <div className="mt-[2px] text-[14px] leading-[1.4] text-slate">
                   {quietLine(member)}
                 </div>

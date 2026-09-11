@@ -19,9 +19,13 @@ editing a person both carry it.
 - Lists and sheets show the nickname when set, else the full name: roster,
   attendance sheet (rows, search, initials), catch-up cards, guest labels,
   reports (Person/Group/Roll-up), Home cards.
-- The person's own page leads with the nickname; the full name stays visible on
-  it as secondary text. *(Interpretation to confirm at review — say if you'd
-  rather the full name vanish from the page.)*
+- **Amended 2026-09-11 (Jericho, on seeing it live) — twice in one sitting:**
+  first the person's own page swapped to lead with the full name; then the rule
+  went app-wide: **the FULL name leads on EVERY surface.** Lists and reports
+  render `Full Name (Nickname)` via `personLabel`; the person's own page puts
+  the full name as the heading and the nickname on its own line beneath. Avatar
+  initials come from the full name again. Search still matches either, and the
+  offline replay still carries the nickname.
 - Offline: a person created with no signal keeps its nickname through the
   outbox replay, and the pending row shows it.
 

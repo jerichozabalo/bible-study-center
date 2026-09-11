@@ -21,7 +21,7 @@ import Link from "next/link";
 
 import type { CatchUpCandidate } from "@/lib/attendance/catchup";
 import { catchUpJoinedNote, guestLabel } from "@/lib/attendance/form";
-import { displayName, initialsOf } from "@/lib/roster/display";
+import { initialsOf } from "@/lib/roster/display";
 
 export function CatchUpList({
   candidates,
@@ -76,11 +76,11 @@ export function CatchUpList({
                 className="flex min-w-0 grow items-center gap-3 active:opacity-70"
               >
                 <span className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[16px] bg-blue-tint text-[15px] font-bold text-blue">
-                  {initialsOf(displayName(candidate))}
+                  {initialsOf(candidate.name)}
                 </span>
                 <span className="min-w-0 grow">
                   <span className="block text-[15.5px] leading-[1.2] font-bold">
-                    {guestLabel(displayName(candidate), candidate.homeGroupName)}
+                    {guestLabel(candidate.name, candidate.homeGroupName)}
                   </span>
                   {joined === null ? null : (
                     <span className="mt-[3px] block text-[13px] leading-[1.4] text-slate">

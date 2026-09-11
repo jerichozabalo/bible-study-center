@@ -1,24 +1,25 @@
 import { describe, expect, it } from "vitest";
 
-import { baptizedLabel, displayName, initialsOf, salvationLabel } from "./display";
+import { baptizedLabel, initialsOf, personLabel, salvationLabel } from "./display";
 
 /**
- * bst-v1.1 issue 1 — one rule, one helper: when a nickname is set it is the
- * name shown everywhere, and the full name stays the stored record.
+ * bst-v1.1 issue 1, amended 2026-09-11 (Jericho, on seeing it live): the FULL
+ * name leads everywhere; the nickname is the annotation after it. The record
+ * first, the name-you-call-them second.
  */
-describe("displayName", () => {
-  it("shows the nickname when one is set", () => {
-    expect(displayName({ name: "Nena Villamor", nickname: "Nena" })).toBe("Nena");
+describe("personLabel", () => {
+  it("leads with the full name and appends the nickname", () => {
+    expect(personLabel({ name: "Nena Villamor", nickname: "Nena" })).toBe("Nena Villamor (Nena)");
   });
 
-  it("falls back to the full name when there is none", () => {
-    expect(displayName({ name: "Nena Villamor", nickname: null })).toBe("Nena Villamor");
+  it("is the full name alone when there is no nickname", () => {
+    expect(personLabel({ name: "Nena Villamor", nickname: null })).toBe("Nena Villamor");
   });
 
   it("treats a blank nickname as none at all", () => {
     // Storage turns an empty one into NULL (`people.ts`); a queued payload or a
     // half-typed form must read the same way rather than showing nothing.
-    expect(displayName({ name: "Nena Villamor", nickname: "   " })).toBe("Nena Villamor");
+    expect(personLabel({ name: "Nena Villamor", nickname: "   " })).toBe("Nena Villamor");
   });
 });
 

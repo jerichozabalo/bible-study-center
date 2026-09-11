@@ -38,7 +38,7 @@ import type { Mark } from "@/lib/attendance/completions";
 import { guestLabel, markChipLabel, parseSheetForm } from "@/lib/attendance/form";
 import type { SheetPerson } from "@/lib/attendance/sheet";
 import { SHEET_WRITE } from "@/lib/outbox/pending";
-import { displayName, initialsOf } from "@/lib/roster/display";
+import { initialsOf, personLabel } from "@/lib/roster/display";
 import type { PersonSummary } from "@/lib/roster/people";
 
 export function AttendanceSheet({
@@ -258,11 +258,11 @@ export function AttendanceSheet({
                     className="flex items-center gap-3 rounded-[16px] border-[1.5px] border-line bg-[#FBF9F5] px-3 py-[9px]"
                   >
                     <span className="flex h-[40px] w-[40px] shrink-0 items-center justify-center rounded-[14px] bg-blue-tint text-[13px] font-bold text-blue">
-                      {initialsOf(displayName(person))}
+                      {initialsOf(person.name)}
                     </span>
                     <span className="min-w-0 grow">
                       <span className="block text-[14.5px] leading-[1.2] font-bold">
-                        {displayName(person)}
+                        {personLabel(person)}
                       </span>
                       {person.homeGroupName === null ? null : (
                         <span className="mt-[2px] block text-[12.5px] text-slate">
@@ -445,7 +445,7 @@ function PersonCard({
             attended ? "bg-blue-tint text-blue" : "bg-shell text-tan"
           }`}
         >
-          {initialsOf(displayName(person))}
+          {initialsOf(person.name)}
         </span>
         <button
           type="button"
@@ -456,14 +456,14 @@ function PersonCard({
           {/* #31 — a visitor is an ordinary row that says where they came
               from. There is no guest entity and no second kind of card. */}
           <span className="block text-[16px] leading-[1.2] font-bold">
-            {guestLabel(displayName(person), person.guest ? person.homeGroupName : null)}
+            {guestLabel(person.name, person.guest ? person.homeGroupName : null)}
           </span>
           {sub ? <span className="mt-[3px] block text-[13px] text-slate">{sub}</span> : null}
         </button>
         <button
           type="button"
           onClick={onToggle}
-          aria-label={`Mark ${displayName(person)}`}
+          aria-label={`Mark ${personLabel(person)}`}
           className={`flex h-[52px] w-[52px] shrink-0 items-center justify-center rounded-[18px] border-2 ${
             attended
               ? "border-blue bg-blue"

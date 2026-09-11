@@ -61,7 +61,7 @@ export type MemberProgress = {
   name: string;
   /**
    * bst-v1.1 issue 1 — shown in place of `name` wherever a member list is
-   * drawn (`displayName`). NULL = not set.
+   * drawn (`personLabel`). NULL = not set.
    */
   nickname: string | null;
   coveredCount: number;

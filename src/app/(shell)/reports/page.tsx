@@ -34,7 +34,7 @@ import {
   getPersonReport,
   getRollup,
 } from "@/lib/insights/reports";
-import { displayName, initialsOf } from "@/lib/roster/display";
+import { initialsOf, personLabel } from "@/lib/roster/display";
 import { listArchivedGroups, listGroups } from "@/lib/roster/groups";
 import { listPeople } from "@/lib/roster/people";
 
@@ -100,7 +100,7 @@ async function PersonSection({ ownerId, personId }: { ownerId: string; personId:
           <option value="">Pick a person…</option>
           {people.map((entry) => (
             <option key={entry.id} value={entry.id}>
-              {displayName(entry)}
+              {personLabel(entry)}
             </option>
           ))}
         </select>
@@ -139,10 +139,10 @@ function PersonSheet({ report }: { report: PersonReport }) {
     <div className="mt-[16px]">
       <div className="flex items-center gap-[12px] rounded-[20px] border border-line bg-card px-[14px] py-[13px]">
         <div className="flex h-[46px] w-[46px] shrink-0 items-center justify-center rounded-[16px] bg-blue-tint text-[15px] font-bold text-blue">
-          {initialsOf(displayName(p))}
+          {initialsOf(p.name)}
         </div>
         <div className="min-w-0 grow">
-          <div className="text-[16px] font-bold">{displayName(p)}</div>
+          <div className="text-[16px] font-bold">{personLabel(p)}</div>
           <div className="mt-[2px] text-[13px] text-slate">{sub}</div>
         </div>
       </div>
@@ -284,7 +284,7 @@ function GroupHistory({ report }: { report: GroupReport }) {
           <div className="mt-[10px] flex flex-col gap-[9px]">
             {report.bookProgress.members.map((member) => (
               <div key={member.personId} className="flex items-baseline justify-between gap-[10px]">
-                <span className="min-w-0 text-[14px] font-semibold">{displayName(member)}</span>
+                <span className="min-w-0 text-[14px] font-semibold">{personLabel(member)}</span>
                 <span className="shrink-0 text-[13px] font-bold text-blue">
                   {member.coveredCount} of {member.sessionCount}
                   {member.complete ? " · complete" : ""}
@@ -339,7 +339,7 @@ function GroupHistory({ report }: { report: GroupReport }) {
                 <div className="mt-[7px] border-t border-line-soft pt-[7px] text-[12.5px] text-slate">
                   Guest {meeting.guests.length === 1 ? "visit" : "visits"}:{" "}
                   {meeting.guests
-                    .map((guest) => `${displayName(guest)} (${guest.homeGroupName ?? "no BGroup"})`)
+                    .map((guest) => `${guest.name} (${guest.homeGroupName ?? "no BGroup"})`)
                     .join(", ")}
                 </div>
               ) : null}

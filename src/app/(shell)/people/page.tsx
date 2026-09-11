@@ -21,7 +21,7 @@ import { PersonRow } from "@/components/people/PersonRow";
 import { PEOPLE_SEGMENTS, SegmentedControl } from "@/components/SegmentedControl";
 import { requireUser } from "@/lib/auth/guard";
 import { formatDayMonth } from "@/lib/dates";
-import { displayName, initialsOf } from "@/lib/roster/display";
+import { initialsOf, personLabel } from "@/lib/roster/display";
 import { listPeople, listRemovedPeople } from "@/lib/roster/people";
 
 /** Reads the session cookie and the roster — never prerendered. */
@@ -144,10 +144,10 @@ export default async function PeoplePage({
                 className="flex items-center gap-[11px] rounded-[20px] bg-shell px-4 py-[13px] active:bg-line"
               >
                 <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-card text-[13.5px] font-bold text-tan">
-                  {initialsOf(displayName(person))}
+                  {initialsOf(person.name)}
                 </div>
                 <div className="min-w-0 grow">
-                  <div className="truncate text-[15px] font-bold text-slate">{displayName(person)}</div>
+                  <div className="truncate text-[15px] font-bold text-slate">{personLabel(person)}</div>
                   <div className="mt-[2px] text-[13px] text-tan">
                     {person.removedAt ? `removed ${formatDayMonth(person.removedAt)}` : "removed"}
                   </div>

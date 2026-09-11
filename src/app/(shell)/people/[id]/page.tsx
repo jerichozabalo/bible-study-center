@@ -30,7 +30,7 @@ import {
   restorePersonAction,
   setSteppedAwayAction,
 } from "@/lib/roster/actions";
-import { baptizedLabel, displayName, initialsOf, salvationLabel } from "@/lib/roster/display";
+import { baptizedLabel, initialsOf, salvationLabel } from "@/lib/roster/display";
 import { type Membership, getPerson } from "@/lib/roster/people";
 import { formatTime } from "@/lib/roster/schedule";
 
@@ -83,14 +83,15 @@ export default async function PersonPage({ params }: { params: Promise<{ id: str
 
       <div className="flex items-center gap-[14px]">
         <div className="flex h-16 w-16 shrink-0 items-center justify-center rounded-[22px] bg-blue-tint text-[21px] font-bold text-blue">
-          {initialsOf(displayName(person))}
+          {initialsOf(person.name)}
         </div>
         <div className="min-w-0">
-          <h2 className="text-[24px]">{displayName(person)}</h2>
-          {/* bst-v1.1 issue 1 — the full name stays visible under the name
-              they are called by; the record does not disappear. */}
+          <h2 className="text-[24px]">{person.name}</h2>
+          {/* bst-v1.1 issue 1 — Jericho's call 2026-09-11: on the person's own
+              page the FULL name leads, because this is the record; the nickname
+              sits under it. Everywhere else the nickname is the displayed name. */}
           {person.nickname === null ? null : (
-            <div className="mt-[3px] text-[14px] text-tan">{person.name}</div>
+            <div className="mt-[3px] text-[14px] text-tan">{person.nickname}</div>
           )}
           <div className="mt-[3px] text-[14px] text-slate">
             Joined {formatLongDate(person.joinedOn)}

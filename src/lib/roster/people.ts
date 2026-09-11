@@ -86,7 +86,7 @@ export type PersonSummary = {
   name: string;
   /**
    * bst-v1.1 issue 1 — shown in place of `name` wherever a person's name
-   * appears; see `display.ts`'s `displayName`. NULL = not set.
+   * appears; see `display.ts`'s `personLabel`. NULL = not set.
    */
   nickname: string | null;
   phone: string | null;

@@ -34,7 +34,7 @@ export type CatchUpCandidate = {
   name: string;
   /**
    * bst-v1.1 issue 1 — shown in place of `name` on the catch-up card
-   * (`displayName`). NULL = not set.
+   * (`personLabel`). NULL = not set.
    */
   nickname: string | null;
   /** Always their own BGroup, and never the meeting's — that is the point. */

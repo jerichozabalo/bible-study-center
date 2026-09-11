@@ -27,7 +27,7 @@ export type SheetPerson = {
   name: string;
   /**
    * bst-v1.1 issue 1 — shown in place of `name` on the sheet (`display.ts`'s
-   * `displayName`). NULL = not set.
+   * `personLabel`). NULL = not set.
    */
   nickname: string | null;
   /** Their own BGroup, which is not always the meeting's (#31). */

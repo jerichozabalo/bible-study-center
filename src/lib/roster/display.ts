@@ -25,17 +25,20 @@ export const SPIRITUAL_STATUSES = ["Engage", "Edify", "Equip", "Empower"] as con
 export type SpiritualStatus = (typeof SPIRITUAL_STATUSES)[number];
 
 /**
- * What we call them (bst-v1.1 issue 1): the nickname when it is set, the full
- * name otherwise. One helper, because "shown everywhere" is one rule — the
- * roster, the sheet, the reports and the person's own screen must not each
- * grow their own version of it.
+ * The name the app shows (bst-v1.1 issue 1, AMENDED 2026-09-11 by Jericho on
+ * seeing it live): the FULL name first, with the nickname in parentheses when
+ * one is set — "Nena Villamor (Nena)". The record leads; the name-you-call-
+ * them annotates it. One helper, because "shown everywhere" is one rule — the
+ * roster, the sheet, the reports and Home must not each grow their own
+ * version of it.
  *
- * The full name stays the stored record; a blank nickname is not a name, so it
- * reads as none at all (storage already turns an empty one into NULL).
+ * The person's own page does not use this: it puts the two on separate lines
+ * (full name as the heading, nickname beneath). A blank nickname is not a name,
+ * so it reads as none at all (storage already turns an empty one into NULL).
  */
-export function displayName(person: { name: string; nickname: string | null }): string {
+export function personLabel(person: { name: string; nickname: string | null }): string {
   const nickname = (person.nickname ?? "").trim();
-  return nickname === "" ? person.name : nickname;
+  return nickname === "" ? person.name : `${person.name} (${nickname})`;
 }
 
 /**

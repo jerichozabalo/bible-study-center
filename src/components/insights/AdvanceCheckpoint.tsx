@@ -23,7 +23,7 @@
  */
 import { useActionState, useState } from "react";
 
-import { displayName, initialsOf } from "@/lib/roster/display";
+import { initialsOf, personLabel } from "@/lib/roster/display";
 import { advanceIntroLine, missingSessionsLine } from "@/lib/insights/display";
 import type { MemberProgress } from "@/lib/insights/progress";
 import { advanceGroupAction } from "@/lib/roster/actions";
@@ -93,10 +93,10 @@ export function AdvanceCheckpoint({
                     className="flex items-center gap-[11px] rounded-[18px] border-[1.5px] border-[#E0BE86] bg-card px-[14px] py-[13px]"
                   >
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-[14px] bg-amber-well text-[13.5px] font-bold text-amber-ink">
-                      {initialsOf(displayName(member))}
+                      {initialsOf(member.name)}
                     </div>
                     <div className="min-w-0">
-                      <div className="text-[15.5px] font-bold">{displayName(member)}</div>
+                      <div className="text-[15.5px] font-bold">{personLabel(member)}</div>
                       <div className="mt-[2px] text-[13.5px] text-[#7C4708]">
                         {missingSessionsLine(member)}
                       </div>
