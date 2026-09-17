@@ -14,16 +14,21 @@ import {
   resetMeetings,
   sessionIdByNumber,
 } from "../../../tests/meeting-fixtures";
+import { recordSheet } from "../attendance/completions";
+import { query } from "../db";
 import { seedCurriculum } from "../curriculum/seed";
+import { createPerson } from "../roster/people";
 import { archiveGroup, createGroup, getGroup } from "../roster/groups";
 import {
   MeetingValidationError,
   changeMeetingSession,
   createMeeting,
+  deleteMeeting,
   getMeeting,
   listMeetingLog,
   listUpcomingMeetings,
   setGroupSchedule,
+  updateMeeting,
 } from "./meetings";
 
 /**
@@ -364,6 +369,145 @@ describe.skipIf(!dbConfigured)("meetings", () => {
       await expect(
         changeMeetingSession("someone.else@example.com", id, sessionThree),
       ).rejects.toBeInstanceOf(MeetingValidationError);
+    });
+  });
+
+  describe("updateMeeting", () => {
+    it("corrects a meeting's date, time, duration and notes, whatever its status (#75)", async () => {
+      const held = await addHeldMeeting(TEST_OWNER, group, "2026-09-08", {
+        bookId: bookOne,
+        sessionId: sessionThree,
+      });
+
+      await updateMeeting(TEST_OWNER, held, {
+        date: "2026-09-09",
+        startTime: "18:30",
+        durationMinutes: 60,
+        notes: "Actually a day later — wrong date typed in the room",
+      });
+
+      expect(await getMeeting(TEST_OWNER, held)).toMatchObject({
+        date: "2026-09-09",
+        startTime: "18:30:00",
+        durationMinutes: 60,
+        notes: "Actually a day later — wrong date typed in the room",
+        status: "held",
+        sessionId: sessionThree,
+      });
+    });
+
+    it("leaves the book and session untouched — that is changeMeetingSession's job", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      await updateMeeting(TEST_OWNER, id, {
+        date: "2026-08-24",
+        startTime: "19:00",
+        durationMinutes: 90,
+        notes: null,
+      });
+
+      expect(await getMeeting(TEST_OWNER, id)).toMatchObject({
+        bookId: bookOne,
+        sessionId: sessionThree,
+      });
+    });
+
+    it("clears notes to null when posted blank", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting({ notes: "Sa bahay nina Ben" }));
+
+      await updateMeeting(TEST_OWNER, id, {
+        date: "2026-08-23",
+        startTime: "16:00",
+        durationMinutes: 90,
+        notes: "   ",
+      });
+
+      expect(await getMeeting(TEST_OWNER, id)).toMatchObject({ notes: null });
+    });
+
+    it("refuses a date, time or duration it cannot read", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      await expect(
+        updateMeeting(TEST_OWNER, id, {
+          date: "2026-02-30",
+          startTime: "16:00",
+          durationMinutes: 90,
+          notes: null,
+        }),
+      ).rejects.toBeInstanceOf(MeetingValidationError);
+      await expect(
+        updateMeeting(TEST_OWNER, id, {
+          date: "2026-08-23",
+          startTime: "teatime",
+          durationMinutes: 90,
+          notes: null,
+        }),
+      ).rejects.toBeInstanceOf(MeetingValidationError);
+      await expect(
+        updateMeeting(TEST_OWNER, id, {
+          date: "2026-08-23",
+          startTime: "16:00",
+          durationMinutes: 0,
+          notes: null,
+        }),
+      ).rejects.toBeInstanceOf(MeetingValidationError);
+    });
+
+    it("refuses a meeting that does not belong to this leader, or does not exist", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting());
+      const edit = { date: "2026-08-24", startTime: "19:00", durationMinutes: 90, notes: null };
+
+      await expect(
+        updateMeeting("someone.else@example.com", id, edit),
+      ).rejects.toBeInstanceOf(MeetingValidationError);
+      await expect(
+        updateMeeting(TEST_OWNER, crypto.randomUUID(), edit),
+      ).rejects.toBeInstanceOf(MeetingValidationError);
+    });
+  });
+
+  describe("deleteMeeting", () => {
+    it("deletes a still-PROPOSED meeting outright", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      await deleteMeeting(TEST_OWNER, id);
+
+      expect(await getMeeting(TEST_OWNER, id)).toBeNull();
+    });
+
+    it("deletes a HELD meeting, cascading its completions (#75 amends #24)", async () => {
+      const held = await addHeldMeeting(TEST_OWNER, group, "2026-09-08", {
+        bookId: bookOne,
+        sessionId: sessionThree,
+      });
+      const personId = await createPerson(TEST_OWNER, { name: "Ben", homeGroupId: group });
+      await recordSheet(TEST_OWNER, {
+        meetingId: held,
+        marks: [{ personId, mark: "attended" }],
+        hold: true,
+      });
+
+      await deleteMeeting(TEST_OWNER, held);
+
+      expect(await getMeeting(TEST_OWNER, held)).toBeNull();
+      expect(
+        await query("SELECT 1 FROM completions WHERE meeting_id = $1", [held]),
+      ).toHaveLength(0);
+    });
+
+    it("refuses a meeting that does not belong to this leader, or does not exist", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      await expect(
+        deleteMeeting("someone.else@example.com", id),
+      ).rejects.toBeInstanceOf(MeetingValidationError);
+      await expect(
+        deleteMeeting(TEST_OWNER, crypto.randomUUID()),
+      ).rejects.toBeInstanceOf(MeetingValidationError);
+
+      // Still there — the refused attempt above touched nothing.
+      expect(await getMeeting(TEST_OWNER, id)).not.toBeNull();
     });
   });
 

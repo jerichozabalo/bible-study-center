@@ -12,8 +12,15 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "../auth/guard";
-import { parseMeetingForm } from "./form";
-import { MeetingValidationError, changeMeetingSession, createMeeting } from "./meetings";
+import { removePhotosForMeeting } from "../session-photos/photos";
+import { parseMeetingEditForm, parseMeetingForm } from "./form";
+import {
+  MeetingValidationError,
+  changeMeetingSession,
+  createMeeting,
+  deleteMeeting,
+  updateMeeting,
+} from "./meetings";
 
 /**
  * No `values` half, unlike the group form: the new-meeting screen keeps the
@@ -64,4 +71,55 @@ export async function changeMeetingSessionAction(formData: FormData): Promise<vo
   }
 
   revalidatePath(`/meetings/${meetingId}`);
+}
+
+/**
+ * The Edit screen (#75, 2026-09-17): date, time, duration and notes, whatever
+ * the meeting's status. Book and session stay `changeMeetingSessionAction`'s.
+ */
+export async function updateMeetingAction(
+  _previous: MeetingFormState,
+  formData: FormData,
+): Promise<MeetingFormState> {
+  const user = await requireUser();
+  const meetingId = String(formData.get("meetingId") ?? "");
+
+  try {
+    await updateMeeting(user.email, meetingId, parseMeetingEditForm(formData));
+  } catch (thrown) {
+    if (thrown instanceof MeetingValidationError) return { error: thrown.message };
+    throw thrown;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/calendar");
+  revalidatePath(`/meetings/${meetingId}`);
+  redirect(`/meetings/${meetingId}`);
+}
+
+/**
+ * The Delete screen's confirm (#75, 2026-09-17). Removes the meeting's R2
+ * photo objects first — `deleteMeeting`'s cascade only reaches the database —
+ * then the meeting itself, whatever its status.
+ */
+export async function deleteMeetingAction(
+  _previous: MeetingFormState,
+  formData: FormData,
+): Promise<MeetingFormState> {
+  const user = await requireUser();
+  const meetingId = String(formData.get("meetingId") ?? "");
+
+  try {
+    await removePhotosForMeeting(user.email, meetingId);
+    await deleteMeeting(user.email, meetingId);
+  } catch (thrown) {
+    if (thrown instanceof MeetingValidationError) return { error: thrown.message };
+    throw thrown;
+  }
+
+  revalidatePath("/");
+  revalidatePath("/calendar");
+  // Outside the try: the meeting is gone, so there is no page left to stay on
+  // or re-render an error into.
+  redirect("/");
 }

@@ -284,6 +284,88 @@ export async function changeMeetingSession(
   });
 }
 
+export type MeetingEditInput = {
+  /** `YYYY-MM-DD`, local wall-clock date (#56). */
+  date: string;
+  /** `HH:MM`. */
+  startTime: string;
+  durationMinutes: number;
+  notes: string | null;
+};
+
+/**
+ * Correct a meeting's own facts — when it was, how long, and its notes.
+ * Unrestricted by status (#75, 2026-09-17): a HELD night can be the wrong one
+ * outright (wrong date, wrong family), not just wrong-session, and #24's
+ * tombstone was never meant to make a mis-logged night permanent. The book and
+ * session stay `changeMeetingSession`'s job; the BGroup a meeting belongs to is
+ * not editable here — moving it would make it a different meeting.
+ */
+export async function updateMeeting(
+  ownerId: string,
+  meetingId: string,
+  input: MeetingEditInput,
+): Promise<void> {
+  if (!UUID_PATTERN.test(meetingId)) {
+    throw new MeetingValidationError("That meeting could not be found.");
+  }
+  if (!isRealDate(input.date)) {
+    throw new MeetingValidationError("Pick the date this meeting is on.");
+  }
+  if (!TIME_PATTERN.test(input.startTime)) {
+    throw new MeetingValidationError("Pick the time this meeting starts.");
+  }
+  if (
+    !Number.isInteger(input.durationMinutes) ||
+    input.durationMinutes < 1 ||
+    input.durationMinutes > 24 * 60
+  ) {
+    throw new MeetingValidationError("Set how long the meeting runs, in minutes.");
+  }
+  const notes = input.notes?.trim() ?? "";
+
+  const rows = await query<{ id: string }>(
+    `UPDATE meetings
+        SET date = $3, start_time = $4, duration_minutes = $5, notes = $6, updated_at = now()
+      WHERE owner_id = $1 AND id = $2
+      RETURNING id`,
+    [
+      ownerId,
+      meetingId,
+      input.date,
+      input.startTime,
+      input.durationMinutes,
+      notes === "" ? null : notes,
+    ],
+  );
+  if (rows.length === 0) {
+    throw new MeetingValidationError("That meeting could not be found.");
+  }
+}
+
+/**
+ * Delete a meeting outright, whatever its status (#75, 2026-09-17 — amends
+ * #24 for meetings specifically, which otherwise keeps everything tombstoned
+ * rather than erased). Cascades its completions and completion corrections at
+ * the database level (migration 006). Session photos' rows cascade the same
+ * way, but their R2 objects do not — the delete action calls
+ * `session-photos/photos.ts`'s `removePhotosForMeeting` first, the same module
+ * that already owns "delete really deletes" for a single photo.
+ */
+export async function deleteMeeting(ownerId: string, meetingId: string): Promise<void> {
+  if (!UUID_PATTERN.test(meetingId)) {
+    throw new MeetingValidationError("That meeting could not be found.");
+  }
+
+  const rows = await query<{ id: string }>(
+    `DELETE FROM meetings WHERE owner_id = $1 AND id = $2 RETURNING id`,
+    [ownerId, meetingId],
+  );
+  if (rows.length === 0) {
+    throw new MeetingValidationError("That meeting could not be found.");
+  }
+}
+
 /**
  * Set a group's weekly schedule (#36/#48). The same write the create form's
  * recurring option makes, exposed for the group screens and for issue 5.

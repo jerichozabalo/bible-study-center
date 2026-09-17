@@ -3,7 +3,17 @@
  * be tested without a request, and apart from `meetings.ts` so the module does
  * not have to know that HTML exists — the same split the roster's form uses.
  */
-import type { MeetingInput } from "./meetings";
+import type { MeetingEditInput, MeetingInput } from "./meetings";
+
+/** `MeetingEditForm`'s post — date, time, duration and notes only (#75). */
+export function parseMeetingEditForm(formData: FormData): MeetingEditInput {
+  return {
+    date: text(formData, "date"),
+    startTime: text(formData, "startTime"),
+    durationMinutes: Number(text(formData, "durationMinutes")),
+    notes: text(formData, "notes").trim() || null,
+  };
+}
 
 export function parseMeetingForm(formData: FormData): MeetingInput {
   return {

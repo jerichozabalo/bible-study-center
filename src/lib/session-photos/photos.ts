@@ -231,6 +231,27 @@ export async function deletePhoto(
   return true;
 }
 
+/**
+ * Every R2 object a meeting's photos own, removed ahead of the meeting row
+ * itself (#75, 2026-09-17). `deleteMeeting` cascades the DB rows, but a
+ * foreign key cascade only touches Postgres — the objects in the bucket would
+ * otherwise be orphaned, exactly what "delete really deletes" (this module's
+ * own rule) says not to leave behind.
+ */
+export async function removePhotosForMeeting(
+  ownerId: string,
+  meetingId: string,
+  storage: PhotoStorage = r2Storage(),
+): Promise<void> {
+  const rows = await query<{ r2_key: string; r2_thumb_key: string }>(
+    `SELECT r2_key, r2_thumb_key FROM session_photos WHERE owner_id = $1 AND meeting_id = $2`,
+    [ownerId, meetingId],
+  );
+  if (rows.length === 0) return;
+
+  await storage.remove(rows.flatMap((row) => [row.r2_key, row.r2_thumb_key]));
+}
+
 /** Sign a screen's worth of photos for display. */
 export async function signPhotoUrls(
   photos: SessionPhoto[],

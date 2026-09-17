@@ -9,6 +9,7 @@ import {
   deletePhoto,
   listCoverThumbnails,
   listPhotosForSession,
+  removePhotosForMeeting,
   uploadPhotos,
 } from "./photos";
 import type { PhotoStorage } from "./storage";
@@ -149,6 +150,31 @@ describe.skipIf(!dbConfigured)("session photos", () => {
     expect(await deletePhoto(TEST_OWNER, row.id, storage)).toBe(true);
     expect(removed).toEqual([row.r2Key, row.r2ThumbKey]);
     expect(await listPhotosForSession(TEST_OWNER, meeting)).toEqual([]);
+  });
+
+  it("removes every object a meeting's photos own, ahead of deleting the meeting (#75)", async () => {
+    const { storage, removed } = mockStorage();
+    const [first, second] = await uploadPhotos(
+      TEST_OWNER,
+      meeting,
+      [file(), file({ takenOn: "2026-09-08" })],
+      true,
+      storage,
+    );
+
+    await removePhotosForMeeting(TEST_OWNER, meeting, storage);
+
+    expect(removed.sort()).toEqual(
+      [first.r2Key, first.r2ThumbKey, second.r2Key, second.r2ThumbKey].sort(),
+    );
+  });
+
+  it("does nothing for a meeting with no photos", async () => {
+    const { storage, removed } = mockStorage();
+
+    await removePhotosForMeeting(TEST_OWNER, meeting, storage);
+
+    expect(removed).toEqual([]);
   });
 
   it("draws one cover thumbnail per meeting — the newest photo on each (bst-v1.2 #1)", async () => {

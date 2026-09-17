@@ -20,6 +20,7 @@
  * ONE consent tick per batch, delete to retract — and a plain "not set up yet"
  * state while R2 is unconfigured, so the screen never pretends.
  */
+import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { AttendanceSheet } from "@/components/attendance/AttendanceSheet";
@@ -119,6 +120,24 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
         photos={signedPhotos}
         storageReady={storageReady}
       />
+
+      {/* Edit and Delete (#75, 2026-09-17) — the same stacked-links idiom the
+          BGroup detail screen uses for its own edit/archive pair. Unrestricted
+          by status: a HELD night can be the wrong one outright. */}
+      <div className="mt-[22px] flex flex-col gap-[9px]">
+        <Link
+          href={`/meetings/${meeting.id}/edit`}
+          className="flex h-[54px] w-full items-center justify-center rounded-[17px] border-[1.5px] border-line bg-card text-[15.5px] font-bold text-ink active:bg-shell"
+        >
+          Edit meeting
+        </Link>
+        <Link
+          href={`/meetings/${meeting.id}/delete`}
+          className="flex h-[54px] w-full items-center justify-center rounded-[17px] text-[15.5px] font-bold text-tan active:bg-shell"
+        >
+          Delete meeting
+        </Link>
+      </div>
     </section>
   );
 }
