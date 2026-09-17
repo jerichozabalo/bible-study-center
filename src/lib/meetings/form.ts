@@ -5,13 +5,15 @@
  */
 import type { MeetingEditInput, MeetingInput } from "./meetings";
 
-/** `MeetingEditForm`'s post — date, time, duration and notes only (#75). */
+/** `MeetingEditForm`'s post — date, time, duration and notes (#75). */
 export function parseMeetingEditForm(formData: FormData): MeetingEditInput {
   return {
     date: text(formData, "date"),
     startTime: text(formData, "startTime"),
     durationMinutes: Number(text(formData, "durationMinutes")),
     notes: text(formData, "notes").trim() || null,
+    // A checkbox posts nothing at all when it is off (same as the create form's).
+    repeatWeekly: text(formData, "repeatWeekly") !== "",
   };
 }
 

@@ -6,15 +6,24 @@
  * at all — moving a meeting to a different BGroup would make it a different
  * meeting, not a correction of this one.
  *
+ * Carries #48's same toggle the create form has: "Every week from now on"
+ * also sets the BGroup's own schedule and shifts its other still-PROPOSED
+ * meetings onto the new day/time. Without it, editing one meeting reads as a
+ * one-off — the night moved this week only — and every other proposed night
+ * keeps generating on the old schedule, which is exactly the bug this closes
+ * (2026-09-17): editing Jimenez Family's meeting day and time did not move
+ * their other proposed meetings, because nothing told the BGroup to move.
+ *
  * Same field idiom as `GroupForm`/`NewMeetingForm`: eyebrow labels over
  * white cards with a hairline border. Unrestricted by status on purpose — a
  * HELD night can be the wrong one outright, not just wrong-session.
  */
 import Link from "next/link";
-import { useActionState } from "react";
+import { useActionState, useState } from "react";
 
 import type { MeetingFormState } from "@/lib/meetings/actions";
-import { formatDuration } from "@/lib/roster/schedule";
+import { weekdayOf } from "@/lib/dates";
+import { formatDuration, formatTime, weekdayPlural } from "@/lib/roster/schedule";
 
 /** The lengths a night actually runs, in minutes — same list `GroupForm` uses. */
 const DURATIONS = [45, 60, 75, 90, 105, 120, 150, 180];
@@ -27,17 +36,23 @@ const CARD = "w-full rounded-[18px] border-[1.5px] border-line bg-card px-[14px]
 export function MeetingEditForm({
   action,
   meetingId,
+  groupName,
   values,
 }: {
   action: (state: MeetingFormState, formData: FormData) => Promise<MeetingFormState>;
   meetingId: string;
+  groupName: string;
   values: { date: string; startTime: string; durationMinutes: number; notes: string | null };
 }) {
   const [state, formAction, pending] = useActionState(action, {});
+  const [date, setDate] = useState(values.date);
+  const [startTime, setStartTime] = useState(values.startTime.slice(0, 5));
+  const [repeatWeekly, setRepeatWeekly] = useState(false);
 
   return (
     <form action={formAction} className="pt-1 pb-2">
       <input type="hidden" name="meetingId" value={meetingId} />
+      {repeatWeekly ? <input type="hidden" name="repeatWeekly" value="on" /> : null}
 
       {state.error ? (
         <p
@@ -55,7 +70,8 @@ export function MeetingEditForm({
         id="meeting-edit-date"
         type="date"
         name="date"
-        defaultValue={values.date}
+        value={date}
+        onChange={(event) => setDate(event.target.value)}
         className={`${FIELD} mt-[9px]`}
       />
 
@@ -65,7 +81,8 @@ export function MeetingEditForm({
           type="time"
           name="startTime"
           aria-label="Start time"
-          defaultValue={values.startTime.slice(0, 5)}
+          value={startTime}
+          onChange={(event) => setStartTime(event.target.value)}
           className={`${FIELD} w-[136px]`}
         />
         <select
@@ -81,6 +98,26 @@ export function MeetingEditForm({
           ))}
         </select>
       </div>
+
+      {/* #48: one recurrence per BGroup, and this is one of the two places it
+          can be set (the other is the create form). The note names exactly
+          what would be saved, because this writes to the BGroup and not only
+          to this one night. */}
+      <button
+        type="button"
+        onClick={() => setRepeatWeekly(!repeatWeekly)}
+        className={`${CARD} mt-[14px] flex items-center gap-[13px]`}
+      >
+        <span className="min-w-0 grow text-left">
+          <span className="block text-[15.5px] font-bold">Every week from now on</span>
+          <span className="mt-[2px] block text-[13px] text-slate">
+            {repeatWeekly
+              ? `${groupName} meets ${weekdayPlural(weekdayOf(date))} ${formatTime(startTime)} from now on`
+              : `Just this one night — ${groupName}'s other meetings keep their own day and time`}
+          </span>
+        </span>
+        <Switch on={repeatWeekly} />
+      </button>
 
       <label className={`${EYEBROW} mt-[22px] block`} htmlFor="meeting-edit-notes">
         NOTES
@@ -108,5 +145,18 @@ export function MeetingEditForm({
         Cancel
       </Link>
     </form>
+  );
+}
+
+/** The board's 54×32 switch — same shape `NewMeetingForm`'s own draws. */
+function Switch({ on }: { on: boolean }) {
+  return (
+    <span
+      className={`flex h-8 w-[54px] shrink-0 items-center rounded-[18px] p-[3px] ${
+        on ? "justify-end bg-blue" : "justify-start bg-track"
+      }`}
+    >
+      <span className="h-[26px] w-[26px] rounded-[14px] bg-card" />
+    </span>
   );
 }

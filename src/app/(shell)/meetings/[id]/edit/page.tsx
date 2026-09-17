@@ -37,6 +37,7 @@ export default async function EditMeetingPage({ params }: { params: Promise<{ id
         <MeetingEditForm
           action={updateMeetingAction}
           meetingId={meeting.id}
+          groupName={meeting.groupName}
           values={{
             date: meeting.date,
             startTime: meeting.startTime,

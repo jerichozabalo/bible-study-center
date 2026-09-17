@@ -379,12 +379,12 @@ describe.skipIf(!dbConfigured)("meetings", () => {
         sessionId: sessionThree,
       });
 
-      await updateMeeting(TEST_OWNER, held, {
+      await updateMeeting(TEST_OWNER, held, edit({
         date: "2026-09-09",
         startTime: "18:30",
         durationMinutes: 60,
         notes: "Actually a day later — wrong date typed in the room",
-      });
+      }));
 
       expect(await getMeeting(TEST_OWNER, held)).toMatchObject({
         date: "2026-09-09",
@@ -399,12 +399,7 @@ describe.skipIf(!dbConfigured)("meetings", () => {
     it("leaves the book and session untouched — that is changeMeetingSession's job", async () => {
       const id = await createMeeting(TEST_OWNER, meeting());
 
-      await updateMeeting(TEST_OWNER, id, {
-        date: "2026-08-24",
-        startTime: "19:00",
-        durationMinutes: 90,
-        notes: null,
-      });
+      await updateMeeting(TEST_OWNER, id, edit({ date: "2026-08-24" }));
 
       expect(await getMeeting(TEST_OWNER, id)).toMatchObject({
         bookId: bookOne,
@@ -415,54 +410,82 @@ describe.skipIf(!dbConfigured)("meetings", () => {
     it("clears notes to null when posted blank", async () => {
       const id = await createMeeting(TEST_OWNER, meeting({ notes: "Sa bahay nina Ben" }));
 
-      await updateMeeting(TEST_OWNER, id, {
-        date: "2026-08-23",
-        startTime: "16:00",
-        durationMinutes: 90,
-        notes: "   ",
-      });
+      await updateMeeting(TEST_OWNER, id, edit({ notes: "   " }));
 
       expect(await getMeeting(TEST_OWNER, id)).toMatchObject({ notes: null });
+    });
+
+    it("leaves the BGroup's own schedule and other proposed meetings alone by default", async () => {
+      const other = await addGeneratedMeeting(TEST_OWNER, group, "2026-08-30", "16:00");
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      await updateMeeting(TEST_OWNER, id, edit({ date: "2026-08-26", startTime: "18:30" }));
+
+      expect(await getGroup(TEST_OWNER, group)).toMatchObject({ weekday: 0, startTime: "16:00:00" });
+      expect(await getMeeting(TEST_OWNER, other)).toMatchObject({ date: "2026-08-30", startTime: "16:00:00" });
+    });
+
+    it("moves the BGroup's schedule and its other proposed meetings when repeatWeekly is set (2026-09-17)", async () => {
+      // The bug this closes: editing one meeting's day/time read as a fix,
+      // but every other still-proposed night kept generating on the old
+      // schedule because nothing told the BGroup itself to move.
+      const other = await addGeneratedMeeting(TEST_OWNER, group, "2026-08-30", "16:00");
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      // A Wednesday, at a new time — same shape createMeeting's repeatWeekly test uses.
+      await updateMeeting(
+        TEST_OWNER,
+        id,
+        edit({ date: "2026-08-26", startTime: "18:30", repeatWeekly: true }),
+      );
+
+      expect(await getGroup(TEST_OWNER, group)).toMatchObject({
+        weekday: 3,
+        startTime: "18:30:00",
+      });
+      // The other proposed night moved off its old Sunday slot onto Wednesday.
+      const moved = await getMeeting(TEST_OWNER, other);
+      expect(moved?.startTime).toBe("18:30:00");
+      expect(new Date(`${moved?.date}T00:00:00Z`).getUTCDay()).toBe(3);
+    });
+
+    it("does not move a HELD or CANCELLED meeting even with repeatWeekly set (#24)", async () => {
+      const held = await addHeldMeeting(TEST_OWNER, group, "2026-08-30");
+      const cancelled = await addCancelledMeeting(TEST_OWNER, group, "2026-09-06");
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      await updateMeeting(
+        TEST_OWNER,
+        id,
+        edit({ date: "2026-08-26", startTime: "18:30", repeatWeekly: true }),
+      );
+
+      expect(await getMeeting(TEST_OWNER, held)).toMatchObject({ date: "2026-08-30" });
+      expect(await getMeeting(TEST_OWNER, cancelled)).toMatchObject({ date: "2026-09-06" });
     });
 
     it("refuses a date, time or duration it cannot read", async () => {
       const id = await createMeeting(TEST_OWNER, meeting());
 
       await expect(
-        updateMeeting(TEST_OWNER, id, {
-          date: "2026-02-30",
-          startTime: "16:00",
-          durationMinutes: 90,
-          notes: null,
-        }),
+        updateMeeting(TEST_OWNER, id, edit({ date: "2026-02-30" })),
       ).rejects.toBeInstanceOf(MeetingValidationError);
       await expect(
-        updateMeeting(TEST_OWNER, id, {
-          date: "2026-08-23",
-          startTime: "teatime",
-          durationMinutes: 90,
-          notes: null,
-        }),
+        updateMeeting(TEST_OWNER, id, edit({ startTime: "teatime" })),
       ).rejects.toBeInstanceOf(MeetingValidationError);
       await expect(
-        updateMeeting(TEST_OWNER, id, {
-          date: "2026-08-23",
-          startTime: "16:00",
-          durationMinutes: 0,
-          notes: null,
-        }),
+        updateMeeting(TEST_OWNER, id, edit({ durationMinutes: 0 })),
       ).rejects.toBeInstanceOf(MeetingValidationError);
     });
 
     it("refuses a meeting that does not belong to this leader, or does not exist", async () => {
       const id = await createMeeting(TEST_OWNER, meeting());
-      const edit = { date: "2026-08-24", startTime: "19:00", durationMinutes: 90, notes: null };
 
       await expect(
-        updateMeeting("someone.else@example.com", id, edit),
+        updateMeeting("someone.else@example.com", id, edit()),
       ).rejects.toBeInstanceOf(MeetingValidationError);
       await expect(
-        updateMeeting(TEST_OWNER, crypto.randomUUID(), edit),
+        updateMeeting(TEST_OWNER, crypto.randomUUID(), edit()),
       ).rejects.toBeInstanceOf(MeetingValidationError);
     });
   });
@@ -519,6 +542,17 @@ describe.skipIf(!dbConfigured)("meetings", () => {
       durationMinutes: null,
       bookId: bookOne,
       sessionId: sessionThree,
+      notes: null,
+      repeatWeekly: false,
+      ...overrides,
+    };
+  }
+
+  function edit(overrides: Partial<Parameters<typeof updateMeeting>[2]> = {}) {
+    return {
+      date: "2026-08-23",
+      startTime: "16:00",
+      durationMinutes: 90,
       notes: null,
       repeatWeekly: false,
       ...overrides,

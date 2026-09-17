@@ -8,6 +8,7 @@ import {
   ensureSchema,
   resetRoster,
 } from "../../../tests/fixtures";
+import { addGeneratedMeeting, addHeldMeeting } from "../../../tests/meeting-fixtures";
 import { seedCurriculum } from "../curriculum/seed";
 import { query } from "../db";
 import {
@@ -213,6 +214,48 @@ describe.skipIf(!dbConfigured)("groups", () => {
       currentBookId: bookTwo,
       currentBookTitle: "Spiritual Disciplines",
     });
+  });
+
+  it("moves the BGroup's other still-PROPOSED meetings when its schedule changes (#48b, 2026-09-17)", async () => {
+    // The bug: changing a BGroup's day/time here used to touch only the
+    // BGroup's own row. Every other already-generated proposed night kept the
+    // old schedule forever, because this screen's own module note flagged the
+    // shift as "belongs to the meetings module" and nothing ever wired it up
+    // once that module existed.
+    const id = await createGroup(TEST_OWNER, linggo());
+    const proposed = await addGeneratedMeeting(TEST_OWNER, id, "2026-08-23", "16:00"); // a Sunday
+    const held = await addHeldMeeting(TEST_OWNER, id, "2026-08-16");
+
+    await updateGroup(TEST_OWNER, id, linggo({ weekday: 3, startTime: "18:30" })); // Wednesdays 6:30pm
+
+    const [movedProposed] = await query<{ date: string; start_time: string }>(
+      "SELECT to_char(date, 'YYYY-MM-DD') AS date, start_time FROM meetings WHERE id = $1",
+      [proposed],
+    );
+    // 2026-08-26 is the Wednesday in the same week as the original Sunday.
+    expect(movedProposed.date).toBe("2026-08-26");
+    expect(movedProposed.start_time).toBe("18:30:00");
+
+    // #24 — a HELD night never moves, whatever the BGroup's schedule does later.
+    const [untouchedHeld] = await query<{ date: string; start_time: string }>(
+      "SELECT to_char(date, 'YYYY-MM-DD') AS date, start_time FROM meetings WHERE id = $1",
+      [held],
+    );
+    expect(untouchedHeld.date).toBe("2026-08-16");
+    expect(untouchedHeld.start_time).toBe("19:00:00");
+  });
+
+  it("does not shift or re-materialise anything when the schedule did not actually change", async () => {
+    const id = await createGroup(TEST_OWNER, linggo());
+    const proposed = await addGeneratedMeeting(TEST_OWNER, id, "2026-08-23", "16:00");
+
+    await updateGroup(TEST_OWNER, id, linggo({ name: "BGroup Linggo (renamed)" }));
+
+    const [row] = await query<{ date: string }>(
+      "SELECT to_char(date, 'YYYY-MM-DD') AS date FROM meetings WHERE id = $1",
+      [proposed],
+    );
+    expect(row.date).toBe("2026-08-23");
   });
 
   /**

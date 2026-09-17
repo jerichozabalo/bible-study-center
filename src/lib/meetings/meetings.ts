@@ -291,6 +291,16 @@ export type MeetingEditInput = {
   startTime: string;
   durationMinutes: number;
   notes: string | null;
+  /**
+   * #48, the same toggle the create form has: also sets the BGroup's regular
+   * schedule to this day/time and shifts its other still-PROPOSED generated
+   * meetings onto it. Without this, editing one meeting is a one-off
+   * correction — the night moved this week only — and every other proposed
+   * night keeps generating on the old day and time, which reads as a bug
+   * (2026-09-17) when what the leader meant was "we meet at this new time
+   * now."
+   */
+  repeatWeekly: boolean;
 };
 
 /**
@@ -324,23 +334,47 @@ export async function updateMeeting(
   }
   const notes = input.notes?.trim() ?? "";
 
-  const rows = await query<{ id: string }>(
-    `UPDATE meetings
-        SET date = $3, start_time = $4, duration_minutes = $5, notes = $6, updated_at = now()
-      WHERE owner_id = $1 AND id = $2
-      RETURNING id`,
-    [
-      ownerId,
-      meetingId,
-      input.date,
-      input.startTime,
-      input.durationMinutes,
-      notes === "" ? null : notes,
-    ],
-  );
-  if (rows.length === 0) {
-    throw new MeetingValidationError("That meeting could not be found.");
-  }
+  await transaction(async (tx) => {
+    const rows = await tx.query<{ id: string; group_id: string }>(
+      `UPDATE meetings
+          SET date = $3, start_time = $4, duration_minutes = $5, notes = $6, updated_at = now()
+        WHERE owner_id = $1 AND id = $2
+        RETURNING id, group_id`,
+      [
+        ownerId,
+        meetingId,
+        input.date,
+        input.startTime,
+        input.durationMinutes,
+        notes === "" ? null : notes,
+      ],
+    );
+    if (rows.length === 0) {
+      throw new MeetingValidationError("That meeting could not be found.");
+    }
+
+    if (input.repeatWeekly) {
+      // Same three calls `createMeeting`'s repeatWeekly path makes (#48/#48b):
+      // set the BGroup's own schedule, shift its other proposed generated
+      // meetings onto the new day/time, then fill the 8-week horizon on it.
+      const groupId = rows[0].group_id;
+      const schedule = {
+        weekday: weekdayOf(input.date),
+        startTime: input.startTime,
+        durationMinutes: input.durationMinutes,
+      };
+      await writeSchedule(tx, ownerId, groupId, schedule);
+      await shiftProposedMeetingsInTx(
+        tx,
+        ownerId,
+        groupId,
+        schedule.weekday,
+        schedule.startTime,
+        schedule.durationMinutes,
+      );
+      await materializeScheduleInTx(tx, ownerId, input.date);
+    }
+  });
 }
 
 /**
