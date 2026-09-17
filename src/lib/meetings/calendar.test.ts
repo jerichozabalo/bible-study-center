@@ -181,6 +181,20 @@ describe.skipIf(!dbConfigured)("calendar", () => {
       expect(night?.sessionNumber).toBe(2);
     });
 
+    it("prefills the session after the group's last HELD meeting, not always the book's first (#53)", async () => {
+      // A single generated night, marked held on session 1 (bst-v1.2 meeting-tab bug).
+      await materializeGhost(TEST_OWNER, group, "2026-08-23");
+      await resolveMeeting(TEST_OWNER, group, "2026-08-23", "held");
+
+      // The next week's ghost must open on session 2 — the generator must
+      // follow the same #53 rule the manual New Meeting form already does,
+      // not restart every generated night at the book's first session.
+      await materializeGhost(TEST_OWNER, group, "2026-08-30");
+
+      const meetings = await getCalendar(TEST_OWNER, { from: "2026-08-30", to: "2026-08-30" });
+      expect(meetings[0].sessionNumber).toBe(2);
+    });
+
     it("leaves a human-created meeting on the same day intact", async () => {
       await materializeSchedule(TEST_OWNER, "2026-08-23");
 

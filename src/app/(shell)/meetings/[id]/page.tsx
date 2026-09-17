@@ -5,9 +5,10 @@
  * The sheet itself is `components/attendance/AttendanceSheet.tsx`, which is
  * where the ticks live until they are saved.
  *
- * The board's COVERING panel has a "Change" pill beside the lesson. Editing a
- * meeting is issue 5's screen and does not exist, so the panel states the
- * agenda rather than offering a control that goes nowhere.
+ * The board's COVERING panel has a "Change" pill beside the lesson.
+ * `ChangeSessionPanel` is that screen, only for a still-PROPOSED meeting: #24
+ * keeps a HELD one's session locked, so a held night's panel below is a plain
+ * div with no control.
  *
  * Drawn on no board is #31's catch-up list: who from the other BGroups is
  * missing tonight's session, each with an "Add to tonight" button. It renders
@@ -23,10 +24,12 @@ import { notFound } from "next/navigation";
 
 import { AttendanceSheet } from "@/components/attendance/AttendanceSheet";
 import { BackRow } from "@/components/BackRow";
+import { ChangeSessionPanel } from "@/components/meetings/ChangeSessionPanel";
 import { saveSheetAction } from "@/lib/attendance/actions";
 import { getCatchUpCandidates } from "@/lib/attendance/catchup";
 import { getSheet } from "@/lib/attendance/sheet";
 import { requireUser } from "@/lib/auth/guard";
+import { getBook } from "@/lib/curriculum/books";
 import { formatWeekdayDate } from "@/lib/dates";
 import { listPeople } from "@/lib/roster/people";
 import { formatTime } from "@/lib/roster/schedule";
@@ -45,10 +48,15 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
 
   const { meeting } = sheet;
   const storageReady = isStorageConfigured();
-  const [candidates, roster, photos] = await Promise.all([
+  const [candidates, roster, photos, book] = await Promise.all([
     getCatchUpCandidates(user.email, meeting.id),
     listPeople(user.email),
     listPhotosForSession(user.email, meeting.id),
+    // Only needed to offer the Change panel's session list — a held meeting's
+    // session is locked (#24), so this stays null and unused for one.
+    meeting.status === "proposed" && meeting.bookId !== null
+      ? getBook(meeting.bookId)
+      : Promise.resolve(null),
   ]);
   const signedPhotos = storageReady ? await signPhotoUrls(photos) : [];
 
@@ -74,6 +82,18 @@ export default async function AttendancePage({ params }: { params: Promise<{ id:
             they stay off the quiet list.
           </div>
         </div>
+      ) : meeting.status === "proposed" && book !== null ? (
+        // Only a still-PROPOSED night is still a guess (#53) — the Change pill
+        // that edits it. #24 keeps a HELD night's session locked, so once the
+        // sheet is confirmed the panel below is what draws instead.
+        <ChangeSessionPanel
+          meetingId={meeting.id}
+          bookLabel={meeting.bookNumber === null ? (meeting.bookTitle ?? "") : `Book ${meeting.bookNumber}`}
+          sessionNumber={meeting.sessionNumber}
+          sessionTitle={meeting.sessionTitle}
+          sessions={book.sessions}
+          currentSessionId={meeting.sessionId}
+        />
       ) : (
         <div className="mt-3 rounded-[16px] bg-blue-tint px-[13px] py-[11px]">
           <div className="text-[10px] font-bold tracking-[0.13em] text-[#4A7BB7]">COVERING</div>

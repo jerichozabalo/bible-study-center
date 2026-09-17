@@ -20,9 +20,10 @@
  *   and saved in one step, through #67's name-only path, and then it is an
  *   ordinary member of the sheet. A real visitor — someone whose home BGroup is
  *   not this one — is an ordinary row too, reading "Nico (BGroup Linggo)" (#31).
- * - Its COVERING panel carries a "Change" pill. There is no screen that edits a
- *   meeting's lesson yet (issue 5), and a control that does nothing is worse
- *   than one that is not drawn.
+ * - Its COVERING panel carries a "Change" pill. That is now
+ *   `ChangeSessionPanel.tsx`, rendered by the page itself rather than by this
+ *   component (this component is not told the meeting's book), and only for a
+ *   still-PROPOSED meeting — #24 keeps a HELD one's session locked.
  *
  * The ticks live in this component until the sheet is saved, which is what the
  * board's counter and its Save button describe — and the shape issue 11's

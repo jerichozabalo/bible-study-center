@@ -13,7 +13,7 @@ import { redirect } from "next/navigation";
 
 import { requireUser } from "../auth/guard";
 import { parseMeetingForm } from "./form";
-import { MeetingValidationError, createMeeting } from "./meetings";
+import { MeetingValidationError, changeMeetingSession, createMeeting } from "./meetings";
 
 /**
  * No `values` half, unlike the group form: the new-meeting screen keeps the
@@ -41,4 +41,27 @@ export async function createMeetingAction(
   // turn a saved meeting into "something went wrong". Home is where the new
   // meeting is immediately visible until the calendar lands (issue 5).
   redirect("/");
+}
+
+/**
+ * The COVERING panel's "Change" pill. A plain Server Action, the same shape
+ * `calendar-actions.ts` uses: the form posts `meetingId` and `sessionId`
+ * (empty string for "no lesson tonight"), and revalidation is how the
+ * attendance sheet picks up the correction on its next render.
+ */
+export async function changeMeetingSessionAction(formData: FormData): Promise<void> {
+  const user = await requireUser();
+  const meetingId = String(formData.get("meetingId") ?? "");
+  const sessionId = String(formData.get("sessionId") ?? "") || null;
+
+  try {
+    await changeMeetingSession(user.email, meetingId, sessionId);
+  } catch (thrown) {
+    if (thrown instanceof MeetingValidationError) {
+      throw new Error(thrown.message);
+    }
+    throw thrown;
+  }
+
+  revalidatePath(`/meetings/${meetingId}`);
 }

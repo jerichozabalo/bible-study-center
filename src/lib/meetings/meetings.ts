@@ -239,6 +239,52 @@ export async function createMeeting(ownerId: string, input: MeetingInput): Promi
 }
 
 /**
+ * Correct a still-PROPOSED meeting's session — the "Change" pill on the
+ * attendance sheet's COVERING panel, which had no screen behind it until now.
+ * Exists because the generator (#53, `insertGeneratedMeeting` in `calendar.ts`)
+ * can only guess at the group's agenda in advance; this is the manual
+ * override when that guess is wrong.
+ *
+ * Refused once the meeting is HELD or CANCELLED: #24 says history does not
+ * rewrite, and only a proposed night is still a guess. The book itself is
+ * never touched here — swapping books is issue 9's checkpoint, a bigger,
+ * deliberate act, not a same-book correction.
+ */
+export async function changeMeetingSession(
+  ownerId: string,
+  meetingId: string,
+  sessionId: string | null,
+): Promise<void> {
+  if (!UUID_PATTERN.test(meetingId)) {
+    throw new MeetingValidationError("That meeting could not be found.");
+  }
+
+  await transaction(async (tx) => {
+    const rows = await tx.query<{ book_id: string | null; status: MeetingStatus }>(
+      `SELECT book_id, status FROM meetings WHERE owner_id = $1 AND id = $2`,
+      [ownerId, meetingId],
+    );
+    const meeting = rows[0];
+    if (!meeting) {
+      throw new MeetingValidationError("That meeting could not be found.");
+    }
+    if (meeting.status !== "proposed") {
+      throw new MeetingValidationError("A held meeting's session cannot be changed.");
+    }
+
+    // Reuses the same book/session pairing check `createMeeting` applies (#26):
+    // a session posted here must belong to the meeting's own book.
+    const { sessionId: cleanSessionId } = await validateLesson(meeting.book_id, sessionId);
+
+    await tx.query(
+      `UPDATE meetings SET session_id = $3, updated_at = now()
+         WHERE owner_id = $1 AND id = $2 AND status = 'proposed'`,
+      [ownerId, meetingId, cleanSessionId],
+    );
+  });
+}
+
+/**
  * Set a group's weekly schedule (#36/#48). The same write the create form's
  * recurring option makes, exposed for the group screens and for issue 5.
  */

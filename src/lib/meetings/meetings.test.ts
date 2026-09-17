@@ -18,6 +18,7 @@ import { seedCurriculum } from "../curriculum/seed";
 import { archiveGroup, createGroup, getGroup } from "../roster/groups";
 import {
   MeetingValidationError,
+  changeMeetingSession,
   createMeeting,
   getMeeting,
   listMeetingLog,
@@ -310,6 +311,60 @@ describe.skipIf(!dbConfigured)("meetings", () => {
   it("returns nothing for an unreadable date, and nothing when the log is empty", async () => {
     expect(await listMeetingLog(TEST_OWNER, { to: "tonight" })).toEqual([]);
     expect(await listMeetingLog(TEST_OWNER, { to: "2026-09-11" })).toEqual([]);
+  });
+
+  describe("changeMeetingSession", () => {
+    it("corrects a still-PROPOSED meeting's session", async () => {
+      const wrong = await createMeeting(
+        TEST_OWNER,
+        meeting({ sessionId: await sessionIdByNumber(bookOne, 1) }),
+      );
+
+      await changeMeetingSession(TEST_OWNER, wrong, sessionThree);
+
+      expect(await getMeeting(TEST_OWNER, wrong)).toMatchObject({
+        sessionId: sessionThree,
+        sessionNumber: 3,
+        status: "proposed",
+      });
+    });
+
+    it("refuses to change a HELD meeting's session (#24 — history does not rewrite)", async () => {
+      const held = await addHeldMeeting(TEST_OWNER, group, "2026-09-08", {
+        bookId: bookOne,
+        sessionId: await sessionIdByNumber(bookOne, 1),
+      });
+
+      await expect(changeMeetingSession(TEST_OWNER, held, sessionThree)).rejects.toBeInstanceOf(
+        MeetingValidationError,
+      );
+      expect(await getMeeting(TEST_OWNER, held)).toMatchObject({ sessionNumber: 1 });
+    });
+
+    it("refuses a session from a different book than the meeting's own", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting());
+      const otherSession = await sessionIdByNumber(await bookIdByNumber(2), 1);
+
+      await expect(changeMeetingSession(TEST_OWNER, id, otherSession)).rejects.toBeInstanceOf(
+        MeetingValidationError,
+      );
+    });
+
+    it("allows clearing to no session — a fellowship night (#26)", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      await changeMeetingSession(TEST_OWNER, id, null);
+
+      expect(await getMeeting(TEST_OWNER, id)).toMatchObject({ sessionId: null, sessionNumber: null });
+    });
+
+    it("refuses a meeting that does not belong to this leader", async () => {
+      const id = await createMeeting(TEST_OWNER, meeting());
+
+      await expect(
+        changeMeetingSession("someone.else@example.com", id, sessionThree),
+      ).rejects.toBeInstanceOf(MeetingValidationError);
+    });
   });
 
   function meeting(overrides: Partial<Parameters<typeof createMeeting>[1]> = {}) {
