@@ -1,7 +1,7 @@
 ---
 issue: 1
 title: Meeting page — List default + Calendar view (tab renamed from Calendar)
-status: in-progress
+status: done
 blocked-by: []
 type: afk
 ---
@@ -108,6 +108,10 @@ phone pass.**
   307 → `/signin` → 200; the live `sw.js` carries `bst-v4`; commit `9d33112`
   pushed. Still owed: Jericho's phone pass; the DESIGN-CONCEPT v1.2 entry and
   the memory update land with this record.
+
+## Status 2026-09-22
+
+**Jericho's phone pass confirmed.** Issue closed.
 
 ## Looks like
 - No board draws the list view. Gate: (1) the cards are
