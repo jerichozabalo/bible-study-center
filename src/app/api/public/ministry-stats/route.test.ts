@@ -49,7 +49,9 @@ describe.skipIf(!dbConfigured)("GET /api/public/ministry-stats", () => {
       nickname: "Ya",
       phone: "0917 000 0000",
       homeGroupId: group,
-      joinedOn: addDays(today, -7),
+      // Joined today: `new_this_month` is the calendar month (#76), so a fixed
+      // offset like -7 would count on early month days and drop out later.
+      joinedOn: today,
     });
     await addHeldMeeting(TEST_OWNER, group, addDays(today, -7));
   });

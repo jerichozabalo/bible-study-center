@@ -121,27 +121,49 @@ describe.skipIf(!dbConfigured)("getMinistryStats", () => {
     expect(stats.new_this_month).toBe(0);
   });
 
-  it("counts the people who joined the ministry in the last 30 days", async () => {
+  it("counts the people who joined the ministry this month — and resets on the 1st", async () => {
+    // A fixed `today`, so the month's edges are the same however and whenever
+    // the suite runs. `new_this_month` is the calendar month (#76): the 1st
+    // through today, and nothing from before the 1st.
+    const theTenth = "2026-10-10";
+
+    await createPerson(TEST_OWNER, {
+      name: "Joined On The First",
+      homeGroupId: tuesdayGroup,
+      joinedOn: "2026-10-01",
+    });
+    await createPerson(TEST_OWNER, {
+      name: "Joined On The Tenth",
+      homeGroupId: tuesdayGroup,
+      joinedOn: theTenth,
+    });
+    // Last month, however recently — the count resets on the 1st.
+    await createPerson(TEST_OWNER, {
+      name: "Joined Last Month",
+      homeGroupId: tuesdayGroup,
+      joinedOn: "2026-09-30",
+    });
+    // Both ends closed: a joined-on date that has not arrived yet is not
+    // someone who joined this month.
+    await createPerson(TEST_OWNER, {
+      name: "Joined In The Future",
+      homeGroupId: tuesdayGroup,
+      joinedOn: "2026-10-20",
+    });
+
+    const stats = await getMinistryStats(TEST_OWNER, theTenth);
+    expect(stats.new_this_month).toBe(2);
+    expect(stats.members_total).toBe(4);
+  });
+
+  it("counts someone who joined today, whatever day of the month it is", async () => {
     await createPerson(TEST_OWNER, {
       name: "Joined Today",
       homeGroupId: tuesdayGroup,
       joinedOn: today,
     });
-    // The window is the 30 days ending today, inclusive of both ends.
-    await createPerson(TEST_OWNER, {
-      name: "Joined On The Edge",
-      homeGroupId: tuesdayGroup,
-      joinedOn: addDays(today, -29),
-    });
-    await createPerson(TEST_OWNER, {
-      name: "Joined Just Before",
-      homeGroupId: tuesdayGroup,
-      joinedOn: addDays(today, -30),
-    });
 
-    const stats = await getMinistryStats(TEST_OWNER);
-    expect(stats.new_this_month).toBe(2);
-    expect(stats.members_total).toBe(3);
+    expect((await getMinistryStats(TEST_OWNER)).new_this_month).toBe(1);
   });
 
   it("counts held sessions only — proposed and cancelled nights are not sessions", async () => {

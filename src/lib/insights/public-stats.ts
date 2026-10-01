@@ -25,11 +25,17 @@
  *    proposed one (#73) is not one. People who have stepped away (#10) are
  *    still members, exactly as in the Reports roll-up.
  *
+ * 5. **`new_this_month` is the calendar month, not a trailing window** (#76,
+ *    Jericho 2026-10-01). It opens on the month's 1st, so the appeal page's
+ *    "New members this month" resets with the month the way its label
+ *    promises — a rolling 30 days kept showing last month's joiners on the
+ *    1st, which reads as the count failing to refresh.
+ *
  * Nothing here is cached or stored. Freshness is the consuming site's business
  * (it revalidates hourly); this answers with what is true when it is asked.
  */
 import { parseAllowlist } from "../auth/allowlist";
-import { addDays, manilaToday } from "../dates";
+import { manilaToday } from "../dates";
 import { query } from "../db";
 import { allowedEmails } from "../env";
 
@@ -39,14 +45,20 @@ export type PublicMinistryStats = {
   studies_active: number;
   /** People on the roster — counted once each, not once per membership (#27). */
   members_total: number;
-  /** People whose `joined_on` (#9b) falls in the 30 days ending today. */
+  /** People whose `joined_on` (#9b) falls in the month `today` names (#76). */
   new_this_month: number;
   /** Cumulative all-time HELD meetings (#47). */
   sessions_held: number;
 };
 
-/** How many days "new_this_month" looks back, counting today as one of them. */
-const NEW_WINDOW_DAYS = 30;
+/**
+ * The first day of the month `today` falls in — the opening edge of
+ * `new_this_month`, which resets on the 1st (#76). `today` is a `YYYY-MM-DD`
+ * date read in Manila (#56), so its first seven characters name its month.
+ */
+function monthStart(today: string): string {
+  return `${today.slice(0, 7)}-01`;
+}
 
 /**
  * Whose ministry the public numbers describe.
@@ -71,7 +83,7 @@ export async function getMinistryStats(
   ownerId: string,
   today: string = manilaToday(),
 ): Promise<PublicMinistryStats> {
-  const since = addDays(today, -(NEW_WINDOW_DAYS - 1));
+  const since = monthStart(today);
 
   const [row] = await query<PublicMinistryStats>(
     `SELECT (SELECT count(*)
@@ -80,8 +92,9 @@ export async function getMinistryStats(
             (SELECT count(*)
                FROM people
               WHERE owner_id = $1 AND removed_at IS NULL)::int AS members_total,
-            -- Both ends closed: a joined-on date that has not arrived yet is
-            -- not someone who joined in the last 30 days.
+            -- Both ends closed, on the month's edges: a joined-on date that
+            -- has not arrived yet is not someone who joined this month, and
+            -- last month's joiners leave the count on the 1st (#76).
             (SELECT count(*)
                FROM people
               WHERE owner_id = $1
