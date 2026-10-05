@@ -89,7 +89,7 @@ describe.skipIf(!dbConfigured)("getMeetingPrefill", () => {
       startTime: "16:00:00",
       durationMinutes: 90,
     });
-    expect(prefill?.sessions).toHaveLength(6);
+    expect(prefill?.sessions).toHaveLength(5);
   });
 
   it("prefills the session after the group's last HELD meeting (#53)", async () => {
@@ -137,7 +137,7 @@ describe.skipIf(!dbConfigured)("getMeetingPrefill", () => {
   it("offers no session once every session of the book is held", async () => {
     await addHeldMeeting(TEST_OWNER, group, "2026-08-09", {
       bookId: bookOne,
-      sessionId: await sessionIdByNumber(bookOne, 6),
+      sessionId: await sessionIdByNumber(bookOne, 5),
     });
 
     expect(await getMeetingPrefill(TEST_OWNER, group)).toMatchObject({
@@ -293,7 +293,7 @@ describe.skipIf(!dbConfigured)("listPickerGroups", () => {
       lastHeldDate: "2026-08-12",
     });
     expect(card.prefill).toMatchObject({ bookId: bookOne, sessionNumber: 3 });
-    expect(card.prefill.sessions).toHaveLength(6);
+    expect(card.prefill.sessions).toHaveLength(5);
   });
 
   it("shows nobody else's groups (#32)", async () => {

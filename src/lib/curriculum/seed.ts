@@ -36,8 +36,8 @@ export async function seedCurriculum(): Promise<void> {
         );
 
         // One statement per book rather than one per session: this runs on a
-        // connection to Singapore from a home line in Bulacan, and 50 round
-        // trips inside a transaction is a slow deploy step for no gain.
+        // connection to Singapore from a home line in Bulacan, and a round
+        // trip per session would be a slow deploy step for no gain.
         await tx.query(
           `INSERT INTO sessions (book_id, number, title)
            SELECT $1, ordinality::int, title

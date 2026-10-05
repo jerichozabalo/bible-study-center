@@ -20,7 +20,7 @@ import { getGroupBookProgress, getPersonProgress, leftBehind } from "./progress"
  * Strict book completion (#5) and the progress it draws, at the seam issue 10's
  * report and both screens read from.
  *
- * The scenario is BGroup Martes on Book 1, six sessions, three of them held —
+ * The scenario is BGroup Martes on Book 1, five sessions, three of them held —
  * and Book 8 alongside it, because twelve sessions is the case no artboard ever
  * drew (#68) and the one strictness has to survive.
  */
@@ -39,7 +39,7 @@ describe.skipIf(!dbConfigured)("book progress", () => {
     bookOne = await bookIdByNumber(1);
     bookEight = await bookIdByNumber(8);
     bookOneSessions = await Promise.all(
-      [1, 2, 3, 4, 5, 6].map((number) => sessionIdByNumber(bookOne, number)),
+      [1, 2, 3, 4, 5].map((number) => sessionIdByNumber(bookOne, number)),
     );
     bookEightSessions = await Promise.all(
       Array.from({ length: 12 }, (_, index) => sessionIdByNumber(bookEight, index + 1)),
@@ -94,7 +94,7 @@ describe.skipIf(!dbConfigured)("book progress", () => {
       const books = await getPersonProgress(TEST_OWNER, maria);
 
       expect(books.map((book) => book.bookNumber)).toEqual([1, 2, 3, 4, 5, 6, 7, 8]);
-      expect(bookOf(books, 1).sessions.map((session) => session.number)).toEqual([1, 2, 3, 4, 5, 6]);
+      expect(bookOf(books, 1).sessions.map((session) => session.number)).toEqual([1, 2, 3, 4, 5]);
       // #68 — the row that no board renders, and the reason the dots wrap.
       expect(bookOf(books, 8).sessions).toHaveLength(12);
       expect(bookOf(books, 1)).toMatchObject({ coveredCount: 0, complete: false });
@@ -111,7 +111,6 @@ describe.skipIf(!dbConfigured)("book progress", () => {
       expect(book.sessions.map((session) => session.covered)).toEqual([
         true,
         true,
-        false,
         false,
         false,
         false,
@@ -224,7 +223,6 @@ describe.skipIf(!dbConfigured)("book progress", () => {
         false,
         false,
         false,
-        false,
       ]);
       expect(book.joinedAtSessionNumber).toBe(3);
       expect(book.coveredCount).toBe(1);
@@ -285,7 +283,7 @@ describe.skipIf(!dbConfigured)("book progress", () => {
       expect(progress).toMatchObject({
         bookNumber: 1,
         bookTitle: "One By One",
-        sessionCount: 6,
+        sessionCount: 5,
         coveredByGroupCount: 2,
         groupComplete: false,
         completeMemberCount: 0,
@@ -293,7 +291,6 @@ describe.skipIf(!dbConfigured)("book progress", () => {
       expect(progress?.sessions.map((session) => session.coveredByGroup)).toEqual([
         true,
         true,
-        false,
         false,
         false,
         false,
@@ -314,8 +311,8 @@ describe.skipIf(!dbConfigured)("book progress", () => {
       expect(progress).toMatchObject({ groupComplete: true, completeMemberCount: 1 });
       expect(progress?.members).toMatchObject([
         { name: "Ben Cruz", coveredCount: 4, complete: false, behind: true },
-        { name: "Maria Santos", coveredCount: 6, complete: true, behind: false },
-        { name: "Nena Villamor", coveredCount: 4, complete: false, behind: true },
+        { name: "Maria Santos", coveredCount: 5, complete: true, behind: false },
+        { name: "Nena Villamor", coveredCount: 3, complete: false, behind: true },
       ]);
     });
 
@@ -353,7 +350,6 @@ describe.skipIf(!dbConfigured)("book progress", () => {
       await cover(martes, bookOne, bookOneSessions[2], "2026-06-30", [maria, nena]);
       await cover(martes, bookOne, bookOneSessions[3], "2026-07-07", [maria, nena]);
       await cover(martes, bookOne, bookOneSessions[4], "2026-07-14", [maria, ben, nena]);
-      await cover(martes, bookOne, bookOneSessions[5], "2026-07-21", [maria, ben, nena]);
 
       const progress = await getGroupBookProgress(TEST_OWNER, martes);
       if (progress === null) throw new Error("the group is on a book");

@@ -23,6 +23,7 @@ console.log(`Migrating ${new URL(url).host}`);
 
 const { migrate } = await import("../src/lib/migrate");
 const { seedCurriculum } = await import("../src/lib/curriculum/seed");
+const { GLC_PROGRAMS } = await import("../src/lib/curriculum/glc");
 
 const applied = await migrate();
 if (applied.length === 0) {
@@ -32,7 +33,15 @@ if (applied.length === 0) {
 }
 
 await seedCurriculum();
-console.log("Curriculum seeded (8 books, 50 sessions).");
+
+// Counted off the seed itself, so this line cannot drift from it (#77).
+const bookCount = GLC_PROGRAMS.reduce((total, program) => total + program.books.length, 0);
+const sessionCount = GLC_PROGRAMS.reduce(
+  (total, program) =>
+    total + program.books.reduce((count, book) => count + book.sessions.length, 0),
+  0,
+);
+console.log(`Curriculum seeded (${bookCount} books, ${sessionCount} sessions).`);
 
 // The Neon pool holds an open WebSocket, and nothing above closes it.
 process.exit(0);

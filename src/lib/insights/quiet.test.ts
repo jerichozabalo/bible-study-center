@@ -40,7 +40,7 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
     await seedCurriculum();
     bookOne = await bookIdByNumber(1);
     sessions = await Promise.all(
-      [1, 2, 3, 4, 5, 6].map((number) => sessionIdByNumber(bookOne, number)),
+      [1, 2, 3, 4, 5].map((number) => sessionIdByNumber(bookOne, number)),
     );
   });
 
@@ -201,9 +201,9 @@ describe.skipIf(!dbConfigured)("getQuietMembers", () => {
 
     // Once the group holds three nights he could have been at and skips them all,
     // he is quiet like anyone else.
-    await held(tuesdayGroup, "2026-06-23", 3);
-    await held(tuesdayGroup, "2026-06-30", 4);
-    await held(tuesdayGroup, "2026-07-07", 5);
+    await held(tuesdayGroup, "2026-06-23", 2);
+    await held(tuesdayGroup, "2026-06-30", 3);
+    await held(tuesdayGroup, "2026-07-07", 4);
 
     const later = await getQuietMembers(TEST_OWNER);
     expect(later.find((member) => member.personId === ben)).toMatchObject({

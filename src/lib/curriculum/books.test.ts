@@ -21,9 +21,7 @@ describe("bookLabel", () => {
   });
 
   it("quotes CCF's printed title as published, DGroup and all (#66)", () => {
-    expect(bookLabel({ number: 5, title: "Starting Point for Small Groups / DGroup 101" })).toBe(
-      "Book 5 — Starting Point for Small Groups / DGroup 101",
-    );
+    expect(bookLabel({ number: 5, title: "DGroup 101" })).toBe("Book 5 — DGroup 101");
   });
 });
 

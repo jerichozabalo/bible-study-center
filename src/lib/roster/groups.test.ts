@@ -69,7 +69,7 @@ describe.skipIf(!dbConfigured)("groups", () => {
       currentBookId: bookOne,
       currentBookNumber: 1,
       currentBookTitle: "One By One",
-      currentBookSessionCount: 6,
+      currentBookSessionCount: 5,
       memberCount: 0,
       archivedAt: null,
     });

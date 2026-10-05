@@ -43,7 +43,7 @@ describe.skipIf(!dbConfigured)("reports", () => {
     await ensureSchema();
     await seedCurriculum();
     bookOne = await bookIdByNumber(1);
-    s = await Promise.all([1, 2, 3, 4, 5, 6].map((n) => sessionIdByNumber(bookOne, n)));
+    s = await Promise.all([1, 2, 3, 4, 5].map((n) => sessionIdByNumber(bookOne, n)));
   });
 
   beforeEach(async () => {
@@ -291,10 +291,10 @@ describe.skipIf(!dbConfigured)("reports", () => {
 
       await setSteppedAway(TEST_OWNER, ben, true);
 
-      // Nico covers 5 sessions at his own BGroup and the 6th as a guest at
+      // Nico covers 4 sessions at his own BGroup and the 5th as a guest at
       // Tuesday — a complete book 1, part of it earned on a ride-along.
-      const satDates = ["2026-06-06", "2026-06-13", "2026-06-20", "2026-06-27", "2026-07-04"];
-      for (let i = 0; i < 5; i++) {
+      const satDates = ["2026-06-06", "2026-06-13", "2026-06-20", "2026-06-27"];
+      for (let i = 0; i < 4; i++) {
         const meeting = await addHeldMeeting(TEST_OWNER, saturday, satDates[i], {
           bookId: bookOne,
           sessionId: s[i],
@@ -303,7 +303,7 @@ describe.skipIf(!dbConfigured)("reports", () => {
       }
       const guestNight = await addHeldMeeting(TEST_OWNER, tuesday, "2026-06-30", {
         bookId: bookOne,
-        sessionId: s[5],
+        sessionId: s[4],
       });
       await tick(guestNight, nico);
 
@@ -390,13 +390,13 @@ describe.skipIf(!dbConfigured)("reports", () => {
           "",
           "Progress",
           "Book,Sessions covered,Complete",
-          "Book 1 — One By One,1 of 6,No",
-          "Book 2 — Spiritual Disciplines,0 of 6,No",
-          "Book 3 — The Holy Spirit,0 of 4,No",
-          "Book 4 — CCF DNA,0 of 4,No",
-          "Book 5 — Starting Point for Small Groups / DGroup 101,0 of 4,No",
+          "Book 1 — One By One,1 of 5,No",
+          "Book 2 — Spiritual Disciplines,0 of 5,No",
+          "Book 3 — The Holy Spirit,0 of 3,No",
+          "Book 4 — CCF DNA,0 of 2,No",
+          "Book 5 — DGroup 101,0 of 3,No",
           "Book 6 — Basic Doctrines,0 of 6,No",
-          "Book 7 — Family Life,0 of 8,No",
+          "Book 7 — Family Life,0 of 5,No",
           "Book 8 — Bible Survey,0 of 12,No",
           "",
           "Attendance",
@@ -470,8 +470,8 @@ describe.skipIf(!dbConfigured)("reports", () => {
           "",
           "Book progress",
           "Member,Nickname,Sessions covered,Complete",
-          "Ben Cruz,,1 of 6,No",
-          "Maria Santos,,2 of 6,No",
+          "Ben Cruz,,1 of 5,No",
+          "Maria Santos,,2 of 5,No",
         ].join("\r\n"),
       );
     });
@@ -553,7 +553,7 @@ describe.skipIf(!dbConfigured)("reports", () => {
           "Book 2 — Spiritual Disciplines,0",
           "Book 3 — The Holy Spirit,0",
           "Book 4 — CCF DNA,0",
-          "Book 5 — Starting Point for Small Groups / DGroup 101,0",
+          "Book 5 — DGroup 101,0",
           "Book 6 — Basic Doctrines,0",
           "Book 7 — Family Life,0",
           "Book 8 — Bible Survey,0",

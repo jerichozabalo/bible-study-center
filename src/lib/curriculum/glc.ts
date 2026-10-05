@@ -1,14 +1,23 @@
 /**
- * The CCF GLC curriculum, transcribed from `~/glc-books/GLC-SESSIONS.md`
- * (captured 2026-08-19 from https://glc.ccf.org.ph). 8 books, 50 sessions:
- * GLC 1 is Books 1-4 (20 sessions), GLC 2 is Books 5-8 (30 sessions) — #33.
+ * The CCF GLC curriculum, transcribed from the 2025–26 editions — the PDFs in
+ * `~/glc-books/glc-latest-2026-10-05` (downloaded 2026-10-05 from
+ * https://glc.ccf.org.ph; titles quoted from each book's own contents page).
+ * 8 books, 41 sessions: GLC 1 is Books 1-4 (15 sessions), GLC 2 is Books 5-8
+ * (26 sessions) — #33 as amended by #77.
+ *
+ * #77 — an edition update retitles the slots that survive (a session number is
+ * an identity: the row and every completion on it stay put) and tombstones the
+ * sessions a new printing removed (`migrations/012`, never a delete). The
+ * lists below are each book's LIVE sessions, in published order; the seed
+ * itself only ever inserts and updates.
  *
  * These are CCF's published titles and are quoted, not relabelled. That is why
- * "DGroup 101" and "Roles of a DGroup Leader" survive here while the app itself
+ * "DGroup 101" and "Roles of a Dgroup Leader" survive here while the app itself
  * says BGroup everywhere it speaks for itself (#66).
  *
  * ⛔ Never re-derive this from the artboards. Their mock data invents "Book 3 —
- * Christian Beliefs"; the real Book 3 is The Holy Spirit, four sessions.
+ * Christian Beliefs" and draws Book 1 with sessions the 5th edition dropped;
+ * the real Book 3 is The Holy Spirit, three sessions.
  *
  * A book's number is stored separately from its title, so a screen renders
  * "Book 3 — The Holy Spirit" and a custom book (#22, issue 13) can have no
@@ -42,19 +51,17 @@ export const GLC_PROGRAMS: SeedProgram[] = [
           "One Way — The Savior",
           "One Proof — Our New Life in Christ",
           "One Promise — The Assurance of Salvation",
-          "One Source — The Holy Spirit",
-          "One Pursuit — Growing in Our Relationship with Christ",
+          "One Pursuit — Living Victoriously in Christ",
         ],
       },
       {
         number: 2,
         title: "Spiritual Disciplines",
         sessions: [
-          "One Connection — Prayer",
+          "One Connection — Prayer and Fasting",
           "One Basis — The Bible",
           "One Family — The Church",
-          "One Step — Baptism",
-          "One Focus — Worship",
+          "One Blessing — Generous Giving",
           "One Task — Witnessing",
         ],
       },
@@ -62,16 +69,15 @@ export const GLC_PROGRAMS: SeedProgram[] = [
         number: 3,
         title: "The Holy Spirit",
         sessions: [
-          "Who Is the Holy Spirit?",
-          "The Works of the Holy Spirit",
-          "The Gifts and the Fruits of the Holy Spirit",
+          "The Person And Works of the Holy Spirit",
+          "The Gifts of the Holy Spirit",
           "Walking in the Spirit",
         ],
       },
       {
         number: 4,
         title: "CCF DNA",
-        sessions: ["Mission & Vision", "CCF Strategy", "Core Values (Part 1)", "Core Values (Part 2)"],
+        sessions: ["Mission, Vision, Strategy", "Core Values"],
       },
     ],
   },
@@ -81,12 +87,11 @@ export const GLC_PROGRAMS: SeedProgram[] = [
     books: [
       {
         number: 5,
-        title: "Starting Point for Small Groups / DGroup 101",
+        title: "DGroup 101",
         sessions: [
-          "Biblical Foundations of Small Group Ministry",
-          "Life-on-Life Discipleship — Roles of a DGroup Leader",
-          "The Process of Discipleship",
-          "Handling Issues in DGroups",
+          "Biblical Foundations for DGroup Ministry",
+          "Readiness and Roles of a Dgroup Leader",
+          "How to Start and Facilitate a Dgroup Meeting",
         ],
       },
       {
@@ -94,11 +99,11 @@ export const GLC_PROGRAMS: SeedProgram[] = [
         title: "Basic Doctrines",
         sessions: [
           "God's Word, The Bible",
-          "God's Person and Nature",
-          "Jesus — His Person and Works",
+          "God's Nature and Person",
+          "Jesus: His Person and Works",
           "Salvation",
           "The Trinity",
-          "Marriage / Gender",
+          "Marriage and Gender",
         ],
       },
       {
@@ -106,30 +111,27 @@ export const GLC_PROGRAMS: SeedProgram[] = [
         title: "Family Life",
         sessions: [
           "God's Design for the Family",
-          "Roles of Husband & Wife",
-          "Roles of Children and Single Adults",
-          "Communication & Restoring Relationship",
-          "Roles of Parents",
           "How to Influence Your Children",
-          "What to Teach Your Children (Part 1)",
-          "What to Teach Your Children (Part 2)",
+          "Communicate to Connect",
+          "What to Teach Your Children",
+          "Roles of the Youth and Singles",
         ],
       },
       {
         number: 8,
         title: "Bible Survey",
         sessions: [
-          "The Importance of the Bible Survey",
+          "The Importance of Bible Survey",
           "The Pentateuch",
-          "Historical Books 1: The Rise to the Monarchy",
-          "Historical Books 2: The Fall of the Monarchy",
-          "Wisdom Literature & Poetry",
+          "Historical Books 1: The Rise to Monarchy",
+          "Historical Books 2: The Fall of The Monarchy",
+          "Wisdom Literature and Poetry",
           "Major Prophets",
           "Minor Prophets",
           "The New Testament Gospels",
-          "The Acts of the Apostles",
+          "The Acts of The Apostles",
           "The Pauline Epistles",
-          "The General Epistles",
+          "General Epistles",
           "Revelation",
         ],
       },
