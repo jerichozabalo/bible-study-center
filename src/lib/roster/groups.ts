@@ -16,7 +16,11 @@
  */
 import { query, transaction } from "../db";
 import { manilaToday } from "../dates";
-import { materializeScheduleInTx, shiftProposedMeetingsInTx } from "../meetings/calendar";
+import {
+  materializeScheduleInTx,
+  recomputeProposedSessionsInTx,
+  shiftProposedMeetingsInTx,
+} from "../meetings/calendar";
 import { moveMembership } from "./memberships";
 
 /** Something the leader typed cannot be saved, and the message says why. */
@@ -184,8 +188,9 @@ export async function updateGroup(
       weekday: number;
       start_time: string;
       duration_minutes: number;
+      current_book_id: string | null;
     }>(
-      `SELECT weekday, start_time, duration_minutes FROM groups
+      `SELECT weekday, start_time, duration_minutes, current_book_id FROM groups
         WHERE owner_id = $1 AND id = $2 AND archived_at IS NULL`,
       [ownerId, id],
     );
@@ -244,6 +249,14 @@ export async function updateGroup(
       );
       await materializeScheduleInTx(tx, ownerId, manilaToday());
     }
+
+    if (before[0].current_book_id !== clean.currentBookId) {
+      // The book moved (#17), and with it the group's forward agenda: the
+      // still-PROPOSED nights re-read #53 against the new book (#78,
+      // 2026-10-12) — the same recompute `setCurrentBook` runs. Held and
+      // cancelled nights stay put (#24).
+      await recomputeProposedSessionsInTx(tx, ownerId, id);
+    }
   });
 }
 
@@ -263,6 +276,11 @@ export async function updateGroup(
  * Who is left behind, and whether to ask first, is the screen's question —
  * `insights/progress` answers it. This refuses nothing but a book that does not
  * exist and a group that is archived (#60).
+ *
+ * The one thing that follows the book is the forward agenda: the still-
+ * PROPOSED nights re-read #53 against the new book (#78, 2026-10-12) — the
+ * row the generator would write today. Held, cancelled and human-created
+ * meetings never move (#24).
  */
 export async function setCurrentBook(
   ownerId: string,
@@ -278,17 +296,24 @@ export async function setCurrentBook(
     throw new RosterValidationError("That book is not in the curriculum.");
   }
 
-  const rows = await query<{ id: string }>(
-    `UPDATE groups
-        SET current_book_id = $3, updated_at = now()
-      WHERE owner_id = $1 AND id = $2 AND archived_at IS NULL
-      RETURNING id`,
-    [ownerId, id, bookId],
-  );
+  await transaction(async (tx) => {
+    const rows = await tx.query<{ id: string }>(
+      `UPDATE groups
+          SET current_book_id = $3, updated_at = now()
+        WHERE owner_id = $1 AND id = $2 AND archived_at IS NULL
+        RETURNING id`,
+      [ownerId, id, bookId],
+    );
 
-  if (rows.length === 0) {
-    throw new RosterValidationError("That BGroup is archived or no longer exists.");
-  }
+    if (rows.length === 0) {
+      throw new RosterValidationError("That BGroup is archived or no longer exists.");
+    }
+
+    // #78 (2026-10-12): the still-PROPOSED nights are the group's forward
+    // agenda and they follow the new book (#17). Held and cancelled nights
+    // are history and never move (#24).
+    await recomputeProposedSessionsInTx(tx, ownerId, id);
+  });
 }
 
 /**

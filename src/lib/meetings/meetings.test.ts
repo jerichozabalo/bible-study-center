@@ -19,6 +19,7 @@ import { query } from "../db";
 import { seedCurriculum } from "../curriculum/seed";
 import { createPerson } from "../roster/people";
 import { archiveGroup, createGroup, getGroup } from "../roster/groups";
+import { materializeSchedule, resolveMeeting } from "./calendar";
 import {
   MeetingValidationError,
   changeMeetingSession,
@@ -36,6 +37,8 @@ import {
  */
 describe.skipIf(!dbConfigured)("meetings", () => {
   let bookOne: string;
+  let sessionOne: string;
+  let sessionTwo: string;
   let sessionThree: string;
   let group: string;
 
@@ -43,6 +46,8 @@ describe.skipIf(!dbConfigured)("meetings", () => {
     await ensureSchema();
     await seedCurriculum();
     bookOne = await bookIdByNumber(1);
+    sessionOne = await sessionIdByNumber(bookOne, 1);
+    sessionTwo = await sessionIdByNumber(bookOne, 2);
     sessionThree = await sessionIdByNumber(bookOne, 3);
   });
 
@@ -264,6 +269,36 @@ describe.skipIf(!dbConfigured)("meetings", () => {
     );
   });
 
+  it("keeps an archived BGroup's proposals off Home (#60/#79, 2026-10-12)", async () => {
+    const live = await createGroup(TEST_OWNER, {
+      name: "BGroup Bukas",
+      weekday: 1,
+      startTime: "19:00",
+      durationMinutes: 90,
+      currentBookId: bookOne,
+    });
+    await addGeneratedMeeting(TEST_OWNER, group, "2026-09-06"); // Sunday
+    await addGeneratedMeeting(TEST_OWNER, live, "2026-09-07"); // Monday
+    await archiveGroup(TEST_OWNER, group);
+
+    const upcoming = await listUpcomingMeetings(TEST_OWNER, { from: "2026-09-01", limit: 5 });
+
+    // The archived BGroup proposes nothing; the live one is untouched.
+    expect(upcoming.map((row) => row.groupName)).toEqual(["BGroup Bukas"]);
+  });
+
+  it("keeps an archived BGroup's unresolved proposals out of the log (#60/#79, 2026-10-12)", async () => {
+    await addHeldMeeting(TEST_OWNER, group, "2026-09-08");
+    await addGeneratedMeeting(TEST_OWNER, group, "2026-09-10"); // still proposed
+    await archiveGroup(TEST_OWNER, group);
+
+    const log = await listMeetingLog(TEST_OWNER, { to: "2026-09-11" });
+
+    // The record keeps the night it held; the dangling proposal is gone.
+    expect(log.map((row) => row.date)).toEqual(["2026-09-08"]);
+    expect(log[0].status).toBe("held");
+  });
+
   it("logs every meeting up to today, newest first — the future never lands (bst-v1.2 #1)", async () => {
     // The Meeting page's default view: the log is the record of nights that
     // are done (today counts). Tomorrow's proposed rows are the calendar's.
@@ -464,6 +499,33 @@ describe.skipIf(!dbConfigured)("meetings", () => {
       expect(await getMeeting(TEST_OWNER, cancelled)).toMatchObject({ date: "2026-09-06" });
     });
 
+    it("re-anchors the group's proposals when a HELD night's date is corrected (#53/#78, 2026-10-12)", async () => {
+      // Session 2 held on 9/20 sits at the anchor; session 1 held on 9/06.
+      // The generated Sundays read "session 3" — the session after 9/20's.
+      await addHeldMeeting(TEST_OWNER, group, "2026-09-06", {
+        bookId: bookOne,
+        sessionId: sessionOne,
+      });
+      const later = await addHeldMeeting(TEST_OWNER, group, "2026-09-20", {
+        bookId: bookOne,
+        sessionId: sessionTwo,
+      });
+      await materializeSchedule(TEST_OWNER, "2026-09-21");
+
+      // The 9/20 night was mis-dated and actually happened before 9/06 —
+      // correcting it re-anchors the agenda on session 1.
+      await updateMeeting(TEST_OWNER, later, edit({ date: "2026-08-30" }));
+
+      const [proposed] = await query<{ id: string; session_number: number | null }>(
+        `SELECT m.id, s.number AS session_number
+           FROM meetings m LEFT JOIN sessions s ON s.id = m.session_id
+          WHERE m.group_id = $1 AND m.status = 'proposed'
+          ORDER BY m.date ASC LIMIT 1`,
+        [group],
+      );
+      expect(proposed.session_number).toBe(2);
+    });
+
     it("refuses a date, time or duration it cannot read", async () => {
       const id = await createMeeting(TEST_OWNER, meeting());
 
@@ -517,6 +579,28 @@ describe.skipIf(!dbConfigured)("meetings", () => {
       expect(
         await query("SELECT 1 FROM completions WHERE meeting_id = $1", [held]),
       ).toHaveLength(0);
+    });
+
+    it("re-anchors the group's proposals when a HELD night is deleted (#53/#78, 2026-10-12)", async () => {
+      // Eight Sundays proposed on session 1; the first is resolved held — the
+      // other seven are the agenda now, session 2. Then the held night turns
+      // out to be a mis-log and is deleted: the anchor is gone, and they roll
+      // back to the book's first live session.
+      await materializeSchedule(TEST_OWNER, "2026-08-23");
+      await resolveMeeting(TEST_OWNER, group, "2026-08-23", "held");
+      const rows = await query<{ id: string; status: string; session_number: number | null }>(
+        `SELECT m.id, m.status, s.number AS session_number
+           FROM meetings m LEFT JOIN sessions s ON s.id = m.session_id
+          WHERE m.group_id = $1 ORDER BY m.date ASC`,
+        [group],
+      );
+      const held = rows.find((row) => row.status === "held")!;
+      const next = rows.find((row) => row.status === "proposed")!;
+      expect(next.session_number).toBe(2);
+
+      await deleteMeeting(TEST_OWNER, held.id);
+
+      expect((await getMeeting(TEST_OWNER, next.id))?.sessionNumber).toBe(1);
     });
 
     it("refuses a meeting that does not belong to this leader, or does not exist", async () => {

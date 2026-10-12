@@ -21,7 +21,11 @@
 import { weekdayOf } from "../dates";
 import { query, transaction } from "../db";
 import type { Schedule } from "../roster/schedule";
-import { materializeScheduleInTx, shiftProposedMeetingsInTx } from "./calendar";
+import {
+  materializeScheduleInTx,
+  recomputeProposedSessionsInTx,
+  shiftProposedMeetingsInTx,
+} from "./calendar";
 
 /** Something the leader typed cannot be saved, and the message says why. */
 export class MeetingValidationError extends Error {
@@ -123,7 +127,8 @@ export async function getMeeting(ownerId: string, id: string): Promise<MeetingSu
  *
  * Cancelled nights are left out: the calendar shows them greyed and struck
  * through so an empty Sunday reads correctly (#50), but "what is next" is not a
- * place for a night that is not happening.
+ * place for a night that is not happening. A PROPOSED night of an archived
+ * BGroup is left out too (#79, 2026-10-12) — archived groups propose nothing.
  */
 export async function listUpcomingMeetings(
   ownerId: string,
@@ -134,6 +139,7 @@ export async function listUpcomingMeetings(
   const rows = await query<MeetingRow>(
     `${SELECT_MEETING}
       WHERE m.owner_id = $1 AND m.date >= $2::date AND m.status <> 'cancelled'
+        AND NOT (g.archived_at IS NOT NULL AND m.status = 'proposed')
       ORDER BY m.date ASC, m.start_time ASC
       LIMIT $3`,
     [ownerId, options.from, options.limit ?? 5],
@@ -148,8 +154,10 @@ export async function listUpcomingMeetings(
  * Days read newest-first; a day's own nights keep evening order, the way the
  * night happened. It does NOT filter by status: the log is the record — a
  * cancelled night shows greyed and struck through (#50), and a past-due
- * proposed night keeps its one-tap resolve reachable (#52). Future nights are
- * excluded by construction (`to` is today, read in Manila per #56 — a night
+ * proposed night keeps its one-tap resolve reachable (#52) — except one,
+ * #79 (2026-10-12): an archived BGroup's still-unresolved PROPOSED nights
+ * stay out of the log, while its held and cancelled history reads as ever.
+ * Future nights are excluded by construction (`to` is today, read in Manila per #56 — a night
  * dated `to` itself IS included; the boundary is today, not before it).
  * No LIMIT: single user, weekly cadence — a screenful at a time, hundreds at
  * the very most.
@@ -163,6 +171,7 @@ export async function listMeetingLog(
   const rows = await query<MeetingRow>(
     `${SELECT_MEETING}
       WHERE m.owner_id = $1 AND m.date <= $2::date
+        AND NOT (g.archived_at IS NOT NULL AND m.status = 'proposed')
       ORDER BY m.date DESC, m.start_time ASC`,
     [ownerId, options.to],
   );
@@ -335,11 +344,11 @@ export async function updateMeeting(
   const notes = input.notes?.trim() ?? "";
 
   await transaction(async (tx) => {
-    const rows = await tx.query<{ id: string; group_id: string }>(
+    const rows = await tx.query<{ id: string; group_id: string; status: MeetingStatus }>(
       `UPDATE meetings
           SET date = $3, start_time = $4, duration_minutes = $5, notes = $6, updated_at = now()
         WHERE owner_id = $1 AND id = $2
-        RETURNING id, group_id`,
+        RETURNING id, group_id, status`,
       [
         ownerId,
         meetingId,
@@ -374,6 +383,14 @@ export async function updateMeeting(
       );
       await materializeScheduleInTx(tx, ownerId, input.date);
     }
+
+    // A HELD night's date is the agenda's anchor (#53): correcting it can
+    // change which night is "the last held", so the group's still-proposed
+    // nights re-read the rule (#78, 2026-10-12). A proposed or cancelled row
+    // moves no anchor — and the guard inside makes this a no-op anyway.
+    if (rows[0].status === "held") {
+      await recomputeProposedSessionsInTx(tx, ownerId, rows[0].group_id);
+    }
   });
 }
 
@@ -385,19 +402,33 @@ export async function updateMeeting(
  * way, but their R2 objects do not — the delete action calls
  * `session-photos/photos.ts`'s `removePhotosForMeeting` first, the same module
  * that already owns "delete really deletes" for a single photo.
+ *
+ * A deleted HELD night is also an agenda move (#78, 2026-10-12): it was the
+ * anchor #53 reads from, so the group's still-PROPOSED nights re-read the
+ * rule — see `recomputeProposedSessionsInTx`.
  */
 export async function deleteMeeting(ownerId: string, meetingId: string): Promise<void> {
   if (!UUID_PATTERN.test(meetingId)) {
     throw new MeetingValidationError("That meeting could not be found.");
   }
 
-  const rows = await query<{ id: string }>(
-    `DELETE FROM meetings WHERE owner_id = $1 AND id = $2 RETURNING id`,
-    [ownerId, meetingId],
-  );
-  if (rows.length === 0) {
-    throw new MeetingValidationError("That meeting could not be found.");
-  }
+  await transaction(async (tx) => {
+    const rows = await tx.query<{ id: string; group_id: string; status: MeetingStatus }>(
+      `DELETE FROM meetings WHERE owner_id = $1 AND id = $2
+        RETURNING id, group_id, status`,
+      [ownerId, meetingId],
+    );
+    if (rows.length === 0) {
+      throw new MeetingValidationError("That meeting could not be found.");
+    }
+
+    // Deleting a HELD night removes the agenda's anchor (#53): the group's
+    // still-proposed nights roll back to the rule (#78, 2026-10-12).
+    // Deleting a proposed or cancelled row moves no anchor.
+    if (rows[0].status === "held") {
+      await recomputeProposedSessionsInTx(tx, ownerId, rows[0].group_id);
+    }
+  });
 }
 
 /**

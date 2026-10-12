@@ -15,6 +15,14 @@
  * Which database is whichever `DATABASE_URL` is in `.env.local` — the same
  * production branch every other one-off script here writes to. Run once;
  * safe to re-run (a second pass finds nothing left to correct).
+ *
+ * ⚠️ SPENT and superseded (2026-10-12): its SQL is the hand-copied copy of the
+ * #53 rule that has since moved into `agendaSessionSubquery` (calendar.ts),
+ * shared by the app's recompute and `scripts/fix-proposed-sessions.mts`. Do
+ * NOT re-run this one — it recomputes against each row's own book and never
+ * moves `book_id`, so an advanced group's rows would come back with a book
+ * from one book and a session from another. `fix-proposed-sessions.mts` is
+ * its successor.
  */
 import { config } from "dotenv";
 

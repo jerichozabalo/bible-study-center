@@ -8,10 +8,15 @@ import {
   ensureSchema,
   resetRoster,
 } from "../../../tests/fixtures";
-import { resetMeetings, sessionIdByNumber } from "../../../tests/meeting-fixtures";
+import {
+  addHeldMeeting,
+  resetMeetings,
+  sessionIdByNumber,
+} from "../../../tests/meeting-fixtures";
 import { getBook } from "../curriculum/books";
 import { createBook, updateBook } from "../curriculum/custom";
 import { seedCurriculum } from "../curriculum/seed";
+import { addDays, manilaToday } from "../dates";
 import { createGroup } from "../roster/groups";
 import { createMeeting } from "./meetings";
 import {
@@ -32,6 +37,7 @@ import {
 describe.skipIf(!dbConfigured)("calendar", () => {
   let bookOne: string;
   let sessionOne: string;
+  let sessionThree: string;
   let group: string;
 
   beforeAll(async () => {
@@ -39,6 +45,7 @@ describe.skipIf(!dbConfigured)("calendar", () => {
     await seedCurriculum();
     bookOne = await bookIdByNumber(1);
     sessionOne = await sessionIdByNumber(bookOne, 1);
+    sessionThree = await sessionIdByNumber(bookOne, 3);
   });
 
   beforeEach(async () => {
@@ -256,6 +263,24 @@ describe.skipIf(!dbConfigured)("calendar", () => {
       });
       expect(meetings).toHaveLength(0);
     });
+
+    it("keeps an archived BGroup's proposals off the calendar, its history on it (#60/#79, 2026-10-12)", async () => {
+      await materializeSchedule(TEST_OWNER, "2026-08-23");
+      await addHeldMeeting(TEST_OWNER, group, "2026-08-16", {
+        bookId: bookOne,
+        sessionId: sessionOne,
+      });
+      const { archiveGroup } = await import("../roster/groups");
+      await archiveGroup(TEST_OWNER, group);
+
+      const meetings = await getCalendar(TEST_OWNER, { from: "2026-08-16", to: "2026-10-18" });
+
+      // Every proposed night is gone the moment the group is archived (#60 —
+      // it proposes nothing), while the night it actually held still reads
+      // (#24 — archived is not erased).
+      expect(meetings.map((m) => m.status)).toEqual(["held"]);
+      expect(meetings[0].date).toBe("2026-08-16");
+    });
   });
 
   describe("resolveMeeting (past-due one-tap resolve, #52)", () => {
@@ -266,6 +291,34 @@ describe.skipIf(!dbConfigured)("calendar", () => {
 
       const meetings = await getCalendar(TEST_OWNER, { from: "2026-08-23", to: "2026-08-23" });
       expect(meetings[0].status).toBe("held");
+    });
+
+    it("moves the group's other proposed nights onto the agenda the moment one is held (#53/#78, 2026-10-12)", async () => {
+      await materializeSchedule(TEST_OWNER, "2026-08-23"); // eight Sundays, all session 1
+      // A human-created make-up night on the same book — its session was
+      // typed on purpose and is not the recompute's to touch.
+      await createMeeting(TEST_OWNER, {
+        groupId: group,
+        date: "2026-09-13",
+        startTime: null,
+        durationMinutes: null,
+        bookId: bookOne,
+        sessionId: sessionThree,
+        notes: null,
+        repeatWeekly: false,
+      });
+
+      await resolveMeeting(TEST_OWNER, group, "2026-08-23", "held");
+
+      // The held night covered session 1; everything still proposed is the
+      // agenda now — the next live session after it, not a frozen session 1.
+      const span = await getCalendar(TEST_OWNER, { from: "2026-08-30", to: "2026-10-11" });
+      const generated = span.filter((m) => m.origin === "generated");
+      expect(generated.map((m) => m.sessionNumber)).toEqual([2, 2, 2, 2, 2, 2, 2]);
+      const typed = span.find((m) => m.origin === "created");
+      expect(typed?.sessionNumber).toBe(3);
+      const held = await getCalendar(TEST_OWNER, { from: "2026-08-23", to: "2026-08-23" });
+      expect(held[0].sessionNumber).toBe(1); // history does not rewrite (#24)
     });
 
     it("marks a past-due proposed meeting as cancelled", async () => {
@@ -288,9 +341,18 @@ describe.skipIf(!dbConfigured)("calendar", () => {
     });
 
     it("does not resolve a future meeting", async () => {
-      await materializeSchedule(TEST_OWNER, "2026-08-23");
+      // Relative to the real clock on purpose: the horizon is materialised
+      // from TODAY, so the first generated night is dated today or later —
+      // genuinely not-yet-passed whenever this suite runs. (A hard-coded
+      // "future" date — 2026-10-11 — became the past the first time the
+      // suite ran after it, and this test turned red on a clean tree.)
+      const today = manilaToday();
+      await materializeSchedule(TEST_OWNER, today);
+      const [night] = await getCalendar(TEST_OWNER, { from: today, to: addDays(today, 60) });
 
-      await expect(resolveMeeting(TEST_OWNER, group, "2026-10-11", "held")).rejects.toThrow();
+      await expect(
+        resolveMeeting(TEST_OWNER, night.groupId, night.date, "held"),
+      ).rejects.toThrow();
     });
 
     it("is owner-scoped (#32)", async () => {

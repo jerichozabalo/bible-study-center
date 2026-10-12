@@ -102,6 +102,10 @@ const SELECT_CALENDAR = `
  * held, and cancelled all appear, because the page must show all three
  * differently: proposed (with past-due flagging), held, and cancelled
  * (greyed + struck through, #50).
+ *
+ * One exception, #79 (2026-10-12): a PROPOSED night of an archived BGroup is
+ * not drawn — archived groups propose nothing — while its held and cancelled
+ * nights still read (#24: archived is not erased).
  */
 export async function getCalendar(
   ownerId: string,
@@ -112,6 +116,9 @@ export async function getCalendar(
        WHERE m.owner_id = $1
          AND m.date >= $2::date
          AND m.date <= $3::date
+         -- #79: an archived BGroup proposes nothing. Its held and cancelled
+         -- history still reads (#24).
+         AND NOT (g.archived_at IS NOT NULL AND m.status = 'proposed')
        ORDER BY m.date ASC, m.start_time ASC`,
     [ownerId, range.from, range.to],
   );
@@ -196,6 +203,41 @@ export async function materializeScheduleInTx(
 }
 
 /**
+ * The #53 agenda as SQL: the first LIVE session numbered after whatever the
+ * group's last HELD meeting on its current book covered — 0, the book's first
+ * live session, for a group that has held nothing on this book yet; NULL for
+ * a finished book (#4 keeps choosing the next book a deliberate checkpoint).
+ *
+ * One string, because the writers share the rule — `insertGeneratedMeeting`,
+ * `recomputeProposedSessionsInTx`, and the one-off correction script — after
+ * two rounds of hand-copied SQL drifting: the generator wrote the book's
+ * first session while the form wrote the agenda (2026-09-17), and rows froze
+ * at whatever the agenda said the day they were materialised while the group
+ * moved on (2026-10-12).
+ *
+ * Numbers, not positions: the first session numbered *after* the anchor, so
+ * a retired session (#24) leaves a gap the rule walks over. Exported for
+ * `scripts/fix-proposed-sessions.mts`, whose dry run must read the rule from
+ * here too — a copy is how the two drifted in the first place.
+ */
+export function agendaSessionSubquery(o: { owner: string; group: string; book: string }): string {
+  return `(SELECT s.id FROM sessions s
+            WHERE s.book_id = ${o.book} AND s.retired_at IS NULL
+              AND s.number > COALESCE(
+                (SELECT s2.number
+                   FROM meetings m2
+                   JOIN sessions s2 ON s2.id = m2.session_id
+                  WHERE m2.owner_id = ${o.owner}
+                    AND m2.group_id = ${o.group}
+                    AND m2.book_id = ${o.book}
+                    AND m2.status = 'held'
+                  ORDER BY m2.date DESC, m2.start_time DESC, m2.created_at DESC
+                  LIMIT 1),
+                0)
+            ORDER BY s.number ASC LIMIT 1)`;
+}
+
+/**
  * Insert one generated proposed meeting for `(groupId, date)` from that group's
  * current schedule — the single write every generation path shares (#73).
  *
@@ -220,27 +262,9 @@ async function insertGeneratedMeeting(
        (owner_id, led_by, group_id, date, start_time, duration_minutes,
         book_id, session_id, notes, status, origin)
      SELECT $1, $1, g.id, $3::date, g.start_time, g.duration_minutes, g.current_book_id,
-            -- The same #53 rule the manual New Meeting form uses in
-            -- prefill.ts (nextSession/lastCoveredSessionNumber): the
-            -- first live session numbered after whatever the group's last
-            -- HELD meeting on this book covered, never a flat "book's first".
-            -- A group with no held meeting on this book yet falls back to 0,
-            -- landing correctly on the book's first live (non-retired,
-            -- #24) session.
-            (SELECT s.id FROM sessions s
-              WHERE s.book_id = g.current_book_id AND s.retired_at IS NULL
-                AND s.number > COALESCE(
-                  (SELECT s2.number
-                     FROM meetings m2
-                     JOIN sessions s2 ON s2.id = m2.session_id
-                    WHERE m2.owner_id = $1
-                      AND m2.group_id = g.id
-                      AND m2.book_id = g.current_book_id
-                      AND m2.status = 'held'
-                    ORDER BY m2.date DESC, m2.start_time DESC, m2.created_at DESC
-                    LIMIT 1),
-                  0)
-              ORDER BY s.number ASC LIMIT 1),
+            -- The #53 agenda, from the one place it is written down:
+            -- agendaSessionSubquery() — the recompute reads the same string.
+            ${agendaSessionSubquery({ owner: "$1", group: "g.id", book: "g.current_book_id" })},
             NULL, 'proposed', 'generated'
       FROM groups g
      WHERE g.id = $2 AND g.owner_id = $1 AND g.archived_at IS NULL
@@ -248,6 +272,68 @@ async function insertGeneratedMeeting(
                         WHERE m.owner_id = $1 AND m.group_id = $2 AND m.date = $3::date)
      ON CONFLICT DO NOTHING`,
     [ownerId, groupId, date],
+  );
+}
+
+/**
+ * Put a group's still-PROPOSED generated meetings back on its current agenda
+ * (#53): the current book and the first live session after its last HELD
+ * meeting — the row `insertGeneratedMeeting` would write today.
+ *
+ * Called whenever an input of the rule moves (#78, 2026-10-12): a night is
+ * held (`recordSheet`, `resolveMeeting`), a held night is deleted or re-dated
+ * (`deleteMeeting`, `updateMeeting`), or the group's book changes
+ * (`setCurrentBook`, `updateGroup`). Its `InTx` body runs in the caller's
+ * transaction, so a failed write rolls the recompute back with it.
+ *
+ * Never called for `changeMeetingSession`: the Change pill is the deliberate
+ * counter-action to the guess, and it must survive. The `IS DISTINCT` guard
+ * makes an unchanged rule a no-op, so callers need no comparison of their own.
+ */
+export async function recomputeProposedSessions(ownerId: string, groupId: string): Promise<void> {
+  await transaction(async (tx) => {
+    await recomputeProposedSessionsInTx(tx, ownerId, groupId);
+  });
+}
+
+/**
+ * The transactional body of `recomputeProposedSessions`, exported for the
+ * writers that already hold a transaction (the attendance sheet's save, the
+ * meeting edits, the roster's book moves).
+ *
+ * Scope, deliberately narrow — the same fence `scripts/fix-generated-sessions`
+ * drew: proposed + generated rows only. A HELD or CANCELLED night is history
+ * (#24), and an `origin = 'created'` meeting carries a session someone chose
+ * on purpose (or the #53 prefill already picked it) — not the generator's to
+ * re-guess. Book and session move together; a group with no book yet gets
+ * NULL onward (#17), and a finished book gets NULL session until the #4
+ * checkpoint picks the next one.
+ */
+export async function recomputeProposedSessionsInTx(
+  tx: TransactionClient,
+  ownerId: string,
+  groupId: string,
+): Promise<void> {
+  const agenda = agendaSessionSubquery({
+    owner: "m.owner_id",
+    group: "m.group_id",
+    book: "g.current_book_id",
+  });
+
+  await tx.query(
+    `UPDATE meetings m
+        SET book_id = g.current_book_id,
+            session_id = ${agenda},
+            updated_at = now()
+       FROM groups g
+      WHERE m.owner_id = $1
+        AND m.group_id = $2
+        AND g.id = m.group_id
+        AND m.status = 'proposed'
+        AND m.origin = 'generated'
+        AND (m.book_id IS DISTINCT FROM g.current_book_id
+             OR m.session_id IS DISTINCT FROM ${agenda})`,
+    [ownerId, groupId],
   );
 }
 
@@ -321,6 +407,13 @@ export async function resolveMeeting(
          WHERE owner_id = $1 AND id = $2 AND status = 'proposed'`,
       [ownerId, meeting.id, status],
     );
+
+    // Holding the night moved the agenda (#53/#78): the group's other
+    // proposed nights are now "the session after this one". Cancelling is
+    // not an agenda move — a night that did not happen covers nothing.
+    if (status === "held") {
+      await recomputeProposedSessionsInTx(tx, ownerId, groupId);
+    }
   });
 }
 

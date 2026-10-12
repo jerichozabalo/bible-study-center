@@ -10,6 +10,7 @@ import {
 } from "../../../tests/fixtures";
 import {
   addCancelledMeeting,
+  addGeneratedMeeting,
   resetMeetings,
   sessionIdByNumber,
 } from "../../../tests/meeting-fixtures";
@@ -403,6 +404,31 @@ describe.skipIf(!dbConfigured)("attendance completions", () => {
       ...(await listCompletions(TEST_OWNER, fellowship)),
     ]).toEqual(rows);
     expect(await listCoveredSessions(TEST_OWNER, maria)).toEqual(before);
+  });
+
+  it("moves the BGroup's other proposed nights onto the agenda when a sheet is confirmed (#53/#78, 2026-10-12)", async () => {
+    // Next week's night was written while the agenda stood on session 4 — a
+    // frozen guess. Confirming tonight's sheet (session 4) is the agenda
+    // move; the still-proposed night follows to the next live session.
+    const next = await addGeneratedMeeting(TEST_OWNER, group, "2026-09-01", "19:00");
+    await query("UPDATE meetings SET book_id = $2, session_id = $3 WHERE id = $1", [
+      next,
+      bookOne,
+      sessionFour,
+    ]);
+
+    await recordSheet(TEST_OWNER, {
+      meetingId: meeting,
+      marks: [{ personId: maria, mark: "attended" }],
+      hold: true,
+    });
+
+    expect(await getMeeting(TEST_OWNER, next)).toMatchObject({
+      bookId: bookOne,
+      sessionNumber: 5,
+    });
+    // Tonight's own row is untouched — held history does not rewrite (#24).
+    expect((await getMeeting(TEST_OWNER, meeting))?.sessionNumber).toBe(4);
   });
 
   async function peopleCount(): Promise<number> {

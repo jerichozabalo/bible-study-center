@@ -8,9 +8,14 @@ import {
   ensureSchema,
   resetRoster,
 } from "../../../tests/fixtures";
-import { addGeneratedMeeting, addHeldMeeting } from "../../../tests/meeting-fixtures";
+import {
+  addGeneratedMeeting,
+  addHeldMeeting,
+  sessionIdByNumber,
+} from "../../../tests/meeting-fixtures";
 import { seedCurriculum } from "../curriculum/seed";
 import { query } from "../db";
+import { materializeSchedule } from "../meetings/calendar";
 import {
   RosterValidationError,
   archiveGroup,
@@ -33,12 +38,14 @@ import {
 describe.skipIf(!dbConfigured)("groups", () => {
   let bookOne: string;
   let bookTwo: string;
+  let sessionOne: string;
 
   beforeAll(async () => {
     await ensureSchema();
     await seedCurriculum();
     bookOne = await bookIdByNumber(1);
     bookTwo = await bookIdByNumber(2);
+    sessionOne = await sessionIdByNumber(bookOne, 1);
   });
 
   beforeEach(async () => {
@@ -259,11 +266,12 @@ describe.skipIf(!dbConfigured)("groups", () => {
   });
 
   /**
-   * Advancing (#4/#17/#18): the group moves to the next book and NOTHING else
-   * moves with it. No enrolment is created (#16 — there is no such entity), no
-   * completion is written or taken away (#5 — the members' progress is theirs),
-   * and no meeting is touched. The checkpoint that asks first is the screen's;
-   * this is the whole of the write it confirms.
+   * Advancing (#4/#17/#18): the group moves to the next book. No enrolment is
+   * created (#16 — there is no such entity), no completion is written or taken
+   * away (#5 — the members' progress is theirs), and no HELD night is touched
+   * (#24). The one thing that follows is the forward agenda: the still-PROPOSED
+   * nights re-read #53 against the new book (#78, 2026-10-12) — current book,
+   * first live session — the row the generator would write today.
    */
   describe("setCurrentBook", () => {
     it("moves the group to the next book", async () => {
@@ -278,7 +286,7 @@ describe.skipIf(!dbConfigured)("groups", () => {
       });
     });
 
-    it("changes the group row and nothing else", async () => {
+    it("changes the group row and leaves members, progress and history alone", async () => {
       const id = await createGroup(TEST_OWNER, linggo());
       const person = await addPerson("Maria Santos", id);
       const before = await getGroup(TEST_OWNER, id);
@@ -335,6 +343,28 @@ describe.skipIf(!dbConfigured)("groups", () => {
         setCurrentBook("someone-else@example.com", id, bookTwo),
       ).rejects.toBeInstanceOf(RosterValidationError);
       expect(await getGroup(TEST_OWNER, id)).toMatchObject({ currentBookId: bookOne });
+    });
+
+    it("moves the BGroup's still-PROPOSED nights onto the new book's agenda (#53/#78, 2026-10-12)", async () => {
+      const id = await createGroup(TEST_OWNER, linggo());
+      await addHeldMeeting(TEST_OWNER, id, "2026-08-16", { bookId: bookOne, sessionId: sessionOne });
+      await materializeSchedule(TEST_OWNER, "2026-08-17"); // Sundays from 8/23 — book 1, session 2
+
+      await setCurrentBook(TEST_OWNER, id, bookTwo);
+
+      const rows = await query<{
+        book_id: string | null;
+        session_number: number | null;
+      }>(
+        `SELECT m.book_id, s.number AS session_number
+           FROM meetings m LEFT JOIN sessions s ON s.id = m.session_id
+          WHERE m.group_id = $1 AND m.status = 'proposed' ORDER BY m.date ASC`,
+        [id],
+      );
+      // Current book (#17), first live session — and nothing held moves (#24).
+      expect(rows).toHaveLength(8);
+      expect(rows.every((row) => row.book_id === bookTwo)).toBe(true);
+      expect(rows.every((row) => row.session_number === 1)).toBe(true);
     });
   });
 

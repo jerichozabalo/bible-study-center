@@ -24,6 +24,7 @@
  * Issue 7 owns that derivation and the catch-up matching beside it.
  */
 import { type TransactionClient, query, transaction } from "../db";
+import { recomputeProposedSessionsInTx } from "../meetings/calendar";
 import { createPerson } from "../roster/people";
 
 /** Something the sheet posted cannot be recorded, and the message says why. */
@@ -161,6 +162,10 @@ export async function recordSheet(ownerId: string, input: RecordSheetInput): Pro
           WHERE owner_id = $1 AND id = $2 AND status <> 'cancelled'`,
         [ownerId, meeting.id],
       );
+
+      // The confirmation is an agenda move (#53/#78, 2026-10-12): the
+      // group's still-proposed nights are now "the session after this one".
+      await recomputeProposedSessionsInTx(tx, ownerId, meeting.groupId);
     }
   });
 }
